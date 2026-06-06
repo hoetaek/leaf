@@ -1,0 +1,27 @@
+[package]
+name = "leaf"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+description = "Domain-neutral human-agent collaboration CLI"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+keywords = ["cli", "agent", "collaboration", "workflow"]
+categories = ["command-line-utilities"]
+include = [
+    "Cargo.toml",
+    "Cargo.lock",
+    "README.md",
+    "src/**",
+    "tests/**",
+]
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+
+[dev-dependencies]
+assert_cmd = "2"
+assert_fs = "1"
+predicates = "3"

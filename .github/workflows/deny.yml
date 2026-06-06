@@ -1,0 +1,29 @@
+name: Dependency Policy
+
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+      - main
+      - master
+  schedule:
+    - cron: "37 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-deny:
+    name: cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Check dependency policy
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          rust-version: "1.95.0"
+          command: check bans licenses sources
+          arguments: --locked --all-features
