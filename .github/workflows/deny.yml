@@ -6,7 +6,6 @@ on:
     branches:
       - develop
       - main
-      - master
   schedule:
     - cron: "37 3 * * 1"
 
