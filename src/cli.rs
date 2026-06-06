@@ -28,7 +28,13 @@ pub(crate) fn run() -> Result<()> {
 fn execute(cli: Cli) -> Result<()> {
     match cli.command {
         Commands::Init => {
-            println!("leaf init is not implemented yet");
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            let changed = crate::storage::ensure_leaf_root(&paths)?;
+            if changed {
+                println!("initialized .leaf/");
+            } else {
+                println!(".leaf/ already initialized");
+            }
             Ok(())
         }
         Commands::New { slug } => {
