@@ -6,13 +6,20 @@ rust-version = "1.85"
 publish = false
 description = "Domain-neutral human-agent collaboration CLI"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/hoetaek/leaf"
+homepage = "https://github.com/hoetaek/leaf"
 readme = "README.md"
 keywords = ["cli", "agent", "collaboration", "workflow"]
 categories = ["command-line-utilities"]
 include = [
     "Cargo.toml",
     "Cargo.lock",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE-APACHE",
+    "LICENSE-MIT",
     "README.md",
+    "SECURITY.md",
     "src/**",
     "tests/**",
 ]
@@ -25,3 +32,15 @@ clap = { version = "4", features = ["derive"] }
 assert_cmd = "2"
 assert_fs = "1"
 predicates = "3"
+
+[package.metadata.dist]
+dist = true
+targets = [
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-unknown-linux-gnu",
+]
+
+[profile.dist]
+inherits = "release"
+lto = "thin"
