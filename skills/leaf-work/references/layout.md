@@ -6,14 +6,40 @@ write files.
 **The leaf-work folder records the thinking process.** Each file says what you
 did, learned, and decided at that gate; the artifact itself — essay, video,
 code — lives wherever you keep your work, and leaf-work only records what was
-done. Keep one folder per project. The top level is split by the four LEAF
-phases, each with a two-digit phase prefix so `ls` sort shows the work in order.
-Inside each phase, files keep their two-digit gate prefix.
+done. `leaf-work` uses the `leaf` CLI for this folder: initialize `.leaf/` in
+the repo and create one project folder per slug. Inside that project folder,
+the top level is split by the four LEAF phases, each with a two-digit phase
+prefix so `ls` sort shows the work in order. Inside each phase, files keep their
+two-digit gate prefix.
+
+## Leaf CLI workspace
+
+Run these before writing gate files:
+
+```bash
+leaf init
+leaf new <slug>
+```
+
+`leaf init` creates the repo-local workspace:
+
+```text
+.leaf/
+├── seeds/
+└── leaves/
+```
+
+`leaf new <slug>` creates exploratory work under `.leaf/seeds/<slug>/`. Seeds
+are ideas: they can die, split, or be rewritten. When work becomes committed and
+active, it belongs under `.leaf/leaves/<slug>/`; use the current lifecycle
+command when one exists, otherwise move it only after explicit user approval and
+record the promotion in `01-Learn/01-intent.md`.
 
 ## Recommended structure
 
 ```text
-<project-name>/
+.leaf/seeds/<slug>/                         exploratory idea seed
+# or .leaf/leaves/<slug>/                   committed active leaf
 ├── 00-status.md                              dashboard: current gate, progress, next action
 ├── README.md                                 project description only (optional)
 │
@@ -30,15 +56,20 @@ Inside each phase, files keep their two-digit gate prefix.
 │       └── contracts.md                      declared contract behind each placeholder
 │
 ├── 03-Architect/
-│   ├── 05-design-<artifact>.md               ⑤ Design — generator (consumes ④ contract)
-│   ├── 06-critic-<artifact>.md               ⑥ Critic — design falsification (depth scales with risk)
+│   ├── 05-design.md                          ⑤ Design — generator (consumes ④ contract)
+│   ├── 06-critic.md                          ⑥ Critic — lazy unless risk warrants it
 │   ├── 07-tasks.md                           ⑦ Task graph
-│   └── 08-execution.md                       ⑧ what was done — one entry per work session
+│   └── 08-execution.md                       ⑧ lazy execution log / handoff
 │
 └── 04-Feedback/
-    ├── 09-review-<artifact>-v1.md            ⑨ Review/sync (file when one or two)
-    └── 10-retrospect-<topic>.md              ⑩ Retrospect (file when one or two)
+    ├── 09-review.md                          ⑨ Review/sync, lazy until review happens
+    └── 10-retrospect.md                      ⑩ Retrospect, lazy until close
 ```
+
+The current CLI scaffolds the core seed files (`00-status.md`, gates ①-⑤, ⑦,
+and the phase folders). Create lazy files such as `06-critic.md`,
+`08-execution.md`, `09-review.md`, and `10-retrospect.md` only when the gate
+needs them.
 
 ## Status dashboard
 
@@ -93,12 +124,12 @@ Recommended template:
 | ② Unknowns & Context | active | 50 | 01-Learn/02-unknowns.md | resolve blocking unknowns |
 | ③ Criteria | not-started | 0 | 02-Example/03-criteria.md | start after ② approval |
 | ④ Wireframe | not-started | 0 | 02-Example/04-wireframe/ | - |
-| ⑤ Design | not-started | 0 | 03-Architect/05-design-<artifact>.md | - |
-| ⑥ Critic | not-started | 0 | 03-Architect/06-critic-<artifact>.md | - |
+| ⑤ Design | not-started | 0 | 03-Architect/05-design.md | - |
+| ⑥ Critic | not-started | 0 | 03-Architect/06-critic.md | - |
 | ⑦ Tasks | not-started | 0 | 03-Architect/07-tasks.md | - |
 | ⑧ Artifact | not-started | 0 | 03-Architect/08-execution.md | - |
-| ⑨ Review | not-started | 0 | 04-Feedback/09-review-<artifact>-v1.md | - |
-| ⑩ Retrospect | not-started | 0 | 04-Feedback/10-retrospect-<topic>.md | - |
+| ⑨ Review | not-started | 0 | 04-Feedback/09-review.md | - |
+| ⑩ Retrospect | not-started | 0 | 04-Feedback/10-retrospect.md | - |
 
 ## Return Log
 
@@ -130,19 +161,19 @@ inside drop the keyword:
 
 ## Naming rules
 
-- **One folder per project.** Do not spread one project's outputs across
-  multiple top-level folders.
+- **One leaf folder per project.** Do not spread one project's process files
+  across multiple `.leaf/seeds/` or `.leaf/leaves/` folders.
 - **The scaffold comes first, and `00-status.md` is part of it.** Invoking
-  leaf-work means standing up the four phase folders and `00-status.md` at the
-  root before working any gate — there is no "LEAF without a body." A task too
-  small to deserve that scaffold should not invoke leaf-work at all, rather than
-  run it while skipping the files.
+  leaf-work means running `leaf init` / `leaf new <slug>` and using the
+  resulting `.leaf/seeds/<slug>/` scaffold before working any gate — there is no
+  "LEAF without a body." A task too small to deserve that scaffold should not
+  invoke leaf-work at all, rather than run it while skipping the files.
 - **`README.md` is not the status file.** Use it only for stable project
   description or handoff notes. Current gate, progress, and next action belong
   in `00-status.md`.
-- **Top-level folders are phases.** Use exactly `01-Learn/`, `02-Example/`,
-  `03-Architect/`, and `04-Feedback/` when persistent files are needed. The
-  numeric prefix preserves order; the phase name preserves meaning.
+- **Top-level folders inside the leaf are phases.** Use exactly `01-Learn/`,
+  `02-Example/`, `03-Architect/`, and `04-Feedback/` inside the seed/leaf
+  folder. The numeric prefix preserves order; the phase name preserves meaning.
 - **No nested project folders.** Do not create `<##>-sub-<name>/` or recursive
   leaf-work children. If work is too large for one task line, split it inside
   `03-Architect/07-tasks.md`. If it truly needs an independent LEAF cycle,
@@ -162,12 +193,12 @@ inside drop the keyword:
   falsify them. ④ Wireframe vs ⑤ Design must stay separate because the locked
   contract is consumed by the generator. `03+04`, `04+05`, and `03+04+05` are
   forbidden.
-- **Match the file name to the gate vocabulary.** As a file (1–2 artifacts) the
-  name carries the gate keyword: `01-intent.md`, `02-unknowns.md`,
-  `03-criteria.md`, `05-design-<artifact>.md`, `07-tasks.md`, `08-execution.md`,
-  `09-review-<artifact>-v1.md`, `10-retrospect-<topic>.md`. Inside a folder form
-  (`09-reviews/`, `10-retrospective/`) files drop the keyword because the folder
-  carries it.
+- **Match the file name to the gate vocabulary.** The CLI uses stable names for
+  the common single-artifact case: `01-intent.md`, `02-unknowns.md`,
+  `03-criteria.md`, `04-wireframe.md`, `05-design.md`, `07-tasks.md`, plus lazy
+  `06-critic.md`, `08-execution.md`, `09-review.md`, and `10-retrospect.md`.
+  When a gate has several artifacts, use a folder form and put named files
+  inside it.
 - **File or folder by count.** Keep gate outputs as prefix files inside their
   phase folder when there are one or two; promote to a folder when three or more
   pile up (`01-Learn/02-references/`, `04-Feedback/09-reviews/`,
@@ -179,4 +210,3 @@ inside drop the keyword:
   project. The previous retrospective then feeds the next project's ② — its
   lessons update the ② checklist, and its limitations (what stayed unresolved,
   where the conclusions stop) seed future ① intents.
-

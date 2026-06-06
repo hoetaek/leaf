@@ -4,9 +4,10 @@ description: |
   Use when turning a vague idea into structured knowledge work or writing —
   documents, essays, articles, memos, research papers, proposals, reports,
   specs, study notes, presentations, prototypes, or any non-code or mixed
-  deliverable. Use when the request is vague, high-stakes, long-form,
-  collaborative, research-heavy, or likely to sprawl, and when a rough intent
-  must become an executable plan. Trigger on "어떤 순서", "글쓰기 프로세스",
+  deliverable in a repo-local `.leaf/` workspace. Use when the request is vague,
+  high-stakes, long-form, collaborative, research-heavy, or likely to sprawl,
+  and when a rough intent must become an executable plan. Trigger on "어떤 순서",
+  "글쓰기 프로세스",
   "문서 작성 순서", "논문 작성", "발표 자료", "초안 구조", "자료 조사",
   "레퍼런스 벤치마킹", "아이디어 발산", "작업을 어떻게 쪼갤지".
 ---
@@ -31,16 +32,20 @@ LEAF names the four kinds of uncertainty to close, in order:
 
 ## Always-on rules
 
+- **Use the leaf CLI as the persistent body of the work.** `leaf-work` assumes
+  work lives in a repo-local `.leaf/` workspace. Before gate work, run
+  `leaf init` when `.leaf/` is absent, then create exploratory work with
+  `leaf new <slug>` under `.leaf/seeds/<slug>/`. If a seed already exists,
+  resume that folder instead of creating another. Do not create loose
+  `01-Learn/` … `04-Feedback/` folders at the repo root.
 - **Scaffolding is the first act — so the work stands on a firm foundation.**
   Learn, Example, and Architect lay that foundation; execution builds only once
-  it is solid, not on guesses. So invoking leaf-work means standing up the
-  minimal scaffold first — the four phase folders (`01-Learn/` … `04-Feedback/`)
-  and `00-status.md` at the root — before working any gate. The scaffold is the
-  *body* of LEAF: it makes "which gate am I in / what is the first missing gate"
-  a place you can point to, and each gate file fills in — laying the foundation
-  course by course — as the work records itself and context settles. If a task
-  is too small to deserve that foundation, do not invoke leaf-work at all — there
-  is no LEAF without a body.
+  it is solid, not on guesses. The CLI scaffold creates `00-status.md` and the
+  four phase folders before any gate work. The scaffold is the *body* of LEAF:
+  it makes "which gate am I in / what is the first missing gate" a place you can
+  point to, and each gate file fills in as context settles. If a task is too
+  small to deserve that foundation, do not invoke leaf-work at all — there is no
+  LEAF without a body.
 - **Start from `00-status.md` when it exists.** Use it as the project dashboard:
   current phase/gate, first missing gate, next action, and gate progress. It is
   an index, not the source of truth; gate files remain authoritative.
@@ -71,12 +76,12 @@ LEAF names the four kinds of uncertainty to close, in order:
   an artifact should be promoted to a passed snapshot — but the user decides. AI
   never unilaterally declares a gate passed, moves forward, or returns to an
   earlier gate. Propose, the user decides.
-- **Persistent files live under four phase folders.** Use `01-Learn/`,
-  `02-Example/`, `03-Architect/`, and `04-Feedback/` at the top level. Inside
-  each phase, files keep their two-digit gate prefix (`01-intent.md`,
-  `02-unknowns.md`, `03-criteria.md`, `04-wireframe/`,
-  `05-design-<artifact>.md`, …). For all naming and file-vs-folder-by-count,
-  read `references/layout.md`.
+- **Persistent files live inside the leaf project folder.** Use
+  `.leaf/seeds/<slug>/` for exploratory work and `.leaf/leaves/<slug>/` for
+  committed active work when a lifecycle command or explicit move promotes it.
+  Inside that project folder, keep the four phase folders and two-digit gate
+  prefixes. For all naming and file-vs-folder-by-count, read
+  `references/layout.md`.
 
 ## Response shape
 
