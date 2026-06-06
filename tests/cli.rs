@@ -38,6 +38,18 @@ fn help_lists_init_and_new() {
 }
 
 #[test]
+fn version_flag_prints_package_version() {
+    leaf_command()
+        .arg("--version")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(format!(
+            "leaf {}",
+            env!("CARGO_PKG_VERSION")
+        )));
+}
+
+#[test]
 fn init_creates_leaf_buckets_and_exclude_line() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
