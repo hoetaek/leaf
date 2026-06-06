@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 
 #[derive(Debug, Parser)]
 #[command(name = "leaf")]
+#[command(version)]
 #[command(about = "Domain-neutral human-agent collaboration CLI")]
 pub(crate) struct Cli {
     #[command(subcommand)]
