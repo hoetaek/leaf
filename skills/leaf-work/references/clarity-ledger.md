@@ -49,6 +49,14 @@ unsure**, and any work done on the wrong noun has to be re-done. The cheapest
 move is one direct question, not three more clarifying probes that assume the
 latest noun.
 
+## Topology confirmation
+
+Before ② research starts, confirm topology when the request can produce more
+than one independent outcome. Name the top-level outcomes, surfaces,
+integrations, or deliverables that could succeed or fail separately, then ask
+whether any should be added, removed, merged, split, or explicitly deferred.
+The most-described component must not silently stand in for quieter siblings.
+
 ## Examples
 
 ### Intent weak
@@ -119,7 +127,8 @@ They are three different deliverables with three different audiences.
 ## How it connects to other gates
 
 - ① Intent locks the necessity (why), the desired effect derived from it, and
-  the core noun (the Intent row).
+  the core noun (the Intent row). When multiple outcomes are plausible, it also
+  records the first topology confirmation or the explicit reason to defer it.
 - ② Unknowns uses the ledger only as a lens: glance at the weakest row to aim
   learning (which domain/standards/external/internal study would close it),
   never to force the row closed.

@@ -49,6 +49,11 @@ LEAF names the four kinds of uncertainty to close, in order:
   gate the work is at, name that gate to the user, and then proceed exactly as
   that gate's entry/exit/return conditions direct. SKILL.md gives the shape;
   gates.md gives the pass/fail test you act on.
+- **Use the gate authoring loop for durable gate files.** When creating or
+  revising a gate artifact, draft the smallest useful version, challenge it
+  against the gate's foci, revise, show only the review surface needed for
+  approval, and wait for explicit confirmation before downstream gates consume
+  it. See `references/gate-authoring.md`.
 - **Keep `00-status.md` current.** Update it when a gate starts, becomes ready
   for approval, is approved, returns to an earlier gate, is blocked/deferred, or
   when the next action changes materially. Treat returns as log events, not gate
@@ -118,6 +123,7 @@ diagram.
 | Read | When |
 |---|---|
 | `references/gates.md` | when judging gate readiness, creating/revising a gate artifact, handling a return, or needing examples |
+| `references/gate-authoring.md` | when drafting, grilling, revising, or presenting a gate artifact for approval |
 | `references/engine.md` | you are inside ③–⑤ and need the full contract / variation point / generator mechanics + diagram |
 | `references/clarity-ledger.md` | you are scoring criteria dimensions at ③ — or using it as a lens in ① / ② to aim the next question or learning gap |
 | `references/decision-rationale.md` | you are inside ⑤ and a non-obvious choice needs durable rationale |

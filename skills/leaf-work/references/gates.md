@@ -91,6 +91,9 @@ Gate to continue:
 - The core noun (essay / report / spec / proposal / video / config …) is named
   and stable; if it drifts across answers, halt and ask which noun is the
   actual work item before continuing.
+- When the request has multiple possible outcomes, the top-level topology is
+  named: outcomes, surfaces, integrations, or deliverables that can succeed or
+  fail independently, including anything explicitly deferred.
 - The work is still allowed to change shape or die.
 - It is clear whether the user already has a purpose/success criterion or needs
   context exploration to shape one.
@@ -177,14 +180,20 @@ Ask or infer:
 
 Resolve by updating the same entries:
 
-- **Verified answer** — what is now known, with a source or direct user-provided
+- **Verified fact** — what is now known, with a source or direct user-provided
   basis.
-- **Assumption** — what is still being treated as true without proof; mark which
-  assumptions would unravel downstream work.
-- **Material / condition** — concrete resources and constraints downstream gates
-  will rely on (data held, deadlines, partner agreements, audience limits).
+- **Flagged assumption** — what is still being treated as true without proof;
+  mark which assumptions would unravel downstream work.
+- **Inventoried material / condition** — concrete resources and constraints
+  downstream gates will rely on (data held, deadlines, partner agreements,
+  audience limits).
 - **Unresolved** — carried to ③ as an explicit assumption, returned to this gate
   later, or deferred with a reason.
+
+Record Gate ② experiments as `hypothesis -> test -> result`. They target the
+world, convention, repo, source material, or audience condition before an answer
+is built: "is this true?" Do not use ② experiments to validate a proposed answer
+shape; that scrutiny belongs to ④.
 
 Common moves: ask direct clarifying questions; inventory user/team-held
 materials before searching externally; gather references/benchmarks/prior art;
@@ -293,7 +302,9 @@ THE DOCUMENT SHALL NOT cover <non-goal>.
 Where ② experiments on the *world* (*is this true?*), this gate experiments on
 your *answer* (*is this answer right?*) — the friction here is a concrete
 instance hitting criteria and contract, and surviving it is what proves the
-answer. When the instance falsifies a criterion, that scrutiny loops back to ②.
+answer. When the instance falsifies a criterion, revise ③ using the purpose as
+arbiter; when it exposes a wrong or missing world fact, return to ② and record
+the experiment there.
 
 Validate one concrete case before generalizing. The wireframe must pass ③
 Criteria; refining it can also reveal that a criterion was wrong. When that
