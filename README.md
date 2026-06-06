@@ -77,6 +77,21 @@ cargo install --git https://github.com/hoetaek/leaf
 
 The crate is not published to crates.io.
 
+## Agent Skill
+
+This repository also ships the `leaf-work` Agent Skill. Install it with the
+Skills CLI:
+
+```bash
+npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-work
+```
+
+For a global install:
+
+```bash
+npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-work -g
+```
+
 ## Usage
 
 ```bash
