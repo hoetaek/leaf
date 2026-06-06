@@ -38,7 +38,11 @@ fn execute(cli: Cli) -> Result<()> {
             Ok(())
         }
         Commands::New { slug } => {
-            println!("leaf new {slug} is not implemented yet");
+            let slug = crate::slug::validate(&slug)?;
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            crate::storage::ensure_leaf_root(&paths)?;
+            crate::scaffold::create_seed(&paths.root, &slug)?;
+            println!("created .leaf/seeds/{slug}/");
             Ok(())
         }
     }

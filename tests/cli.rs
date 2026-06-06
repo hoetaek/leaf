@@ -198,3 +198,76 @@ fn init_works_in_git_worktree() {
         .child(".leaf/leaves")
         .assert(predicate::path::is_dir());
 }
+
+#[test]
+fn new_creates_seed_skeleton_and_bootstraps_repo() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+
+    for path in [
+        ".leaf/seeds/research-memo/00-status.md",
+        ".leaf/seeds/research-memo/01-Learn/01-intent.md",
+        ".leaf/seeds/research-memo/01-Learn/02-unknowns.md",
+        ".leaf/seeds/research-memo/01-Learn/02-references/README.md",
+        ".leaf/seeds/research-memo/02-Example/03-criteria.md",
+        ".leaf/seeds/research-memo/02-Example/04-wireframe.md",
+        ".leaf/seeds/research-memo/03-Architect/05-design.md",
+        ".leaf/seeds/research-memo/03-Architect/07-tasks.md",
+    ] {
+        repo.child(path).assert(predicate::path::is_file());
+    }
+    repo.child(".leaf/seeds/research-memo/04-Feedback")
+        .assert(predicate::path::is_dir());
+    repo.child(".leaf/leaves/research-memo")
+        .assert(predicate::path::missing());
+    assert_eq!(
+        exclude_contents(repo.path())
+            .lines()
+            .filter(|line| *line == "/.leaf")
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn new_rejects_existing_seed_without_overwrite() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    repo.child(".leaf/seeds/research-memo")
+        .create_dir_all()
+        .expect("seed dir");
+    repo.child(".leaf/seeds/research-memo/00-status.md")
+        .write_str("keep me\n")
+        .expect("existing file");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("leaf seed already exists"));
+
+    repo.child(".leaf/seeds/research-memo/00-status.md")
+        .assert("keep me\n");
+}
+
+#[test]
+fn new_rejects_invalid_slugs() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    for slug in ["bad/value", "bad value", "메모", "bad.value"] {
+        leaf_command()
+            .current_dir(repo.path())
+            .args(["new", slug])
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("invalid slug"));
+    }
+}
