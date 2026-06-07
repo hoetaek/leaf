@@ -28,6 +28,7 @@ pub(crate) enum BucketFilter {
 pub(crate) enum Mode {
     List,
     FilterInput,
+    ConfirmPromote,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,10 +42,11 @@ pub(crate) enum KeyInput {
     Char(char),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Outcome {
     Continue,
     Quit,
+    PromoteSeed { slug: String },
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +58,7 @@ pub(crate) struct AppState {
     preview_open: bool,
     mode: Mode,
     status_line: String,
+    pending_promote_slug: Option<String>,
     preview_cache: RefCell<HashMap<String, Preview>>,
 }
 
@@ -153,6 +156,7 @@ impl AppState {
             preview_open: true,
             mode: Mode::List,
             status_line: String::new(),
+            pending_promote_slug: None,
             preview_cache: RefCell::new(HashMap::new()),
         };
         state.refresh_visibility_state();
@@ -228,6 +232,7 @@ impl AppState {
         match self.mode {
             Mode::List => self.handle_list_key(input),
             Mode::FilterInput => self.handle_filter_key(input),
+            Mode::ConfirmPromote => self.handle_confirm_promote_key(input),
         }
     }
 
@@ -239,10 +244,47 @@ impl AppState {
             KeyInput::Right | KeyInput::Char('l') => self.move_bucket_right(),
             KeyInput::Char('/') => self.mode = Mode::FilterInput,
             KeyInput::Char('p') => self.preview_open = !self.preview_open,
+            KeyInput::Char('P') => self.begin_promote(),
             KeyInput::Esc | KeyInput::Char('q') => return Outcome::Quit,
             KeyInput::Backspace | KeyInput::Char(_) => {}
         }
         Outcome::Continue
+    }
+
+    fn begin_promote(&mut self) {
+        let target = self
+            .selected_row()
+            .filter(|row| row.bucket() == Bucket::Seeds)
+            .map(|row| row.slug().to_string());
+        match target {
+            Some(slug) => {
+                self.status_line = format!("Promote seed {slug}? y confirm  n/Esc cancel");
+                self.pending_promote_slug = Some(slug);
+                self.mode = Mode::ConfirmPromote;
+            }
+            None => {
+                self.status_line = "promote is only available for seed rows".to_string();
+            }
+        }
+    }
+
+    fn handle_confirm_promote_key(&mut self, input: KeyInput) -> Outcome {
+        match input {
+            KeyInput::Char('y') => {
+                self.mode = Mode::List;
+                match self.pending_promote_slug.take() {
+                    Some(slug) => Outcome::PromoteSeed { slug },
+                    None => Outcome::Continue,
+                }
+            }
+            KeyInput::Char('n') | KeyInput::Esc => {
+                self.pending_promote_slug = None;
+                self.mode = Mode::List;
+                self.status_line = "promote cancelled".to_string();
+                Outcome::Continue
+            }
+            _ => Outcome::Continue,
+        }
     }
 
     fn handle_filter_key(&mut self, input: KeyInput) -> Outcome {
@@ -343,6 +385,44 @@ impl AppState {
         } else {
             format!("{visible_count} of {total_count} {}", row_word(total_count))
         };
+    }
+
+    pub(crate) fn replace_inventory(&mut self, inventory: &Inventory) {
+        self.rows = inventory
+            .buckets
+            .iter()
+            .flat_map(|bucket| {
+                bucket
+                    .items
+                    .iter()
+                    .map(|item| ListRow::from_item(inventory, item))
+            })
+            .collect();
+        self.preview_cache.borrow_mut().clear();
+        self.pending_promote_slug = None;
+        self.mode = Mode::List;
+        self.refresh_visibility_state();
+    }
+
+    pub(crate) fn select_bucket_slug(&mut self, bucket: Bucket, slug: &str) -> bool {
+        self.active_bucket = BucketFilter::Bucket(bucket);
+        self.refresh_visibility_state();
+        let position = self
+            .visible_rows()
+            .iter()
+            .position(|row| row.bucket() == bucket && row.slug() == slug);
+        match position {
+            Some(index) => {
+                self.selected_index = index;
+                self.update_status_line();
+                true
+            }
+            None => false,
+        }
+    }
+
+    pub(crate) fn set_status_message(&mut self, message: impl Into<String>) {
+        self.status_line = message.into();
     }
 }
 
@@ -636,11 +716,11 @@ mod tests {
             "second",
             complete_leaf_status(),
         );
-        write_preview_status(root.path(), "first", "첫 번째 미리보기");
+        write_preview_status(root.path(), Bucket::Leaves, "first", "첫 번째 미리보기");
         let inventory = inventory_with_root(root.path(), vec![first, second]);
         let mut app = AppState::from_inventory(&inventory);
 
-        write_preview_status(root.path(), "second", "늦게 생긴 미리보기");
+        write_preview_status(root.path(), Bucket::Leaves, "second", "늦게 생긴 미리보기");
         app.handle_key(KeyInput::Down);
         let preview = app
             .selected_preview()
@@ -697,6 +777,82 @@ mod tests {
             filtered_app.handle_key(KeyInput::Backspace),
             Outcome::Continue
         );
+    }
+
+    #[test]
+    fn tui_app_p_on_seed_enters_confirm_promote_and_y_emits_promote_outcome() {
+        let inventory = inventory_with_items(vec![leaf_item(
+            Bucket::Seeds,
+            "draft",
+            complete_leaf_status(),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Char('P')), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::ConfirmPromote);
+        assert!(app.status_line().contains("Promote seed draft?"));
+        assert!(app.status_line().contains("y confirm"));
+        assert!(app.status_line().contains("n/Esc cancel"));
+
+        assert_eq!(
+            app.handle_key(KeyInput::Char('y')),
+            Outcome::PromoteSeed {
+                slug: "draft".to_string()
+            }
+        );
+        assert_eq!(app.mode(), Mode::List);
+
+        app.handle_key(KeyInput::Char('P'));
+        assert_eq!(app.handle_key(KeyInput::Char('n')), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::List);
+        assert!(app.status_line().contains("cancelled"));
+
+        app.handle_key(KeyInput::Char('P'));
+        assert_eq!(app.handle_key(KeyInput::Esc), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::List);
+    }
+
+    #[test]
+    fn tui_app_p_on_non_seed_reports_status_without_mutation() {
+        let inventory = inventory_with_items(vec![leaf_item(
+            Bucket::Leaves,
+            "active",
+            complete_leaf_status(),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Char('P')), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::List);
+        assert!(app.status_line().contains("only available for seed"));
+    }
+
+    #[test]
+    fn tui_app_replace_inventory_selects_promoted_leaf_and_clears_preview_cache() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let seed = leaf_item_at(root.path(), Bucket::Seeds, "draft", complete_leaf_status());
+        write_preview_status(root.path(), Bucket::Seeds, "draft", "old seed preview");
+        let seed_inventory = inventory_with_root(root.path(), vec![seed]);
+        let mut app = AppState::from_inventory(&seed_inventory);
+        assert!(
+            preview_text(&app.selected_preview().expect("seed preview"))
+                .contains("old seed preview")
+        );
+
+        let leaf = leaf_item_at(root.path(), Bucket::Leaves, "draft", complete_leaf_status());
+        write_preview_status(root.path(), Bucket::Leaves, "draft", "new leaf preview");
+        let leaf_inventory = inventory_with_root(root.path(), vec![leaf]);
+
+        app.replace_inventory(&leaf_inventory);
+        app.select_bucket_slug(Bucket::Leaves, "draft");
+        app.set_status_message("promoted seed draft to .leaf/02-leaves/draft/");
+
+        assert_eq!(app.active_bucket(), BucketFilter::Bucket(Bucket::Leaves));
+        assert_eq!(app.selected_row().map(ListRow::slug), Some("draft"));
+        assert!(
+            preview_text(&app.selected_preview().expect("leaf preview"))
+                .contains("new leaf preview")
+        );
+        assert!(app.status_line().contains("promoted seed draft"));
     }
 
     fn inventory_with_slugs(slugs: &[&str]) -> Inventory {
@@ -776,8 +932,12 @@ mod tests {
         }
     }
 
-    fn write_preview_status(root: &Path, slug: &str, body: &str) {
-        let status_path = root.join(".leaf/02-leaves").join(slug).join("00-status.md");
+    fn write_preview_status(root: &Path, bucket: Bucket, slug: &str, body: &str) {
+        let status_path = root
+            .join(".leaf")
+            .join(bucket_dir(bucket))
+            .join(slug)
+            .join("00-status.md");
         std::fs::create_dir_all(status_path.parent().unwrap()).expect("preview dir");
         std::fs::write(status_path, format!("# Status\n\n{body}\n")).expect("preview status");
     }
