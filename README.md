@@ -1,21 +1,89 @@
 # leaf
 
-Domain-neutral human-agent collaboration CLI for keeping human-agent work
-structured inside the repository it belongs to.
+**Leaf before tree.**
 
-`leaf` is currently an early Rust CLI. Its first slice creates a repo-local
-`.leaf/` workspace and scaffolds idea seeds that can later move into more
-committed work.
+## Why
 
-## Current Commands
+Let AI grow the whole tree too early and you will come back to the beginning.
+
+The hard part will not be editing the output. It will be rediscovering what you
+wanted, what the work needed, which paths were available, and why one direction
+was better than another.
+
+`leaf` exists to keep that discovery visible. Start with one cheap, inspectable
+leaf. Learn what must be true. Prove one instance. Then grow the tree.
+
+The Agent Skills guide the workflow; the `leaf` CLI gives that workflow a
+repo-local body.
+
+## Quick Start
+
+Install the Agent Skills:
 
 ```bash
-leaf init
-leaf new <slug>
-leaf fall <slug> --reason <reason>
+npx skills@latest add https://github.com/hoetaek/leaf
 ```
 
-`leaf init` initializes `.leaf/` storage in the current git repository:
+For a global skills install:
+
+```bash
+npx skills@latest add https://github.com/hoetaek/leaf -g
+```
+
+Install the `leaf` CLI that gives those skills a repo-local body. Homebrew is
+the recommended install path:
+
+```bash
+brew install hoetaek/tap/leaf
+leaf --version
+```
+
+Start inside a git repository:
+
+```bash
+cd your-git-repo
+leaf init
+leaf new my-first-idea
+```
+
+Ask your agent to use `leaf-work` for substantial vague work, or `leaf-idea` to
+capture an idea before it becomes committed work.
+
+Other CLI install paths are available from the latest GitHub Release:
+
+```bash
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/hoetaek/leaf/releases/latest/download/leaf-installer.sh | sh
+```
+
+Or from the current source checkout:
+
+```bash
+cargo install --git https://github.com/hoetaek/leaf
+```
+
+Update the Homebrew install with:
+
+```bash
+brew update
+brew upgrade hoetaek/tap/leaf
+```
+
+## The LEAF Loop
+
+LEAF closes uncertainty in order:
+
+| Phase | What it proves |
+|---|---|
+| Learn | What the work needs, learned instead of guessed |
+| Example | One cheap instance can pass inspection |
+| Architect | The passed instance can become reusable structure |
+| Feedback | The result still holds, and the lessons carry forward |
+
+The detailed gate model lives in [`skills/leaf-work`](skills/leaf-work/SKILL.md).
+
+## Concepts
+
+`leaf` keeps work inside a repo-local `.leaf/` workspace:
 
 ```text
 .leaf/
@@ -25,8 +93,23 @@ leaf fall <slug> --reason <reason>
 └── pressed/
 ```
 
-It also adds `/.leaf` to `.git/info/exclude` so local collaboration notes do
+`seeds/` are rough ideas and exploratory starts. `leaves/` are committed active
+LEAF work. `fallen/` preserves active leaves after they close. `pressed/` stores
+citable Markdown digests of important LEAF work, such as intent, method, what
+was done, limits, and lessons learned.
+
+`leaf init` adds `/.leaf` to `.git/info/exclude` so local collaboration notes do
 not appear in normal `git status` output.
+
+## Commands
+
+```bash
+leaf init
+leaf new <slug>
+leaf fall <slug> --reason <reason>
+```
+
+`leaf init` initializes `.leaf/` storage in the current git repository.
 
 `leaf new <slug>` creates a new seed under `.leaf/seeds/<slug>/`:
 
@@ -47,79 +130,38 @@ not appear in normal `git status` output.
 └── 04-Feedback/
 ```
 
-In the current model, `seeds/` are ideas. When work becomes committed and active,
-future lifecycle commands are expected to move or promote it into `leaves/`.
-When active work closes, `leaf fall <slug> --reason <reason>` preserves it under
-`fallen/` as archived prior work.
-`pressed/` stores citable Markdown digests of important LEAF work, such as
-intent, method, what was done, limits, and lessons learned.
+Slug values must be path-safe ASCII strings using letters, digits, `-`, and
+`_`. Existing seeds are not overwritten.
 
 `leaf fall <slug> --reason <reason>` moves an active leaf from
 `.leaf/leaves/<slug>/` to `.leaf/fallen/<slug>/` and writes flexible closure
-fields into `00-status.md`. The reason is free text so an agent or human can use
-canonical reasons such as `completed`, `abandoned`, `superseded`, `parked`,
+fields into `00-status.md`. The reason is free text, so an agent or human can
+use canonical reasons such as `completed`, `abandoned`, `superseded`, `parked`,
 `split`, or `invalidated`, while still preserving project-specific detail.
-
-## Install
-
-Homebrew is the recommended install path:
-
-```bash
-brew install hoetaek/tap/leaf
-leaf --version
-```
-
-Update with:
-
-```bash
-brew update
-brew upgrade hoetaek/tap/leaf
-```
-
-Install from the latest GitHub Release:
-
-```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/hoetaek/leaf/releases/latest/download/leaf-installer.sh | sh
-```
-
-Install the current source checkout with:
-
-```bash
-cargo install --git https://github.com/hoetaek/leaf
-```
-
-The crate is not published to crates.io.
 
 ## Agent Skills
 
-This repository also ships Agent Skills. Install them with the Skills CLI:
+This repository ships Agent Skills:
+
+| Skill | Use it for |
+|---|---|
+| [`leaf-work`](skills/leaf-work/SKILL.md) | Turning a vague idea into structured LEAF work |
+| [`leaf-idea`](skills/leaf-idea/SKILL.md) | Capturing, parking, comparing, or lightly triaging rough ideas |
+| [`leaf-press`](skills/leaf-press/SKILL.md) | Creating citable Markdown digests from LEAF work |
+| [`leaf-fall`](skills/leaf-fall/SKILL.md) | Closing active leaves into the fallen archive |
+
+Install one skill when you only want one workflow:
 
 ```bash
-npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-idea
-npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-press
-npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-fall
 npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-work
 ```
 
-For a global install:
+## Status
 
-```bash
-npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-idea -g
-npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-press -g
-npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-fall -g
-npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-work -g
-```
+`leaf` is currently an early Rust CLI. The current slice initializes repo-local
+LEAF storage, scaffolds idea seeds, and archives active leaves when they close.
 
-## Usage
-
-```bash
-cd your-git-repo
-leaf init
-leaf new my-first-idea
-```
-
-Slug values must be path-safe ASCII strings using letters, digits, `-`, and
-`_`. Existing seeds are not overwritten.
+The crate is not published to crates.io.
 
 ## Development
 
@@ -134,6 +176,14 @@ Release artifacts are generated by cargo-dist from `dist-workspace.toml`.
 The release workflow publishes GitHub Release artifacts and updates
 `hoetaek/homebrew-tap` when a SemVer tag points at a commit contained in the
 protected `main` release branch.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Security
+
+See [SECURITY.md](SECURITY.md).
 
 ## License
 
