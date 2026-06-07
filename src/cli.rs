@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use std::io::IsTerminal;
 
 #[derive(Debug, Parser)]
 #[command(name = "leaf")]
@@ -19,6 +20,11 @@ enum Commands {
         /// Path-safe seed slug.
         slug: String,
     },
+    /// Promote an idea seed into an active leaf.
+    Promote {
+        /// Path-safe seed slug.
+        slug: String,
+    },
     /// Move an active leaf into the fallen archive.
     Fall {
         /// Path-safe leaf slug.
@@ -26,6 +32,12 @@ enum Commands {
         /// Human-readable closure reason.
         #[arg(long)]
         reason: String,
+    },
+    /// List .leaf workspace items.
+    List {
+        /// Write machine-readable JSON.
+        #[arg(long)]
+        json: bool,
     },
 }
 
@@ -54,12 +66,36 @@ fn execute(cli: Cli) -> Result<()> {
             println!("created .leaf/seeds/{slug}/");
             Ok(())
         }
+        Commands::Promote { slug } => {
+            let slug = crate::slug::validate(&slug)?;
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            crate::storage::ensure_leaf_root(&paths)?;
+            crate::lifecycle::promote_seed(&paths.root, &slug)?;
+            println!("moved .leaf/seeds/{slug}/ to .leaf/leaves/{slug}/");
+            Ok(())
+        }
         Commands::Fall { slug, reason } => {
             let slug = crate::slug::validate(&slug)?;
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             crate::storage::ensure_leaf_root(&paths)?;
             crate::lifecycle::fall_leaf(&paths.root, &slug, &reason)?;
             println!("moved .leaf/leaves/{slug}/ to .leaf/fallen/{slug}/");
+            Ok(())
+        }
+        Commands::List { json } => {
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            let inventory = crate::inventory::load(&paths.root)?;
+            if json {
+                let stdout = std::io::stdout();
+                let mut stdout = stdout.lock();
+                crate::list_output::write_json(&mut stdout, &inventory)?;
+            } else if std::io::stdin().is_terminal() && std::io::stdout().is_terminal() {
+                crate::tui::run(&inventory)?;
+            } else {
+                let stdout = std::io::stdout();
+                let mut stdout = stdout.lock();
+                crate::list_output::write_text(&mut stdout, &inventory)?;
+            }
             Ok(())
         }
     }

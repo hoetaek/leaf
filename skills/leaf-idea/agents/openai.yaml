@@ -1,7 +1,7 @@
 interface:
   display_name: "LEAF Idea"
   short_description: "Capture loose ideas before LEAF work"
-  default_prompt: "Use $leaf-idea to capture this rough idea as a .leaf seed and recommend whether to defer, enrich, kill, or promote it."
+  default_prompt: "Use $leaf-idea to capture this rough idea as a .leaf seed and recommend whether to defer, enrich, kill, or promote it after Learn."
 
 policy:
   allow_implicit_invocation: true

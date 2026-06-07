@@ -23,6 +23,9 @@ An idea is exploration. It is allowed to die.
   this skill. Mention the next gate only as a recommendation.
 - If the user wants a real artifact, plan, draft, task graph, benchmark, or
   execution path now, switch to `leaf-work`.
+- `leaf promote <slug>` is the boundary from seed to active leaf. Do not run it
+  merely because an idea was captured; run it only when the user explicitly
+  commits the work and the next LEAF move is after Learn.
 
 ## First Read
 
@@ -76,7 +79,9 @@ End every pass with one recommendation:
 | `promote to leaf-work` | the user wants structured work and Gate 1 can start |
 
 When recommending promotion, name the first missing `leaf-work` gate and the
-one question or artifact that should start it.
+one question or artifact that should start it. If Learn is already complete and
+the next phase is Example, run `leaf promote <slug>` after explicit user
+approval and continue from `.leaf/leaves/<slug>/`.
 
 ## Response Shape
 

@@ -21,25 +21,33 @@ leaf init
 leaf new <slug>
 ```
 
+Run this when Learn is complete and Example is ready to start:
+
+```bash
+leaf promote <slug>
+```
+
 `leaf init` creates the repo-local workspace:
 
 ```text
 .leaf/
 ├── seeds/
-└── leaves/
+├── leaves/
+├── fallen/
+└── pressed/
 ```
 
 `leaf new <slug>` creates exploratory work under `.leaf/seeds/<slug>/`. Seeds
-are ideas: they can die, split, or be rewritten. When work becomes committed and
-active, it belongs under `.leaf/leaves/<slug>/`; use the current lifecycle
-command when one exists, otherwise move it only after explicit user approval and
-record the promotion in `01-Learn/01-intent.md`.
+are ideas and Learn-phase work: they can die, split, be enriched, or be
+rewritten while ① Intent and ② Unknowns & Context settle. When Learn passes and
+the user approves moving to Example, `leaf promote <slug>` moves the project to
+`.leaf/leaves/<slug>/` and updates `00-status.md` to active Example work.
 
 ## Recommended structure
 
 ```text
-.leaf/seeds/<slug>/                         exploratory idea seed
-# or .leaf/leaves/<slug>/                   committed active leaf
+.leaf/seeds/<slug>/                         exploratory idea seed / Learn phase
+# then .leaf/leaves/<slug>/                 committed active leaf from Example onward
 ├── 00-status.md                              dashboard: current gate, progress, next action
 ├── README.md                                 project description only (optional)
 │
@@ -67,9 +75,9 @@ record the promotion in `01-Learn/01-intent.md`.
 ```
 
 The current CLI scaffolds the core seed files (`00-status.md`, gates ①-⑤, ⑦,
-and the phase folders). Create lazy files such as `06-critic.md`,
-`08-execution.md`, `09-review.md`, and `10-retrospect.md` only when the gate
-needs them.
+and the phase folders), then promotes the project to active leaf storage after
+Learn. Create lazy files such as `06-critic.md`, `08-execution.md`,
+`09-review.md`, and `10-retrospect.md` only when the gate needs them.
 
 ## Status dashboard
 
@@ -123,7 +131,7 @@ Recommended template:
 - Current phase: Learn
 - Current gate: ② Unknowns & Context
 - First missing gate: ②
-- Next action: resolve blocking unknowns; then ask whether to approve Learn and start Example
+- Next action: resolve blocking unknowns; then ask whether to approve Learn and run `leaf promote <slug>`
 - Next approval point: Learn phase -> Example phase
 - Latest return: -
 - Return count: 0
@@ -133,7 +141,7 @@ Recommended template:
 |---|---:|---:|---|---|
 | ① Intent | complete | 100 | 01-Learn/01-intent.md | - |
 | ② Unknowns & Context | active | 50 | 01-Learn/02-unknowns.md | resolve blocking unknowns |
-| ③ Criteria | not-started | 0 | 02-Example/03-criteria.md | start after Learn phase approval |
+| ③ Criteria | not-started | 0 | 02-Example/03-criteria.md | start after Learn approval and `leaf promote <slug>` |
 | ④ Wireframe | not-started | 0 | 02-Example/04-wireframe/ | - |
 | ⑤ Design | not-started | 0 | 03-Architect/05-design.md | - |
 | ⑥ Critic | not-started | 0 | 03-Architect/06-critic.md | - |
@@ -176,9 +184,10 @@ inside drop the keyword:
   across multiple `.leaf/seeds/` or `.leaf/leaves/` folders.
 - **The scaffold comes first, and `00-status.md` is part of it.** Invoking
   leaf-work means running `leaf init` / `leaf new <slug>` and using the
-  resulting `.leaf/seeds/<slug>/` scaffold before working any gate — there is no
-  "LEAF without a body." A task too small to deserve that scaffold should not
-  invoke leaf-work at all, rather than run it while skipping the files.
+  resulting `.leaf/seeds/<slug>/` scaffold for Learn before running
+  `leaf promote <slug>` for Example and later phases — there is no "LEAF without
+  a body." A task too small to deserve that scaffold should not invoke leaf-work
+  at all, rather than run it while skipping the files.
 - **`README.md` is not the status file.** Use it only for stable project
   description or handoff notes. Current gate, progress, and next action belong
   in `00-status.md`.
