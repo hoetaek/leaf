@@ -37,17 +37,17 @@ leaf promote <slug>
 └── pressed/
 ```
 
-`leaf new <slug>` creates exploratory work under `.leaf/seeds/<slug>/`. Seeds
+`leaf new <slug>` creates exploratory work under `.leaf/01-seeds/<slug>/`. Seeds
 are ideas and Learn-phase work: they can die, split, be enriched, or be
 rewritten while ① Intent and ② Unknowns & Context settle. When Learn passes and
 the user approves moving to Example, `leaf promote <slug>` moves the project to
-`.leaf/leaves/<slug>/` and updates `00-status.md` to active Example work.
+`.leaf/02-leaves/<slug>/` and updates `00-status.md` to active Example work.
 
 ## Recommended structure
 
 ```text
-.leaf/seeds/<slug>/                         exploratory idea seed / Learn phase
-# then .leaf/leaves/<slug>/                 committed active leaf from Example onward
+.leaf/01-seeds/<slug>/                         exploratory idea seed / Learn phase
+# then .leaf/02-leaves/<slug>/                 committed active leaf from Example onward
 ├── 00-status.md                              dashboard: current gate, progress, next action
 ├── README.md                                 project description only (optional)
 │
@@ -181,10 +181,10 @@ inside drop the keyword:
 ## Naming rules
 
 - **One leaf folder per project.** Do not spread one project's process files
-  across multiple `.leaf/seeds/` or `.leaf/leaves/` folders.
+  across multiple `.leaf/01-seeds/` or `.leaf/02-leaves/` folders.
 - **The scaffold comes first, and `00-status.md` is part of it.** Invoking
   leaf-work means running `leaf init` / `leaf new <slug>` and using the
-  resulting `.leaf/seeds/<slug>/` scaffold for Learn before running
+  resulting `.leaf/01-seeds/<slug>/` scaffold for Learn before running
   `leaf promote <slug>` for Example and later phases — there is no "LEAF without
   a body." A task too small to deserve that scaffold should not invoke leaf-work
   at all, rather than run it while skipping the files.

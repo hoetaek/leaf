@@ -117,10 +117,10 @@ leaf fall <slug> --reason <reason>
 
 `leaf init` initializes `.leaf/` storage in the current git repository.
 
-`leaf new <slug>` creates a new seed under `.leaf/seeds/<slug>/`:
+`leaf new <slug>` creates a new seed under `.leaf/01-seeds/<slug>/`:
 
 ```text
-.leaf/seeds/my-first-idea/
+.leaf/01-seeds/my-first-idea/
 ├── 00-status.md
 ├── 01-Learn/
 │   ├── 01-intent.md
@@ -139,13 +139,13 @@ leaf fall <slug> --reason <reason>
 Slug values must be path-safe ASCII strings using letters, digits, `-`, and
 `_`. Existing seeds are not overwritten.
 
-`leaf promote <slug>` moves a seed from `.leaf/seeds/<slug>/` to
-`.leaf/leaves/<slug>/` once Learn is complete and Example should start from
+`leaf promote <slug>` moves a seed from `.leaf/01-seeds/<slug>/` to
+`.leaf/02-leaves/<slug>/` once Learn is complete and Example should start from
 active leaf storage. It updates `00-status.md` to `state: active` and
 `current phase: Example`, while preserving the previous seed status.
 
 `leaf fall <slug> --reason <reason>` moves an active leaf from
-`.leaf/leaves/<slug>/` to `.leaf/fallen/<slug>/` and writes flexible closure
+`.leaf/02-leaves/<slug>/` to `.leaf/03-fallen/<slug>/` and writes flexible closure
 fields into `00-status.md`. The reason is free text, so an agent or human can
 use canonical reasons such as `completed`, `abandoned`, `superseded`, `parked`,
 `split`, or `invalidated`, while still preserving project-specific detail.

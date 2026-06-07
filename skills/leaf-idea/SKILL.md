@@ -13,7 +13,7 @@ An idea is exploration. It is allowed to die.
 
 ## Boundary
 
-- Use `.leaf/seeds/<slug>/`; do not write loose planning files elsewhere.
+- Use `.leaf/01-seeds/<slug>/`; do not write loose planning files elsewhere.
 - Create or resume a seed with the `leaf` CLI. Run `leaf init` first when
   `.leaf/` is absent, then `leaf new <slug>` unless the seed already exists.
 - Work only in `00-status.md`, `01-Learn/01-intent.md`, and
@@ -33,7 +33,7 @@ Inspect local truth before asking:
 
 ```bash
 git status --short --branch
-find .leaf/seeds .leaf/leaves -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort
+find .leaf/01-seeds .leaf/02-leaves -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort
 ```
 
 If a likely matching seed already exists, resume it instead of creating a
@@ -64,7 +64,7 @@ Use these status labels in `00-status.md`:
 - `killed`: intentionally not worth pursuing now
 
 Do not mark seeds as `fallen`. `fallen` is only for committed
-`.leaf/leaves/<slug>/` work that is closed later.
+`.leaf/02-leaves/<slug>/` work that is closed later.
 
 ## Triage
 
@@ -81,7 +81,7 @@ End every pass with one recommendation:
 When recommending promotion, name the first missing `leaf-work` gate and the
 one question or artifact that should start it. If Learn is already complete and
 the next phase is Example, run `leaf promote <slug>` after explicit user
-approval and continue from `.leaf/leaves/<slug>/`.
+approval and continue from `.leaf/02-leaves/<slug>/`.
 
 ## Response Shape
 

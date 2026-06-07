@@ -35,9 +35,9 @@ LEAF names the four kinds of uncertainty to close, in order:
 - **Use the leaf CLI as the persistent body of the work.** `leaf-work` assumes
   work lives in a repo-local `.leaf/` workspace. Before gate work, run
   `leaf init` when `.leaf/` is absent, then create exploratory work with
-  `leaf new <slug>` under `.leaf/seeds/<slug>/`. If a seed already exists,
+  `leaf new <slug>` under `.leaf/01-seeds/<slug>/`. If a seed already exists,
   resume that folder instead of creating another. If an active leaf already
-  exists under `.leaf/leaves/<slug>/`, resume the active leaf instead. Do not
+  exists under `.leaf/02-leaves/<slug>/`, resume the active leaf instead. Do not
   create loose `01-Learn/` … `04-Feedback/` folders at the repo root.
 - **Write in the user's preferred language.** Default user-facing replies and
   durable `.leaf/` artifacts to the language the user appears to prefer from
@@ -94,12 +94,12 @@ LEAF names the four kinds of uncertainty to close, in order:
   small or low-risk that this feels wasteful, do not invoke leaf-work.
 - **Promote after Learn.** Seeds are for rough ideas and Learn-phase work. When
   ① Intent and ② Unknowns & Context have passed and the user approves moving to
-  Example, run `leaf promote <slug>` and continue from `.leaf/leaves/<slug>/`.
+  Example, run `leaf promote <slug>` and continue from `.leaf/02-leaves/<slug>/`.
   ③ Criteria, ④ Wireframe, Architect, execution, and Feedback belong in active
-  leaf storage, not `.leaf/seeds/`.
+  leaf storage, not `.leaf/01-seeds/`.
 - **Persistent files live inside the leaf project folder.** Use
-  `.leaf/seeds/<slug>/` for exploratory and Learn-phase work and
-  `.leaf/leaves/<slug>/` for committed active work after `leaf promote <slug>`.
+  `.leaf/01-seeds/<slug>/` for exploratory and Learn-phase work and
+  `.leaf/02-leaves/<slug>/` for committed active work after `leaf promote <slug>`.
   Inside that project folder, keep the four phase folders and two-digit gate
   prefixes. For all naming and file-vs-folder-by-count, read
   `references/layout.md`.
