@@ -18,6 +18,7 @@ allow = [
     "MIT",
     "Unicode-3.0",
     "Unlicense",
+    "Zlib",
 ]
 
 [licenses.private]
