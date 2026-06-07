@@ -1,7 +1,3 @@
-// The inventory projection is consumed by the forthcoming `leaf list` renderer,
-// which lands in a later slice; until then this crate-internal API has no caller.
-#![allow(dead_code)]
-
 use anyhow::{Result, bail};
 use std::fs;
 use std::path::{Path, PathBuf};
