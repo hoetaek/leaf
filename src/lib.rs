@@ -1,5 +1,6 @@
 mod cli;
 mod git;
+mod lifecycle;
 mod scaffold;
 mod slug;
 mod storage;
