@@ -122,17 +122,17 @@ fn draw_preview(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
 }
 
 fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
-    let status = if app.mode() == Mode::FilterInput {
-        format!(
+    let status = match app.mode() {
+        Mode::FilterInput => format!(
             "filter: {}  Esc list  Backspace delete  {}",
             app.filter(),
             app.status_line()
-        )
-    } else {
-        format!(
-            "j/k up/down  h/l bucket  / filter  p preview  q quit  {}",
+        ),
+        Mode::ConfirmPromote => app.status_line().to_string(),
+        Mode::List => format!(
+            "j/k up/down  h/l bucket  / filter  p preview  P promote  q quit  {}",
             app.status_line()
-        )
+        ),
     };
     frame.render_widget(Paragraph::new(Line::styled(status, dim_style())), area);
 }
@@ -381,6 +381,39 @@ mod tests {
         let text = buffer_text(80, 12, &app);
 
         assert!(text.contains("filter: a"));
+    }
+
+    #[test]
+    fn normal_status_renders_promote_hint() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Seeds,
+            "draft",
+            status(ParseState::Ok, Some("seed"), Some("Learn"), Some("-")),
+        )]);
+        let app = AppState::from_inventory(&inventory);
+
+        let text = buffer_text(90, 12, &app);
+
+        assert!(text.contains("P promote"));
+    }
+
+    #[test]
+    fn confirm_promote_status_renders_selected_seed_and_choices() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Seeds,
+            "draft",
+            status(ParseState::Ok, Some("seed"), Some("Learn"), Some("-")),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.handle_key(KeyInput::Char('P'));
+
+        let text = buffer_text(100, 12, &app);
+
+        assert!(text.contains("Promote seed draft?"));
+        assert!(text.contains("y confirm"));
+        assert!(text.contains("n/Esc cancel"));
     }
 
     #[test]
