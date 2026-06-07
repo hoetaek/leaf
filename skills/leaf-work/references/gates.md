@@ -1,0 +1,577 @@
+# Gates — Execution Checklist
+
+Per-gate entry/exit/return conditions and examples. Use when a request is vague,
+high-stakes, long-form, collaborative, research-heavy, or likely to sprawl. Work
+the gates by phase, stopping at the earliest missing gate.
+
+```text
+Learn:      ① Intent → ② Unknowns & context / reference exploration
+Example:    ③ Criteria → ④ Wireframe with mock data
+Architect:  ⑤ Design → ⑥ Critic → ⑦ Task graph → ⑧ Artifact / execution
+Feedback:   ⑨ Review / sync → ⑩ Retrospect
+```
+
+**Gates ③–⑤ are a criteria → instance → generator engine.** This file gives
+their gate conditions; the full mechanics (contract, variation point, generator,
+falsification, merge rule) live in `engine.md`. For per-domain templates, see
+`patterns.md`.
+
+---
+
+## ① Intent
+
+**What ① locks: you can state why this work is needed and, derived from
+that, what is actually wanted.** The why is the problem definition; the what
+is the *end* the work serves; ② covers everything that must be learned to
+reach it well.
+
+Preserve what the user initially said, then refine the underlying intent. The
+user may not know the purpose, success criteria, or output form yet; intent can
+start as a hunch, curiosity, taste direction, discomfort, or "something like
+this."
+
+**Ask why before locking what.** The why is the question furthest from any
+solution, so it carries the least solution-contamination (the authoring-order
+principle in `engine.md`) — while the surface request is often a means already
+dressed as an end ("build filter groups" when the need is "stop rebuilding the
+same query by hand"). Stating the why derives or corrects the what; when the
+derived intent differs from the surface request, that gap is ①'s first
+discovery. Record both.
+
+**Follow the why to where it actually lands — not every answer is a problem
+definition.** An external trigger ("it's a course assignment") is a real why
+but defines no problem: it fixes the arbiter and caps the investment, and the
+problem-defining why sits one level deeper — ask for it. Curiosity or taste is
+a legitimate endpoint: lock the intent as exploratory and stop digging —
+interrogating curiosity kills it. A felt sense ("this bothers me, I can't say
+why") marks a problem that exists but cannot be articulated yet: keep the
+user's exact words, state the what negatively ("a structure without this
+discomfort"), and hand the articulation to ② as an unknown — pressing for
+reasons here yields confabulated ones that look like problem definitions but
+are not; prefer observation questions ("where does it bother you?") over
+reason questions ("why?"). When no problem, obligation, curiosity, or felt
+sense holds up, this is the cheapest possible kill — let the work die here.
+
+**Competing whys derive competing whats.** Several motives at once may point
+at different deliverables — the split-or-group rule applies to whys too. A why
+that embeds a diagnosis ("churn is up because of the price change") splits
+into the problem (verify at ②) and the hypothesis, which must stay out of the
+what: "prove it was pricing" bakes the conclusion in; "find out why churn
+rose" survives the hypothesis failing.
+
+**The derivation runs on answer quality, so earn the answer.** A user who
+feels interrogated, or sees no stake in the question, answers perfunctorily —
+and everything downstream inherits that. Make answering serve the user: open
+by offering to sharpen the problem together ("a problem well stated is half
+solved" — Kettering), give each question its reason — the fork the answer
+decides, a quick example, an analogy, whatever shows the answer matters — and
+before asking a deeper why, show what the previous answer already changed. A
+half-hearted answer means the question failed, not the user.
+
+Ask or infer:
+
+- What was the original request or impulse?
+- Why is this needed — what problem, obligation, curiosity, or discomfort sits
+  underneath?
+- Is it a topic, a problem, a claim, a deliverable, or a deadline?
+- What wording should not be lost?
+- What one-sentence intent best captures what the user appears to want now?
+
+Gate to continue:
+
+- Raw wording is captured.
+- The why has been asked or inferred and followed to where it lands — a
+  problem definition, an external obligation (with the deeper why asked),
+  curiosity locked as exploratory, or a felt sense deferred to ② — or the
+  work was killed here.
+- The current one-sentence intent is stated separately from the raw wording;
+  where the derived intent differs from the surface request, the gap is
+  recorded.
+- Separate ideas are split or explicitly grouped.
+- The core noun (essay / report / spec / proposal / video / config …) is named
+  and stable; if it drifts across answers, halt and ask which noun is the
+  actual work item before continuing.
+- When the request has multiple possible outcomes, the top-level topology is
+  named: outcomes, surfaces, integrations, or deliverables that can succeed or
+  fail independently, including anything explicitly deferred.
+- The work is still allowed to change shape or die.
+- It is clear whether the user already has a purpose/success criterion or needs
+  context exploration to shape one.
+
+The why locked here is itself a hypothesis, and every later gate is an
+experiment that can falsify it. Return here when ② learning articulates a
+deferred felt sense or overturns the stated need, when ④'s concrete instance
+shows the problem was mis-stated, or when ⑧ drafting / ⑨ review reveals the
+work is answering a different question than the one locked. Re-lock the intent
+explicitly, then resume only the gates that depended on what changed.
+Returning is not failure — the failure is silent drift: continuing under an
+intent everyone has quietly stopped believing.
+
+Examples:
+
+- "I want to explain how AI agents change review workflow."
+- "Need a report for leadership about support ticket trends."
+- "논문 초안: spec-driven workflow가 agent output quality에 미치는 영향."
+
+## ② Unknowns & Context
+
+**What ② builds: you can judge what this needs, having learned it yourself.**
+The subject is the *user*, not the agent. Other frameworks let the
+agent know everything and hand back a finished result; here the user comes out
+of this gate having learned the work. Learning runs as a trajectory: from
+**coming to know** — domain knowledge, conventions, best practices, related
+existing code, how comparable work (benchmarks/prior art) handles it, and
+whether this is even the only way — to **being able to judge**: stating, in
+their own words, what to choose between and on what basis. The gate closes only
+at that second point, and that point is exactly what ③ Criteria consumes.
+
+The experiment at this gate aims at the *world* — *is this true?* — before any
+answer is built: verify what can be verified, the natural home of a hypothesis →
+test → result loop. ④ Wireframe later aims the same scrutiny at your own answer
+instead.
+
+Name what is missing, then answer those entries in the same working file.
+Unknown surfacing and reference exploration are deliberately one gate: in
+practice, the natural move is to write the question, search or ask for the
+answer, then update that same entry with what was found. Splitting them makes the
+agent maintain two files that are really one loop.
+
+Before searching, benchmarking, or researching anything, create the first pass
+of unknowns. Without this, exploration becomes reactive — gaps surface mid-work
+and the team stops to research piecemeal. Repeated detours that should have been
+one upfront sweep are the symptom.
+
+Use the Clarity Ledger as a *lens* here, not a checklist to fill in: glance at
+its five rows (see `references/clarity-ledger.md`) to spot which criteria
+dimension is weakest, and aim *learning* there — domain study, references, or a
+direct question — instead of following conversation order. The ledger is scored
+and locked at ③, not here; ② only uses it to point learning at the right gap.
+
+Categorize unknowns along two axes — *what kind* of knowledge, and *from where*.
+
+**By kind — what you are learning:**
+
+- **Domain concepts** (know-what) — meaning of core terms used by the audience or
+  judge ("what is a 공적서?", "what does this rubric item cover?").
+- **Standards / conventions** (know-how) — accepted tone, format, structural
+  patterns, and best practices for this output form.
+- **Selection criteria** (know-when/why) — what to choose between, the trade-offs
+  in play, and the principle that decides. This conditional knowledge is what
+  turns learning into judgment; it is exactly what ③ Criteria consumes, and an ②
+  that never reaches it has collected facts but still cannot choose.
+
+**By source — where it comes from:**
+
+- **External** — comparable cases, prior art, benchmark examples, authoritative
+  sources, recent domain changes.
+- **Internal** — what the team already has (data, footage, contacts, documents,
+  prior decisions) and may have forgotten to inventory.
+
+**Search the web actively for the convention and external items** — standards,
+best practices, and comparables live outside and shift over time; do not guess
+them. Save what you find under `01-Learn/02-references/`, one file per topic, and
+summarize the useful answer back in `02-unknowns.md`.
+
+Ask or infer:
+
+- What term, standard, fact, or internal context would I currently have to guess?
+- Which guess, if wrong, would unravel later work?
+- Which unknowns block the next gate, and which are useful-later only?
+
+Resolve by updating the same entries:
+
+- **Verified fact** — what is now known, with a source or direct user-provided
+  basis.
+- **Flagged assumption** — what is still being treated as true without proof;
+  mark which assumptions would unravel downstream work.
+- **Inventoried material / condition** — concrete resources and constraints
+  downstream gates will rely on (data held, deadlines, partner agreements,
+  audience limits).
+- **Unresolved** — carried to ③ as an explicit assumption, returned to this gate
+  later, or deferred with a reason.
+
+Record Gate ② experiments as `hypothesis -> test -> result`. They target the
+world, convention, repo, source material, or audience condition before an answer
+is built: "is this true?" Do not use ② experiments to validate a proposed answer
+shape; that scrutiny belongs to ④.
+
+Common moves: ask direct clarifying questions; inventory user/team-held
+materials before searching externally; gather references/benchmarks/prior art;
+extract patterns; generate 2–4 candidate frames; compare against taste,
+constraints, audience, evidence, risk; name what to copy, adapt, avoid, reject.
+
+Gate to continue:
+
+- Unknowns are grouped by category, not one flat list.
+- Each is marked "blocking now" vs "useful later".
+- The most expensive unknowns (would unravel later work) are identified.
+- Blocking unknowns have sourced answers, explicit assumptions, or owner/user
+  questions.
+- The fact/assumption boundary is visible.
+- The discovery set is bounded enough for the current decision (not exhaustive).
+- 2–4 plausible directions/frames are named when the user needs references to
+  picture the criteria.
+- The user can say what to choose between and on what basis — learning has
+  reached judgment, not just collection. This is the point ③ consumes.
+
+Return here when a new unknown surfaces mid-work (log it to a discoveries note),
+when research detours start interrupting drafting, or when a downstream gate
+reveals a prior assumption was wrong. `01-Learn/02-unknowns.md` evolves
+throughout.
+
+Example:
+
+```text
+Unknowns (writing a public-facing merit report):
+
+Domain concepts (blocking now):
+- What exactly is a "공적서"? How does it differ from a "공적조서"?
+  Answer: <verified answer + source/user basis>
+- What does the judging rubric item "비전&가치" formally cover?
+  Answer: <verified answer + source/user basis>
+
+Standards/conventions (blocking now):
+- 평서체 vs 경어체 for this document?
+- Chronological vs argument-first order — what do reviewers expect?
+
+External facts (useful later):
+- Past winning entries in this category (if accessible).
+
+Internal facts (blocking now):
+- Inventory of our content (videos, partnerships, awards, roster).
+- Existing third-party testimony (blog quotes, interview clips).
+
+Selection criteria (alternatives + what decides):
+- Frame A vs Frame B — <trade-off, and which the purpose favors>
+```
+
+## ③ Criteria
+
+State the change the work is meant to cause and what must be true for the
+concrete example to pass. Criteria combines the old Purpose and Requirements
+gates because both are pre-instance judgment: the intended effect and the
+checks that make that effect observable.
+
+Criteria has two parts:
+
+- **Purpose / arbiter** — one sentence describing the intended effect, not the
+  artifact shape. It answers the necessity locked at ①: the problem lives
+  upstream, purpose is the change that resolves it.
+- **Requirements / test** — observable acceptance checks, evidence needs, scope,
+  tone, format, deadline, non-goals, quality bars, and tradeoff principles.
+
+**Score the Clarity Ledger before locking criteria.** Its five rows are exactly
+the dimensions criteria must pin down — Intent → Purpose; Topology, Success,
+Constraints, Output form → Requirements:
+
+| Row | Stable? |
+|---|---|
+| Intent — necessity (why), desired effect, and core noun | … |
+| Topology — independent outcomes/components/surfaces/deliverables named or deferred | … |
+| Success — completion is observable | … |
+| Constraints — non-goals, boundaries, preserved behavior | … |
+| Output form — artifact, lifecycle, handoff shape | … |
+
+A row is stable when named or explicitly deferred — never when silently
+mutating. Any row that cannot be locked becomes an explicit risk or assumption
+in the requirements, not vague wording. See `references/clarity-ledger.md`.
+
+Gate to continue:
+
+- Purpose is one sentence.
+- Success criteria describe the intended effect, not just the artifact shape.
+- Acceptance/evaluation checks are clear enough to reject a bad wireframe.
+- Major claims have evidence needs.
+- Unknowns are either assumptions, research tasks, or reviewer questions.
+- Non-goals and tradeoff principles are explicit when they matter.
+- Every Clarity Ledger row is named or explicitly deferred; any that cannot be
+  locked is surfaced as an explicit risk or assumption, not hidden inside vague
+  requirements.
+
+Writing-friendly criteria forms:
+
+```text
+WHEN a reader finishes the document, THEY SHOULD be able to <understanding/action>.
+GIVEN <audience/context>, THE DOCUMENT SHALL explain <concept> without assuming <missing knowledge>.
+THE DRAFT SHALL support <claim> with <evidence type>.
+THE DOCUMENT SHALL NOT cover <non-goal>.
+```
+
+When behavior is observable (product, web, CLI, API work), prefer EARS forms —
+this is a preference for observable behavior, not a requirement for every
+writing artifact:
+
+```text
+WHEN <trigger>, THE SYSTEM SHALL <observable behavior>.
+WHEN <condition>, THE SYSTEM SHALL CONTINUE TO <preserved behavior>.     (regression-sensitive)
+GIVEN <precondition> AND <precondition>, WHEN <trigger>, THE SYSTEM SHALL <response>.  (compound trigger)
+```
+
+State regression-sensitive behavior explicitly with `SHALL CONTINUE TO` —
+brownfield changes preserve more than they add. Name relevant non-functional
+constraints (performance, security, accessibility, compatibility) when they
+apply; see `patterns.md` for the web/product forms.
+
+## ④ Wireframe
+
+Where ② experiments on the *world* (*is this true?*), this gate experiments on
+your *answer* (*is this answer right?*) — the friction here is a concrete
+instance hitting criteria and contract, and surviving it is what proves the
+answer. When the instance falsifies a criterion, revise ③ using the purpose as
+arbiter; when it exposes a wrong or missing world fact, return to ② and record
+the experiment there.
+
+Validate one concrete case before generalizing. The wireframe must pass ③
+Criteria; refining it can also reveal that a criterion was wrong. When that
+happens, use the purpose inside ③ as the arbiter, revise criteria or wireframe
+explicitly, and keep the disagreement visible.
+
+Gate to continue:
+
+- The text-first wireframe passed before any artifact-specific wireframe or
+  generalized design, unless the task is explicitly collapsed.
+- The actual operator(s)/reader(s) walked through it and confirmed fit.
+- Information architecture and workflow survive the walk-through.
+- Mock data is realistic enough to expose edge cases (empty, error, large,
+  multi-language) — not just the happy path.
+- Any visual treatment is validated as a concrete case; reusable component,
+  token, responsive, and interaction rules are deferred to ⑤.
+- Every placeholder is traced to a declared contract (declarative or ostensive)
+  and checked against the real asset's constraints. An unaccounted placeholder
+  means only an instance was validated, not the contract.
+- For user-facing, ambiguous, or high-risk wireframes, a cold reader (blind
+  reader) check passed: shown only the wireframe, mock data, labels, and
+  visible sequence, the reader can infer the actor, purpose, expected outcome,
+  next action, and important states. A wrong inference means the wireframe —
+  not the reader — needs revision.
+
+Form by artifact type: interactive → text-first screen sketch then HTML/Figma;
+CLI/config → command transcript + generated TOML/YAML + failure cases; API/data
+→ request/response examples + error cases + state table; text → outline with
+placeholder evidence; proposal → one-page skeleton with stand-in numbers;
+research paper → section skeleton with placeholder findings.
+
+**Brownfield web changes still start text-first.** After the text-first pass,
+a captured copy of the real rendered page can serve as the artifact-specific
+wireframe instead of redrawing screens. Distinguish **locked context** —
+untouched real markup / current structure, verified reality, not a variation
+point — from **variation points** — the regions the change replaces, filled
+with mock data and declared axes/ranges. See
+`references/brownfield-html-capture.md` for the capture recipe.
+
+Return to ④ when ⑧ drafting reveals the structure does not match the workflow;
+⑤ design rules keep colliding with the layout or validated case; a ⑨ reviewer
+says "I cannot find X"; ⑤ has to invent a schema/type/shape; or swapping a
+placeholder's mock for the real asset breaks the instance.
+
+## ⑤ Design — the generator
+
+Build the generator, not another instance. Full mechanics and variation-point
+coverage in `engine.md`. Design decisions: central thesis/message; section order
+and each section's job; evidence placement; argument arc; definitions; rejected
+alternatives; (for product artifacts) component boundaries, state model,
+interaction rules, responsive rules, accessibility/focus rules, visual system
+rules. Data/state contracts are *consumed* from the ④ contract, not decided here.
+
+**Brownfield designs** can open with a model of the existing system before the
+new design: a **Static Model** (Purpose, Components, Business Rules) and a
+**Dynamic Model** (workflow or behavior). Check brownfield assumptions —
+which existing component is extended vs replaced, whether the stated current
+structure is actually true — against local code, docs, or current rendered
+behavior where the check is cheap; do not design against a remembered system.
+
+Gate to continue:
+
+- Each section has a role, not just a title.
+- The reader can follow why the order works.
+- Important rejected structures/component models are named when non-obvious.
+- Non-obvious choices record RALPLAN-DR rationale: principles the choice must
+  respect, decision drivers, ≥2 viable options (or invalidation rationale for
+  rejected ones), and a steelman antithesis with its answer. Self-evident
+  choices skip this — the rule is for choices a reviewer would otherwise have
+  to reconstruct. See `references/decision-rationale.md`.
+- The design matches audience, criteria, and the validated wireframe.
+- It explains how the validated case generalizes to realistic data volume,
+  breakpoints, states, and edge cases.
+- Public terminology and model terms pass a project glossary / canonical
+  terminology check: when a term conflicts with existing docs or the project
+  glossary, the conflict is called out and the canonical term proposed before
+  ⑦ tasking. Terminology drift is the cheapest defect to fix here and the most
+  expensive to fix after it ships.
+
+Useful structures:
+
+- Decision memo: Context → Options → Criteria → Recommendation → Risks → Next steps.
+- Explainer: Problem → Mental model → Examples → Edge cases → Summary.
+- Research paper: Problem → Related work → Question → Method → Results → Discussion → Limitations.
+- Essay: Tension → Claim → Evidence → Counterargument → Implication.
+- Report: Executive summary → Findings → Evidence → Impact → Recommendations.
+- Proposal: Problem → Opportunity → Approach → Plan → Cost/risk → Decision request.
+
+## ⑥ Critic
+
+Falsify the generator before tasking it. ⑤ generalized one validated instance
+(④) into rules that produce *every* allowed instance — and that generalization
+is an unverified inductive leap. ④ could falsify a criterion; this gate gives ⑤
+the same scrutiny before ⑦ Tasks builds on it. **It always runs — the question
+is depth, not whether.**
+
+Depth scales with risk. A design touching any of these gets a deep pass
+(external reviewer, multiple lenses, recorded rationale); a low-stakes design
+gets a quick self-pass:
+
+- security, privacy, safety, compliance, or permission boundaries
+- migrations, destructive changes, data loss risk, or irreversible operations
+- public terminology, interface, API, policy, workflow, or document structure
+- cross-team, cross-module, or cross-artifact coupling
+- large user-facing behavior, argument, narrative, or visual shifts
+- one asserted option with weak alternatives or unclear decision drivers
+
+Verdicts: `APPROVE` / `ITERATE` / `REJECT`. The reviewer may be the user,
+another human, another agent, or a subagent.
+
+Gate to continue:
+
+- Verdict is `APPROVE`, **or** `ITERATE` revisions have been applied and the
+  design re-reviewed.
+- `REJECT` returns to ⑤ Design (and possibly to ② Unknowns when an
+  assumption was overturned).
+- Even a quick self-pass leaves a one-line record of what was checked, so the
+  pass is visible rather than silently skipped.
+
+Full review criteria, depth triggers, and output shape:
+`references/design-critic.md`.
+
+## ⑦ Task Graph
+
+Plan work units and dependencies. Not a table of contents — a section can depend
+on research, data, diagrams, interviews, or a reviewer decision.
+
+Gate to continue:
+
+- Tasks are reviewable chunks.
+- Dependencies are real, not just conversation order.
+- Parallel work is identified.
+- Each task has a check that proves it helped.
+
+**Task/PR size is a reviewability gate.** Label each slice `small` (1–5
+meaningful files, ≤ 200 meaningful changed lines), `medium` (6–10 files,
+≤ 400 lines), or `large-justified` (larger, kept together for an explicit
+coupling reason). These thresholds are tripwires, not schema rules — crossing
+one means "justify or split", not "forbidden". See
+`references/task-pr-size-guidance.md`.
+
+When a task is too large for one line, split it into several reviewable tasks in
+the same `03-Architect/07-tasks.md`. If the work truly needs an independent LEAF
+cycle, create a separate sibling project folder and reference that path from the
+task graph. Do not create nested `<##>-sub-*` folders.
+
+Example:
+
+```text
+T1: Capture intent and open questions. Blocks T2.
+T2: Gather references/benchmarks to sharpen criteria. Blocks T3.
+T3: Define criteria and audience. Blocks T4.
+T4: Build text-first wireframe with mock data; walk-through with operator/reader.
+    Add an artifact-specific wireframe only if needed. Blocks T5.
+T5: Draft design/outline with section or component jobs. Blocks T6/T7.
+T6: Draft evidence-heavy body sections or prototype core. Blocks T8.
+T7: Draft intro after outline is stable. Parallel with T6 if thesis is clear.
+T8: Review claim/evidence or criteria/design alignment. Blocks polish.
+T9: Final edit for tone, length, formatting, or interaction polish.
+```
+
+## ⑧ Artifact / Execution
+
+Produce or revise the actual result. The artifact itself — text, code, video,
+whatever — lives wherever you keep your work; `03-Architect/08-execution.md`
+records *what was done*, one entry per work session, not the artifact.
+
+Do not start this gate by default until the user explicitly approves the
+promoted Architect snapshot: ⑤ Design, ⑥ Critic verdict, ⑦ Task Graph,
+execution scope, risks, and the first execution chunk. This is the exact line
+between scaffolding and execution. Skip it only when the user explicitly
+pre-authorized auto-execution for this leaf; if the work is too small or
+low-risk to justify that approval surface, it should not have invoked
+leaf-work.
+
+Rules: start with the most load-bearing uncertain chunk, not necessarily the
+first section; prefer ugly but checkable work over polished unsupported prose;
+keep claims and evidence linked; mark placeholders honestly. Log each session in
+`08-execution.md`: what you did, what came of it, what's next.
+
+Gate to continue:
+
+- The result can be reviewed against criteria.
+- Open placeholders are visible.
+- The next chunk's inputs are known.
+
+Record the result as passed in `08-execution.md` only after the user explicitly
+says so.
+
+## ⑨ Review / Sync
+
+Keep the plan true after drafting and feedback. This gate loops with ⑧ —
+expect it to run many times while the work is alive; ⑩ closes the leaf once.
+
+Review checks: Does the artifact satisfy criteria? Are claims supported by
+evidence? Does section order still fit the argument? Did drafting reveal missing
+research or a weaker thesis? Are non-goals respected? Is detail right for the
+audience? Does the wireframe still fit?
+
+Sync rule: if review changes the claim/effect, update criteria; if it changes
+the argument flow, update the design/outline; if it changes workload, update the
+task graph. Do not keep stale planning notes beside a changed draft.
+
+## ⑩ Retrospect
+
+Close the leaf on two axes — what this work established (content) and how the
+work went (process). Both halves look back at the finished whole; they differ
+only in subject.
+
+**Limitations — the content retrospective.** Record what was established and
+where its authority ends: the claims or results that now hold (and against
+which criteria they passed), what remains unresolved, and the boundaries —
+conditions under which the conclusions do not apply. This is what makes a
+finished leaf citable as prior work: future work builds on the established
+part without re-deriving it, and the unresolved and boundary entries are
+where a future leaf's ① necessity is born — the same way a paper's
+limitations section seeds the next study. Write it to
+`10-retrospective/limitations.md` (or a Limitations section of the single
+retrospect file).
+
+**Lessons — the process retrospective.** Improve the next loop. Capture: What
+sequence worked? What did we draft too early? Which criterion was missing?
+Which review check caught the most? What template or skill should change?
+**Which unknowns surfaced mid-work that should have been caught at ②?** Open
+the discoveries note and, for each unplanned detour, ask which category was
+missed — a domain concept, a convention, a selection criterion, or an
+external/internal source — and feed it back into the next project's ② checklist.
+
+Gate to future work:
+
+- What was established, what remains unresolved, and where the boundaries lie
+  are stated plainly enough for future work to cite without rereading this
+  leaf.
+- Lessons are phrased as reusable process changes, not vague feelings.
+- The ② checklist for similar future work is updated with the categories or
+  example questions the team kept missing.
+
+---
+
+## Anti-Patterns
+
+- Searching, benchmarking, or researching before listing what is unknown.
+- Treating mid-work research detours as expected, rather than as a signal that
+  ② was incomplete.
+- Drafting polished prose before criteria are clear.
+- Forcing criteria before the user has enough references to know what they want.
+- Building the wireframe before criteria are clear.
+- Starting with title/outline when the reader decision is unknown.
+- Treating table of contents as a task graph.
+- Letting AI invent evidence or audience.
+- Keeping an old outline after review changes the thesis.
+- Doing "final polish" while claims are still unsupported.
+- Asking for broad review when the artifact needs a specific gate check.
+- ⑤ inventing a schema/shape the ④ contract should have locked.
+- Skipping the retrospective's review of mid-process discoveries.

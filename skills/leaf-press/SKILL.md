@@ -1,0 +1,148 @@
+---
+name: leaf-press
+description: |
+  Use when creating a citable pressed Markdown digest at `.leaf/pressed/{slug}.md`
+  from an existing LEAF seed, active leaf, or fallen leaf. Trigger on `leaf press`, "press this
+  leaf", "pressed markdown", "make this leaf citable", "인용용으로 눌러줘",
+  "pressed 파일로 정리", "중요 내용만 하나의 마크다운으로", or requests to summarize
+  a LEAF item's intent, method, work done, limits, and lessons into one reusable
+  Markdown file. Do not use for promoting seeds to leaves, moving lifecycle
+  state, executing tasks, or creating wt artifacts.
+---
+
+# LEAF Press
+
+Create a citable Markdown digest from a LEAF item. Pressing does not promote,
+move, or execute the source; it extracts the important context into
+`.leaf/pressed/{slug}.md` so later work can quote or cite it.
+
+## Boundary
+
+- Work only with `.leaf/` content.
+- Do not move `.leaf/seeds/`, `.leaf/leaves/`, or `.leaf/fallen/` directories.
+- Do not change source gate files unless the user separately asks for source
+  edits.
+- Do not create wt TaskDocuments, workflows, branches, PRs, commits, tickets, or
+  execution artifacts.
+- Do not present the pressed file as source truth. It is a digest with source
+  links; the original LEAF files remain authoritative.
+- Do not invent certainty. Mark missing, inferred, or unresolved points plainly.
+
+## Source Resolution
+
+Inspect local truth first:
+
+```bash
+git status --short --branch
+find .leaf/seeds .leaf/leaves .leaf/fallen .leaf/pressed -maxdepth 1 -mindepth 1 2>/dev/null | sort
+```
+
+Resolve the source for `{slug}`:
+
+- Prefer `.leaf/leaves/{slug}/` when an active leaf exists.
+- Use `.leaf/fallen/{slug}/` when the digest should cite archived prior work.
+- Use `.leaf/seeds/{slug}/` when no matching leaf or fallen leaf exists.
+- If several sources exist and the user did not specify one, state which source
+  you will use and why.
+- If neither exists, stop and list likely available slugs.
+
+Create `.leaf/pressed/` when absent. Write the output to
+`.leaf/pressed/{slug}.md`. If a pressed file already exists, read it before
+replacing or refreshing it.
+
+## Read Order
+
+Read only the files needed to produce a faithful digest:
+
+1. `00-status.md`
+2. `01-Learn/01-intent.md`
+3. `01-Learn/02-unknowns.md`
+4. `02-Example/03-criteria.md`
+5. `02-Example/04-wireframe.md`
+6. `03-Architect/05-design.md`
+7. `03-Architect/07-tasks.md`
+8. `04-Feedback/` files, when present
+9. referenced materials under `01-Learn/02-references/`, only when the gate
+   files point to them or the digest needs provenance
+
+Missing files are acceptable. Note them in the pressed file only when their
+absence affects interpretation.
+
+## Pressed File Shape
+
+Use this structure:
+
+```markdown
+# <human-readable title>
+
+- source: .leaf/<seeds-or-leaves>/{slug}
+- pressed at: <local timestamp>
+- citation handle: leaf:{slug}
+- status: <state/current phase if known>
+
+## Citation Summary
+
+<One compact paragraph that can be quoted elsewhere. Say what this LEAF item was
+trying to clarify, what approach it took, what it produced, and what caveat
+matters most.>
+
+## Intent
+
+<The original purpose and why the work existed. Preserve important user wording
+when it affects meaning.>
+
+## Method
+
+<How the work approached the problem: gates used, research path, examples,
+criteria, comparisons, implementation strategy, or review loop.>
+
+## What Was Done
+
+<Concrete artifacts, decisions, explored alternatives, task graph, or outputs.>
+
+## Key Points To Reuse
+
+- <Reusable point, decision, pattern, or constraint>
+- <Another point>
+
+## Limits And Open Questions
+
+- <Known limitation, unresolved question, weak evidence, or non-goal>
+
+## Lessons
+
+- <What was learned that should influence future work>
+
+## Source Map
+
+- `00-status.md`: <why it mattered>
+- `01-Learn/01-intent.md`: <why it mattered>
+- `<other source file>`: <why it mattered>
+```
+
+Keep the digest concise enough to quote. Prefer faithful compression over
+coverage. Include direct quotations only when the original wording matters; keep
+them short and source them in `Source Map`.
+
+## Quality Bar
+
+Before writing the pressed file, separate:
+
+- confirmed source facts
+- agent inference from source facts
+- unresolved or missing context
+
+The pressed file must make those boundaries visible. If the source is too thin
+to support a useful citation, create a short pressed file that says so instead
+of filling the gaps.
+
+## After Press
+
+Report:
+
+- output path: `.leaf/pressed/{slug}.md`
+- source path used
+- whether this was a new pressed file or a refresh
+- important missing source files or unresolved questions
+- confirmation that no source lifecycle state, `.wt/`, or execution artifact was
+  changed

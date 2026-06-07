@@ -1,0 +1,7 @@
+interface:
+  display_name: "LEAF Press"
+  short_description: "Create citable LEAF Markdown digests"
+  default_prompt: "Use $leaf-press to turn this LEAF item into a citable .leaf/pressed/{slug}.md digest."
+
+policy:
+  allow_implicit_invocation: true
