@@ -12,6 +12,7 @@ committed work.
 ```bash
 leaf init
 leaf new <slug>
+leaf fall <slug> --reason <reason>
 ```
 
 `leaf init` initializes `.leaf/` storage in the current git repository:
@@ -19,7 +20,8 @@ leaf new <slug>
 ```text
 .leaf/
 ├── seeds/
-└── leaves/
+├── leaves/
+└── fallen/
 ```
 
 It also adds `/.leaf` to `.git/info/exclude` so local collaboration notes do
@@ -46,6 +48,14 @@ not appear in normal `git status` output.
 
 In the current model, `seeds/` are ideas. When work becomes committed and active,
 future lifecycle commands are expected to move or promote it into `leaves/`.
+When active work closes, `leaf fall <slug> --reason <reason>` preserves it under
+`fallen/` as archived prior work.
+
+`leaf fall <slug> --reason <reason>` moves an active leaf from
+`.leaf/leaves/<slug>/` to `.leaf/fallen/<slug>/` and writes flexible closure
+fields into `00-status.md`. The reason is free text so an agent or human can use
+canonical reasons such as `completed`, `abandoned`, `superseded`, `parked`,
+`split`, or `invalidated`, while still preserving project-specific detail.
 
 ## Install
 
@@ -77,18 +87,23 @@ cargo install --git https://github.com/hoetaek/leaf
 
 The crate is not published to crates.io.
 
-## Agent Skill
+## Agent Skills
 
-This repository also ships the `leaf-work` Agent Skill. Install it with the
-Skills CLI:
+This repository also ships Agent Skills. Install them with the Skills CLI:
 
 ```bash
+npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-idea
+npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-press
+npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-fall
 npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-work
 ```
 
 For a global install:
 
 ```bash
+npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-idea -g
+npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-press -g
+npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-fall -g
 npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-work -g
 ```
 
