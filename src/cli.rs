@@ -19,6 +19,11 @@ enum Commands {
         /// Path-safe seed slug.
         slug: String,
     },
+    /// Promote an idea seed into an active leaf.
+    Promote {
+        /// Path-safe seed slug.
+        slug: String,
+    },
     /// Move an active leaf into the fallen archive.
     Fall {
         /// Path-safe leaf slug.
@@ -52,6 +57,14 @@ fn execute(cli: Cli) -> Result<()> {
             crate::storage::ensure_leaf_root(&paths)?;
             crate::scaffold::create_seed(&paths.root, &slug)?;
             println!("created .leaf/seeds/{slug}/");
+            Ok(())
+        }
+        Commands::Promote { slug } => {
+            let slug = crate::slug::validate(&slug)?;
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            crate::storage::ensure_leaf_root(&paths)?;
+            crate::lifecycle::promote_seed(&paths.root, &slug)?;
+            println!("moved .leaf/seeds/{slug}/ to .leaf/leaves/{slug}/");
             Ok(())
         }
         Commands::Fall { slug, reason } => {

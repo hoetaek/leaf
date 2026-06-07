@@ -36,8 +36,9 @@ LEAF names the four kinds of uncertainty to close, in order:
   work lives in a repo-local `.leaf/` workspace. Before gate work, run
   `leaf init` when `.leaf/` is absent, then create exploratory work with
   `leaf new <slug>` under `.leaf/seeds/<slug>/`. If a seed already exists,
-  resume that folder instead of creating another. Do not create loose
-  `01-Learn/` … `04-Feedback/` folders at the repo root.
+  resume that folder instead of creating another. If an active leaf already
+  exists under `.leaf/leaves/<slug>/`, resume the active leaf instead. Do not
+  create loose `01-Learn/` … `04-Feedback/` folders at the repo root.
 - **Scaffolding is the first act — so the work stands on a firm foundation.**
   Learn, Example, and Architect lay that foundation; execution builds only once
   it is solid, not on guesses. The CLI scaffold creates `00-status.md` and the
@@ -85,9 +86,14 @@ LEAF names the four kinds of uncertainty to close, in order:
   promoted snapshot; the user decides. Skip the ⑧ start approval only when the
   user explicitly pre-authorized auto-execution for this leaf; if the work is so
   small or low-risk that this feels wasteful, do not invoke leaf-work.
+- **Promote after Learn.** Seeds are for rough ideas and Learn-phase work. When
+  ① Intent and ② Unknowns & Context have passed and the user approves moving to
+  Example, run `leaf promote <slug>` and continue from `.leaf/leaves/<slug>/`.
+  ③ Criteria, ④ Wireframe, Architect, execution, and Feedback belong in active
+  leaf storage, not `.leaf/seeds/`.
 - **Persistent files live inside the leaf project folder.** Use
-  `.leaf/seeds/<slug>/` for exploratory work and `.leaf/leaves/<slug>/` for
-  committed active work when a lifecycle command or explicit move promotes it.
+  `.leaf/seeds/<slug>/` for exploratory and Learn-phase work and
+  `.leaf/leaves/<slug>/` for committed active work after `leaf promote <slug>`.
   Inside that project folder, keep the four phase folders and two-digit gate
   prefixes. For all naming and file-vs-folder-by-count, read
   `references/layout.md`.

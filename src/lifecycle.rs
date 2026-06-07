@@ -3,6 +3,47 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub(crate) fn promote_seed(repo_root: &Path, slug: &str) -> Result<PathBuf> {
+    let leaf_root = repo_root.join(".leaf");
+    let source = leaf_root.join("seeds").join(slug);
+    let destination = leaf_root.join("leaves").join(slug);
+    let fallen = leaf_root.join("fallen").join(slug);
+
+    require_directory(&source, "seed does not exist")?;
+    if destination
+        .try_exists()
+        .with_context(|| format!("failed to inspect {}", destination.display()))?
+    {
+        bail!("active leaf already exists: {slug}");
+    }
+    if fallen
+        .try_exists()
+        .with_context(|| format!("failed to inspect {}", fallen.display()))?
+    {
+        bail!("fallen leaf already exists: {slug}");
+    }
+
+    let status_path = source.join("00-status.md");
+    let previous_status = read_optional_status(&status_path)?;
+
+    let timestamp = unix_timestamp()?;
+    fs::write(
+        &status_path,
+        promoted_status(slug, &timestamp, previous_status.as_deref()),
+    )
+    .with_context(|| format!("failed to write {}", status_path.display()))?;
+
+    fs::rename(&source, &destination).with_context(|| {
+        format!(
+            "failed to move {} to {}",
+            source.display(),
+            destination.display()
+        )
+    })?;
+
+    Ok(destination)
+}
+
 pub(crate) fn fall_leaf(repo_root: &Path, slug: &str, reason: &str) -> Result<PathBuf> {
     let reason = validate_reason(reason)?;
     let leaf_root = repo_root.join(".leaf");
@@ -18,13 +59,7 @@ pub(crate) fn fall_leaf(repo_root: &Path, slug: &str, reason: &str) -> Result<Pa
     }
 
     let status_path = source.join("00-status.md");
-    let previous_status = match fs::read_to_string(&status_path) {
-        Ok(content) => Some(content),
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => None,
-        Err(err) => {
-            return Err(err).with_context(|| format!("failed to read {}", status_path.display()));
-        }
-    };
+    let previous_status = read_optional_status(&status_path)?;
 
     let timestamp = unix_timestamp()?;
     fs::write(
@@ -42,6 +77,14 @@ pub(crate) fn fall_leaf(repo_root: &Path, slug: &str, reason: &str) -> Result<Pa
     })?;
 
     Ok(destination)
+}
+
+fn read_optional_status(path: &Path) -> Result<Option<String>> {
+    match fs::read_to_string(path) {
+        Ok(content) => Ok(Some(content)),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(err) => Err(err).with_context(|| format!("failed to read {}", path.display())),
+    }
 }
 
 fn validate_reason(reason: &str) -> Result<String> {
@@ -68,6 +111,27 @@ fn unix_timestamp() -> Result<String> {
         .duration_since(UNIX_EPOCH)
         .context("system clock is before the unix epoch")?;
     Ok(format!("unix:{}", duration.as_secs()))
+}
+
+fn promoted_status(slug: &str, timestamp: &str, previous_status: Option<&str>) -> String {
+    let previous_status = previous_status.unwrap_or("").trim();
+    let mut status = format!(
+        "# Leaf Status\n\n\
+         - state: active\n\
+         - current phase: Example\n\
+         - promoted at: {timestamp}\n\
+         - promoted from: .leaf/seeds/{slug}\n\n\
+         ## Promotion Log\n\n\
+         - {timestamp}: moved from seed to active leaf after Learn.\n"
+    );
+
+    if !previous_status.is_empty() {
+        status.push_str("\n## Previous Status\n\n");
+        status.push_str(previous_status);
+        status.push('\n');
+    }
+
+    status
 }
 
 fn fallen_status(

@@ -35,6 +35,7 @@ fn help_lists_init_and_new() {
         .success()
         .stdout(predicate::str::contains("init"))
         .stdout(predicate::str::contains("new"))
+        .stdout(predicate::str::contains("promote"))
         .stdout(predicate::str::contains("fall"));
 }
 
@@ -297,6 +298,115 @@ fn new_rejects_invalid_slugs() {
             .failure()
             .stderr(predicate::str::contains("invalid slug"));
     }
+}
+
+#[test]
+fn promote_moves_seed_to_active_leaf_and_updates_status() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+    repo.child(".leaf/seeds/research-memo/01-Learn/01-intent.md")
+        .write_str("preserve this intent\n")
+        .expect("intent");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["promote", "research-memo"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "moved .leaf/seeds/research-memo/ to .leaf/leaves/research-memo/",
+        ));
+
+    repo.child(".leaf/seeds/research-memo")
+        .assert(predicate::path::missing());
+    repo.child(".leaf/leaves/research-memo/01-Learn/01-intent.md")
+        .assert("preserve this intent\n");
+
+    let status = fs::read_to_string(repo.path().join(".leaf/leaves/research-memo/00-status.md"))
+        .expect("active leaf status");
+    assert!(status.contains("# Leaf Status"));
+    assert!(status.contains("- state: active"));
+    assert!(status.contains("- current phase: Example"));
+    assert!(status.contains("- promoted from: .leaf/seeds/research-memo"));
+    assert!(status.contains("## Promotion Log"));
+    assert!(status.contains("## Previous Status"));
+    assert!(status.contains("- state: seed"));
+}
+
+#[test]
+fn promote_rejects_missing_seed() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["promote", "research-memo"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("seed does not exist"));
+
+    repo.child(".leaf/leaves/research-memo")
+        .assert(predicate::path::missing());
+}
+
+#[test]
+fn promote_rejects_existing_active_leaf_without_overwrite() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    repo.child(".leaf/seeds/research-memo")
+        .create_dir_all()
+        .expect("seed dir");
+    repo.child(".leaf/seeds/research-memo/00-status.md")
+        .write_str("seed status\n")
+        .expect("seed status");
+    repo.child(".leaf/leaves/research-memo")
+        .create_dir_all()
+        .expect("leaf dir");
+    repo.child(".leaf/leaves/research-memo/00-status.md")
+        .write_str("keep me\n")
+        .expect("active status");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["promote", "research-memo"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("active leaf already exists"));
+
+    repo.child(".leaf/seeds/research-memo/00-status.md")
+        .assert("seed status\n");
+    repo.child(".leaf/leaves/research-memo/00-status.md")
+        .assert("keep me\n");
+}
+
+#[test]
+fn promote_rejects_existing_fallen_leaf_without_overwrite() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    repo.child(".leaf/seeds/research-memo")
+        .create_dir_all()
+        .expect("seed dir");
+    repo.child(".leaf/fallen/research-memo")
+        .create_dir_all()
+        .expect("fallen dir");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["promote", "research-memo"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("fallen leaf already exists"));
+
+    repo.child(".leaf/seeds/research-memo")
+        .assert(predicate::path::is_dir());
+    repo.child(".leaf/leaves/research-memo")
+        .assert(predicate::path::missing());
 }
 
 #[test]

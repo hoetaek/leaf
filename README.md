@@ -47,7 +47,12 @@ leaf new my-first-idea
 ```
 
 Ask your agent to use `leaf-work` for substantial vague work, or `leaf-idea` to
-capture an idea before it becomes committed work.
+capture an idea before it becomes committed work. When Learn is complete, move
+the work into active leaf storage:
+
+```bash
+leaf promote my-first-idea
+```
 
 Other CLI install paths are available from the latest GitHub Release:
 
@@ -93,10 +98,10 @@ The detailed gate model lives in [`skills/leaf-work`](skills/leaf-work/SKILL.md)
 └── pressed/
 ```
 
-`seeds/` are rough ideas and exploratory starts. `leaves/` are committed active
-LEAF work. `fallen/` preserves active leaves after they close. `pressed/` stores
-citable Markdown digests of important LEAF work, such as intent, method, what
-was done, limits, and lessons learned.
+`seeds/` are rough ideas and exploratory Learn-phase starts. `leaves/` are
+committed active LEAF work from Example onward. `fallen/` preserves active
+leaves after they close. `pressed/` stores citable Markdown digests of important
+LEAF work, such as intent, method, what was done, limits, and lessons learned.
 
 `leaf init` adds `/.leaf` to `.git/info/exclude` so local collaboration notes do
 not appear in normal `git status` output.
@@ -106,6 +111,7 @@ not appear in normal `git status` output.
 ```bash
 leaf init
 leaf new <slug>
+leaf promote <slug>
 leaf fall <slug> --reason <reason>
 ```
 
@@ -133,6 +139,11 @@ leaf fall <slug> --reason <reason>
 Slug values must be path-safe ASCII strings using letters, digits, `-`, and
 `_`. Existing seeds are not overwritten.
 
+`leaf promote <slug>` moves a seed from `.leaf/seeds/<slug>/` to
+`.leaf/leaves/<slug>/` once Learn is complete and Example should start from
+active leaf storage. It updates `00-status.md` to `state: active` and
+`current phase: Example`, while preserving the previous seed status.
+
 `leaf fall <slug> --reason <reason>` moves an active leaf from
 `.leaf/leaves/<slug>/` to `.leaf/fallen/<slug>/` and writes flexible closure
 fields into `00-status.md`. The reason is free text, so an agent or human can
@@ -159,7 +170,8 @@ npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-work
 ## Status
 
 `leaf` is currently an early Rust CLI. The current slice initializes repo-local
-LEAF storage, scaffolds idea seeds, and archives active leaves when they close.
+LEAF storage, scaffolds idea seeds, promotes seeds into active leaves after
+Learn, and archives active leaves when they close.
 
 The crate is not published to crates.io.
 
