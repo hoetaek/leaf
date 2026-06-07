@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use std::io::IsTerminal;
 
 #[derive(Debug, Parser)]
 #[command(name = "leaf")]
@@ -31,6 +32,12 @@ enum Commands {
         /// Human-readable closure reason.
         #[arg(long)]
         reason: String,
+    },
+    /// List .leaf workspace items.
+    List {
+        /// Write machine-readable JSON.
+        #[arg(long)]
+        json: bool,
     },
 }
 
@@ -73,6 +80,22 @@ fn execute(cli: Cli) -> Result<()> {
             crate::storage::ensure_leaf_root(&paths)?;
             crate::lifecycle::fall_leaf(&paths.root, &slug, &reason)?;
             println!("moved .leaf/leaves/{slug}/ to .leaf/fallen/{slug}/");
+            Ok(())
+        }
+        Commands::List { json } => {
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            let inventory = crate::inventory::load(&paths.root)?;
+            if json {
+                let stdout = std::io::stdout();
+                let mut stdout = stdout.lock();
+                crate::list_output::write_json(&mut stdout, &inventory)?;
+            } else if std::io::stdin().is_terminal() && std::io::stdout().is_terminal() {
+                crate::tui::run(&inventory)?;
+            } else {
+                let stdout = std::io::stdout();
+                let mut stdout = stdout.lock();
+                crate::list_output::write_text(&mut stdout, &inventory)?;
+            }
             Ok(())
         }
     }

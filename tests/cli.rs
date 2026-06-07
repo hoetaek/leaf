@@ -27,6 +27,10 @@ fn exclude_contents(repo: &Path) -> String {
     fs::read_to_string(repo.join(".git/info/exclude")).expect("exclude file is readable")
 }
 
+fn write_status(repo: &assert_fs::TempDir, path: &str, body: &str) {
+    repo.child(path).write_str(body).expect("write status");
+}
+
 #[test]
 fn help_lists_init_and_new() {
     leaf_command()
@@ -36,7 +40,8 @@ fn help_lists_init_and_new() {
         .stdout(predicate::str::contains("init"))
         .stdout(predicate::str::contains("new"))
         .stdout(predicate::str::contains("promote"))
-        .stdout(predicate::str::contains("fall"));
+        .stdout(predicate::str::contains("fall"))
+        .stdout(predicate::str::contains("list"));
 }
 
 #[test]
@@ -222,6 +227,135 @@ fn init_works_in_git_worktree() {
     worktree
         .child(".leaf/pressed")
         .assert(predicate::path::is_dir());
+}
+
+#[test]
+fn list_writes_deterministic_text_output_for_captured_stdout() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_status(
+        &repo,
+        ".leaf/leaves/active/00-status.md",
+        "- state: active\n\
+         - current phase: Architect\n\
+         - current gate: ⑦ Task Graph\n\
+         - first missing gate: ⑧ Artifact / execution\n\
+         - next action: implement\n",
+    );
+    write_status(
+        &repo,
+        ".leaf/seeds/draft/00-status.md",
+        "- state: seed\n- current phase: Learn\n",
+    );
+    repo.child(".leaf/fallen").create_dir_all().expect("fallen");
+    repo.child(".leaf/pressed/summary.md")
+        .write_str("# Summary\n")
+        .expect("pressed");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("list")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "BUCKET  STATE   PHASE      GATE           STATUS   SLUG",
+        ))
+        .stdout(predicate::str::contains(
+            "seed    seed    Learn      -              partial  draft",
+        ))
+        .stdout(predicate::str::contains(
+            "leaf    active  Architect  ⑦ Task Graph   ok       active",
+        ))
+        .stdout(predicate::str::contains(
+            "pressed -       -          -              ok       summary",
+        ))
+        .stdout(predicate::str::contains("empty: fallen"));
+}
+
+#[test]
+fn list_json_outputs_all_buckets_and_degraded_parse_states() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_status(
+        &repo,
+        ".leaf/seeds/draft/00-status.md",
+        "- state: seed\n- current phase: Learn\n",
+    );
+    write_status(
+        &repo,
+        ".leaf/leaves/active/00-status.md",
+        "- state: active\n\
+         - current phase: Architect\n\
+         - current gate: ⑦ Task Graph\n\
+         - first missing gate: ⑧ Artifact / execution\n\
+         - next action: implement\n",
+    );
+    write_status(
+        &repo,
+        ".leaf/fallen/done/00-status.md",
+        "- state: fallen\n- fall reason: completed\n",
+    );
+    repo.child(".leaf/pressed/summary.md")
+        .write_str("# Summary\n")
+        .expect("pressed");
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["list", "--json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("valid json");
+
+    assert_eq!(json["leaf_root"], ".leaf");
+    assert_eq!(json["buckets"]["seeds"]["count"], 1);
+    assert_eq!(json["buckets"]["leaves"]["count"], 1);
+    assert_eq!(json["buckets"]["fallen"]["count"], 1);
+    assert_eq!(json["buckets"]["pressed"]["count"], 1);
+    assert_eq!(json["buckets"]["seeds"]["items"][0]["bucket"], "seeds");
+    assert_eq!(json["buckets"]["seeds"]["items"][0]["slug"], "draft");
+    assert_eq!(
+        json["buckets"]["seeds"]["items"][0]["status"]["parse_state"],
+        "partial"
+    );
+    assert_eq!(
+        json["buckets"]["seeds"]["items"][0]["status"]["missing_fields"],
+        serde_json::json!(["current_gate", "first_missing_gate", "next_action"])
+    );
+    assert_eq!(
+        json["buckets"]["leaves"]["items"][0]["path"],
+        ".leaf/leaves/active"
+    );
+    assert_eq!(
+        json["buckets"]["leaves"]["items"][0]["status"]["parse_state"],
+        "ok"
+    );
+    assert_eq!(
+        json["buckets"]["pressed"]["items"][0]["kind"],
+        "pressed_digest"
+    );
+}
+
+#[test]
+fn list_missing_leaf_root_fails_without_bootstrapping() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    let exclude_before = exclude_contents(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("list")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            ".leaf/ is not initialized in this git repository",
+        ))
+        .stderr(predicate::str::contains("hint: run `leaf init`"));
+
+    repo.child(".leaf").assert(predicate::path::missing());
+    assert_eq!(exclude_contents(repo.path()), exclude_before);
 }
 
 #[test]
