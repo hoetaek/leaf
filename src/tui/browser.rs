@@ -152,6 +152,7 @@ mod tests {
     use crate::tui::app::{AppState, BucketFilter, KeyInput, ListRow, Outcome};
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use std::cell::RefCell;
+    use std::fs;
     use std::path::Path;
 
     struct RecordingPromoteAdapter {
@@ -246,6 +247,41 @@ mod tests {
 
         assert_eq!(app.selected_row().map(ListRow::slug), Some("draft"));
         assert!(app.status_line().contains("active leaf already exists"));
+    }
+
+    #[test]
+    fn real_promote_adapter_promotes_seed_and_reloads_inventory() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let leaf_root = root.path().join(".leaf");
+        fs::create_dir_all(leaf_root.join("seeds/demo")).expect("seed dir");
+        fs::create_dir_all(leaf_root.join("leaves")).expect("leaves dir");
+        fs::create_dir_all(leaf_root.join("fallen")).expect("fallen dir");
+        fs::create_dir_all(leaf_root.join("pressed")).expect("pressed dir");
+        fs::write(
+            leaf_root.join("seeds/demo/00-status.md"),
+            "# Status\n\n- state: seed\n- current phase: Learn\n- current gate: Intent\n- first missing gate: Example\n- next action: promote\n",
+        )
+        .expect("seed status");
+        let initial = crate::inventory::load(root.path()).expect("initial inventory");
+        let mut app = AppState::from_inventory(&initial);
+        let adapter = RealPromoteAdapter {
+            repo_root: root.path().to_path_buf(),
+        };
+
+        handle_outcome(
+            &mut app,
+            &adapter,
+            Outcome::PromoteSeed {
+                slug: "demo".to_string(),
+            },
+        )
+        .expect("real promote outcome");
+
+        assert!(leaf_root.join("leaves/demo").is_dir());
+        assert!(!leaf_root.join("seeds/demo").exists());
+        assert_eq!(app.active_bucket(), BucketFilter::Bucket(Bucket::Leaves));
+        assert_eq!(app.selected_row().map(ListRow::slug), Some("demo"));
+        assert!(app.status_line().contains("promoted seed demo"));
     }
 
     fn test_inventory(root: &Path, items: Vec<InventoryItem>) -> Inventory {
