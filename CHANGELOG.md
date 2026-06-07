@@ -8,10 +8,17 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+## 0.2.0 - 2026-06-08
+
+- Added `leaf list` to project a deterministic inventory of seeds, active
+  leaves, fallen leaves, and pressed digests, with `--json` output for tooling.
+- Added an interactive `leaf list` TUI browser for navigating and previewing
+  LEAF items.
 - Added `leaf promote <slug>` to move Learn-complete seeds into active leaves
   before Example work starts.
 - Updated LEAF skill guidance so seeds are for rough ideas and Learn-phase work,
   while active leaves carry Example and later phases.
+- Added a preferred-language rule to the `leaf-work` skill.
 
 ## 0.1.3 - 2026-06-07
 
