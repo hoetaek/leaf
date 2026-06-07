@@ -6,6 +6,11 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.1.3 - 2026-06-07
+
+- Reworked the README around the LEAF-first positioning, Agent Skills install
+  path, LEAF loop, repo-local concepts, command reference, and project status.
+
 ## 0.1.2 - 2026-06-07
 
 - Added LEAF agent skills for idea capture, work planning, pressing, and
