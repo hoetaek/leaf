@@ -21,7 +21,8 @@ leaf fall <slug> --reason <reason>
 .leaf/
 ├── seeds/
 ├── leaves/
-└── fallen/
+├── fallen/
+└── pressed/
 ```
 
 It also adds `/.leaf` to `.git/info/exclude` so local collaboration notes do
@@ -50,6 +51,8 @@ In the current model, `seeds/` are ideas. When work becomes committed and active
 future lifecycle commands are expected to move or promote it into `leaves/`.
 When active work closes, `leaf fall <slug> --reason <reason>` preserves it under
 `fallen/` as archived prior work.
+`pressed/` stores citable Markdown digests of important LEAF work, such as
+intent, method, what was done, limits, and lessons learned.
 
 `leaf fall <slug> --reason <reason>` moves an active leaf from
 `.leaf/leaves/<slug>/` to `.leaf/fallen/<slug>/` and writes flexible closure

@@ -64,6 +64,8 @@ fn init_creates_leaf_buckets_and_exclude_line() {
     repo.child(".leaf/seeds").assert(predicate::path::is_dir());
     repo.child(".leaf/leaves").assert(predicate::path::is_dir());
     repo.child(".leaf/fallen").assert(predicate::path::is_dir());
+    repo.child(".leaf/pressed")
+        .assert(predicate::path::is_dir());
     assert_eq!(
         exclude_contents(repo.path())
             .lines()
@@ -113,6 +115,8 @@ fn init_from_nested_cwd_uses_repo_root() {
         .success();
 
     repo.child(".leaf/seeds").assert(predicate::path::is_dir());
+    repo.child(".leaf/pressed")
+        .assert(predicate::path::is_dir());
     repo.child("nested/deep/.leaf")
         .assert(predicate::path::missing());
 }
@@ -214,6 +218,9 @@ fn init_works_in_git_worktree() {
     worktree
         .child(".leaf/fallen")
         .assert(predicate::path::is_dir());
+    worktree
+        .child(".leaf/pressed")
+        .assert(predicate::path::is_dir());
 }
 
 #[test]
@@ -244,6 +251,8 @@ fn new_creates_seed_skeleton_and_bootstraps_repo() {
     repo.child(".leaf/leaves/research-memo")
         .assert(predicate::path::missing());
     repo.child(".leaf/fallen").assert(predicate::path::is_dir());
+    repo.child(".leaf/pressed")
+        .assert(predicate::path::is_dir());
     assert_eq!(
         exclude_contents(repo.path())
             .lines()

@@ -14,6 +14,7 @@ pub(crate) fn ensure_leaf_root(paths: &RepoPaths) -> Result<bool> {
     changed |= ensure_directory(&leaf_root.join("seeds"))?;
     changed |= ensure_directory(&leaf_root.join("leaves"))?;
     changed |= ensure_directory(&leaf_root.join("fallen"))?;
+    changed |= ensure_directory(&leaf_root.join("pressed"))?;
     changed |= ensure_exclude_line(&paths.exclude)?;
 
     Ok(changed)
