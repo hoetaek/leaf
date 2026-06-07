@@ -18,7 +18,7 @@ difference table, then the two domains that diverge enough to need their own not
 ④ Wireframe:          skeleton in the chosen form with placeholder/stand-in
                       content; the actual reader/operator walks through and
                       confirms fit.
-⑤ Design:             generalize the approved case into structure / section
+⑤ Design:             generalize the validated case into structure / section
                       roles / component rules (consumes the ④ contract — see
                       engine.md).
 ⑦ Task graph:         real dependencies, not the table of contents.
@@ -67,7 +67,7 @@ most, so it does not collapse into the table.
                       Then HTML/Figma if the browser/canvas/visual treatment is
                       needed to validate the concrete case. Operator(s) walk
                       through. Lock the contract.
-⑤ Design:             generalize the approved case into component boundaries,
+⑤ Design:             generalize the validated case into component boundaries,
                       state model, data flow, interaction rules, responsive
                       rules, visual system rules, and empty/loading/error
                       ownership — covering each variation point's full range

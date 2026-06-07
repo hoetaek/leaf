@@ -1,8 +1,10 @@
 # Gate Authoring
 
 Use this when writing or revising a durable gate artifact. Gate files are not
-one-shot generation; they become authoritative only after the user confirms
-that this version is fit for the next gate.
+one-shot generation; they become authoritative after they pass the gate foci
+and the current approval policy. Default approval is by phase; individual gates
+escalate to explicit user approval only when they lock high-impact decisions,
+change previously approved direction, or the user asks to review them.
 
 ## Cycle
 
@@ -11,10 +13,12 @@ that this version is fit for the next gate.
    question when the answer cannot be inferred or checked cheaply.
 3. **Revise** inline. Keep fact, assumption, decision, and open risk visibly
    separate.
-4. **Display for review** with the lightest surface that lets the user verify
-   the substance.
-5. **Confirm** before downstream gates consume it. Until then, the draft is
-   working material, not an approved gate.
+4. **Display for review** with the lightest surface that lets the reviewer
+   verify the substance when this is a phase boundary, an escalated gate, or a
+   user-requested checkpoint.
+5. **Confirm or record delegation.** If explicit approval is required, wait for
+   it before downstream gates consume the artifact. Otherwise record the
+   self-review result and continue inside the current phase.
 
 ## Grill Foci
 
@@ -31,7 +35,7 @@ that this version is fit for the next gate.
   check: from the wireframe, mock data, labels, and visible sequence alone,
   the reader can infer the actor, purpose, expected outcome, next action, and
   important states.
-- ⑤ Design: consumes the approved ④ contract, generalizes across variation
+- ⑤ Design: consumes the validated ④ contract, generalizes across variation
   points, names alternatives and rationale for non-obvious choices.
 - ⑥ Critic: verdict is `APPROVE`, `ITERATE`, or `REJECT`, and revisions route
   back to the smallest affected gate.
@@ -46,6 +50,20 @@ that this version is fit for the next gate.
 ## Review Surface
 
 Default to summarize instead of dumping files: path, section, and one-line
-change. Quote only the few lines the user must approve. For longer artifacts,
-prefer an editor, rendered pane, or existing collapsed tool output over
-reprinting the file in chat.
+change. Quote only the few lines the user must approve or inspect. For longer
+artifacts, prefer an editor, rendered pane, or existing collapsed tool output
+over reprinting the file in chat.
+
+## Escalation Triggers
+
+Ask for explicit user approval before consuming a gate artifact when any of
+these are true:
+
+- it changes ① Intent or the top-level work item;
+- it locks or changes decisive ③ Criteria;
+- ④ Wireframe needs the actual operator, reader, or stakeholder to confirm fit;
+- ⑤ Design commits public, costly, security/privacy-sensitive, or hard-to-revert
+  structure;
+- ⑧ Artifact is being marked passed, delivered, or externally shared;
+- a return invalidates a previously approved phase boundary;
+- the user explicitly asked to review the gate.

@@ -360,7 +360,7 @@ with mock data and declared axes/ranges. See
 `references/brownfield-html-capture.md` for the capture recipe.
 
 Return to ④ when ⑧ drafting reveals the structure does not match the workflow;
-⑤ design rules keep colliding with the layout or approved case; a ⑨ reviewer
+⑤ design rules keep colliding with the layout or validated case; a ⑨ reviewer
 says "I cannot find X"; ⑤ has to invent a schema/type/shape; or swapping a
 placeholder's mock for the real asset breaks the instance.
 
@@ -391,7 +391,7 @@ Gate to continue:
   choices skip this — the rule is for choices a reviewer would otherwise have
   to reconstruct. See `references/decision-rationale.md`.
 - The design matches audience, criteria, and the validated wireframe.
-- It explains how the approved case generalizes to realistic data volume,
+- It explains how the validated case generalizes to realistic data volume,
   breakpoints, states, and edge cases.
 - Public terminology and model terms pass a project glossary / canonical
   terminology check: when a term conflicts with existing docs or the project

@@ -107,7 +107,7 @@ Two passes:
 1. List every placeholder/mock in the instance.
 2. Declare what can be declared — schema, types, enums, tempo, aspect ratio
    (declarative contract).
-3. For inherently ostensive contracts — vibe, look, tone — lock the approved
+3. For inherently ostensive contracts — vibe, look, tone — lock the validated
    instance itself as the reference ("match this"). The contract may be
    emergent, so ④ can loop: generate several instances to find the one worth
    locking.

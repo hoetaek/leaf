@@ -42,7 +42,7 @@ Check:
   stated and answered.
 - Requirements fit: the design covers the active Clarity Ledger rows and the
   success criteria from gates ① through ④ (`references/clarity-ledger.md`).
-- Wireframe fit: the design generalizes the approved concrete case (the ④
+- Wireframe fit: the design generalizes the validated concrete case (the ④
   contract) instead of silently changing structure.
 - Evidence fit: claims about existing materials, audience, facts, examples, or
   system behavior are checked where cheap.
@@ -76,7 +76,7 @@ return to review. Do not expand into implementation planning; that belongs in
 The critic pass reads, but does not produce, these artifacts:
 
 - ③ Criteria — the purpose and acceptance checks the design must satisfy.
-- ④ Wireframe — the locked contract and the approved concrete case.
+- ④ Wireframe — the locked contract and the validated concrete case.
 - ⑤ Design — the generator and, for non-obvious choices, the
   RALPLAN-DR rationale (`references/decision-rationale.md`). The Principles
   and drivers, Fair alternatives, and Steelman antithesis review checks above

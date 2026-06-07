@@ -75,10 +75,10 @@ needs them.
 
 `00-status.md` is the first file to read when resuming a project. It is an
 overview, not the source of truth: each gate's own file/folder remains
-authoritative. Update it whenever a gate starts, becomes ready for approval,
-is approved, returns, is blocked/deferred, or the next action changes materially.
-Returns are historical events, not gate states; summarize them in the dashboard
-and record them in the Return Log.
+authoritative. Update it whenever a gate starts, becomes ready for review,
+completes, needs explicit approval, is approved, returns, is blocked/deferred,
+or the next action changes materially. Returns are historical events, not gate
+states; summarize them in the dashboard and record them in the Return Log.
 
 Use coarse progress values to avoid fake precision:
 
@@ -86,8 +86,8 @@ Use coarse progress values to avoid fake precision:
 0    not started
 25   started / notes exist
 50   core artifact drafted
-75   ready for user approval
-100  approved by user
+75   reviewed / ready for phase review or escalated approval
+100  complete; user-approved when approval was required
 ```
 
 Use these state values:
@@ -95,15 +95,20 @@ Use these state values:
 ```text
 not-started      gate work has not begun
 active           gate work is currently being worked
-needs-approval   gate work is complete enough to request explicit user approval
-approved         user explicitly approved the current gate version
+review-ready     gate work is complete enough for the gate authoring review loop
+complete         gate passed inside the current phase; no explicit approval was required
+needs-approval   phase boundary or escalated gate is ready for explicit user approval
+approved         user explicitly approved the phase transition or escalated gate
 ```
 
-`approved` means approved for the current gate version. A later return may
-invalidate or reopen it with explicit user approval. If work is blocked or
-intentionally deferred, keep the gate state as `active` or `not-started` and
-write the reason in `Next / Waiting on` (`blocked: <reason>` or
-`deferred: <resume condition>`).
+Do not mark every completed gate `approved`. Use `complete` for ordinary gates
+the agent validated inside the current phase. Use `approved` only when
+the user explicitly approved a phase transition, escalated gate, or passed
+snapshot. A later return may invalidate or reopen a `complete` or `approved`
+gate; if the return crosses a previously approved phase boundary, escalate
+again. If work is blocked or intentionally deferred, keep the gate state as
+`active` or `not-started` and write the reason in `Next / Waiting on`
+(`blocked: <reason>` or `deferred: <resume condition>`).
 
 Recommended template:
 
@@ -113,16 +118,17 @@ Recommended template:
 - Current phase: Learn
 - Current gate: ② Unknowns & Context
 - First missing gate: ②
-- Next action: resolve blocking unknowns and ask whether to start ③
+- Next action: resolve blocking unknowns; then ask whether to approve Learn and start Example
+- Next approval point: Learn phase -> Example phase
 - Latest return: -
 - Return count: 0
 - Last updated: YYYY-MM-DD
 
 | Gate | State | Progress | Artifact | Next / Waiting on |
 |---|---:|---:|---|---|
-| ① Intent | approved | 100 | 01-Learn/01-intent.md | - |
+| ① Intent | complete | 100 | 01-Learn/01-intent.md | - |
 | ② Unknowns & Context | active | 50 | 01-Learn/02-unknowns.md | resolve blocking unknowns |
-| ③ Criteria | not-started | 0 | 02-Example/03-criteria.md | start after ② approval |
+| ③ Criteria | not-started | 0 | 02-Example/03-criteria.md | start after Learn phase approval |
 | ④ Wireframe | not-started | 0 | 02-Example/04-wireframe/ | - |
 | ⑤ Design | not-started | 0 | 03-Architect/05-design.md | - |
 | ⑥ Critic | not-started | 0 | 03-Architect/06-critic.md | - |
@@ -133,15 +139,15 @@ Recommended template:
 
 ## Return Log
 
-| Date | From | To | Trigger | Reason | Affected gates | Next approval |
+| Date | From | To | Trigger | Reason | Affected gates | Next approval point |
 |---|---|---|---|---|---|---|
 | - | - | - | - | - | - | - |
 ```
 
 When a return happens, update the affected gate states separately. The target
 gate usually becomes `active`; downstream gates may become `not-started`,
-`active`, or `needs-approval` depending on what the return invalidated. Do not
-use `returned` as a state.
+`active`, `review-ready`, `complete`, or `needs-approval` depending on what the
+return invalidated. Do not use `returned` as a state.
 
 When a gate's artifacts grow to three or more, promote the file form to a folder
 inside its phase folder. The folder name uses the plural gate keyword; files
