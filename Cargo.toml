@@ -26,6 +26,7 @@ include = [
 
 [dependencies]
 anyhow = "1"
+arboard = { version = "3.6.1", default-features = false }
 clap = { version = "4", features = ["derive"] }
 crossterm = "0.29"
 ratatui = "0.29.0"

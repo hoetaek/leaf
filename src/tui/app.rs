@@ -47,6 +47,7 @@ pub(crate) enum Outcome {
     Continue,
     Quit,
     PromoteSeed { slug: String },
+    CopyRow { slug: String, text: String },
 }
 
 #[derive(Debug, Clone)]
@@ -132,6 +133,18 @@ impl ListRow {
 
     pub(crate) fn preview_source(&self) -> &PreviewSource {
         &self.preview_source
+    }
+
+    pub(crate) fn copy_line(&self) -> String {
+        format!(
+            "{}\t{}\t{}\t{}\t{}\t{}",
+            self.bucket_label,
+            self.state,
+            self.phase,
+            self.gate,
+            self.slug,
+            parse_state_label(self.parse_state),
+        )
     }
 }
 
@@ -244,11 +257,25 @@ impl AppState {
             KeyInput::Right | KeyInput::Char('l') => self.move_bucket_right(),
             KeyInput::Char('/') => self.mode = Mode::FilterInput,
             KeyInput::Char('p') => self.preview_open = !self.preview_open,
+            KeyInput::Char('y') => return self.copy_selected_row(),
             KeyInput::Char('P') => self.begin_promote(),
             KeyInput::Esc | KeyInput::Char('q') => return Outcome::Quit,
             KeyInput::Backspace | KeyInput::Char(_) => {}
         }
         Outcome::Continue
+    }
+
+    fn copy_selected_row(&mut self) -> Outcome {
+        match self.selected_row() {
+            Some(row) => Outcome::CopyRow {
+                slug: row.slug().to_string(),
+                text: row.copy_line(),
+            },
+            None => {
+                self.status_line = "no row selected to copy".to_string();
+                Outcome::Continue
+            }
+        }
     }
 
     fn begin_promote(&mut self) {
@@ -501,6 +528,14 @@ fn bucket_label_plural(bucket: Bucket) -> &'static str {
         Bucket::Leaves => "leaves",
         Bucket::Fallen => "fallen",
         Bucket::Pressed => "pressed",
+    }
+}
+
+fn parse_state_label(state: ParseState) -> &'static str {
+    match state {
+        ParseState::Ok => "ok",
+        ParseState::Partial => "partial",
+        ParseState::Error => "error",
     }
 }
 
@@ -853,6 +888,41 @@ mod tests {
                 .contains("new leaf preview")
         );
         assert!(app.status_line().contains("promoted seed draft"));
+    }
+
+    #[test]
+    fn tui_app_copy_row_outcome_copies_selected_row() {
+        let inventory = inventory_with_slugs(&["alpha"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(
+            app.handle_key(KeyInput::Char('y')),
+            Outcome::CopyRow {
+                slug: "alpha".to_string(),
+                text: "leaf\tactive\tlearn\tintent\talpha\tok".to_string(),
+            }
+        );
+        assert_eq!(app.mode(), Mode::List);
+    }
+
+    #[test]
+    fn tui_app_copy_row_with_no_selection_reports_status() {
+        let inventory = inventory_with_items(Vec::new());
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Char('y')), Outcome::Continue);
+        assert!(app.status_line().contains("no row selected to copy"));
+    }
+
+    #[test]
+    fn tui_app_copy_row_y_in_filter_mode_is_filter_text() {
+        let inventory = inventory_with_slugs(&["alpha"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('/'));
+        assert_eq!(app.handle_key(KeyInput::Char('y')), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::FilterInput);
+        assert_eq!(app.filter(), "y");
     }
 
     fn inventory_with_slugs(slugs: &[&str]) -> Inventory {

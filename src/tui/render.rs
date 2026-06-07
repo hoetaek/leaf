@@ -130,7 +130,7 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         ),
         Mode::ConfirmPromote => app.status_line().to_string(),
         Mode::List => format!(
-            "j/k up/down  h/l bucket  / filter  p preview  P promote  q quit  {}",
+            "j/k up/down  h/l bucket  / filter  p preview  y copy  P promote  q quit  {}",
             app.status_line()
         ),
     };
@@ -396,6 +396,26 @@ mod tests {
         let text = buffer_text(90, 12, &app);
 
         assert!(text.contains("P promote"));
+    }
+
+    #[test]
+    fn normal_status_renders_copy_hint() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            "alpha",
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("intent"),
+            ),
+        )]);
+        let app = AppState::from_inventory(&inventory);
+
+        let text = buffer_text(100, 12, &app);
+
+        assert!(text.contains("y copy"));
     }
 
     #[test]

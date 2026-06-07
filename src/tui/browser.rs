@@ -10,18 +10,19 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-/// Mutation seam for the leaf list TUI so promotion and reload can be faked in tests
-/// without entering a real terminal.
-trait PromoteAdapter {
+/// Side-effect seam for the leaf list TUI so promotion, reload, and clipboard
+/// copy can be faked in tests without entering a real terminal or clipboard.
+trait TuiAdapter {
     fn promote_seed(&self, slug: &str) -> Result<()>;
     fn load_inventory(&self) -> Result<Inventory>;
+    fn copy_to_clipboard(&self, text: &str) -> Result<()>;
 }
 
-struct RealPromoteAdapter {
+struct RealTuiAdapter {
     repo_root: PathBuf,
 }
 
-impl PromoteAdapter for RealPromoteAdapter {
+impl TuiAdapter for RealTuiAdapter {
     fn promote_seed(&self, slug: &str) -> Result<()> {
         crate::lifecycle::promote_seed(&self.repo_root, slug).map(|_| ())
     }
@@ -29,11 +30,19 @@ impl PromoteAdapter for RealPromoteAdapter {
     fn load_inventory(&self) -> Result<Inventory> {
         crate::inventory::load(&self.repo_root)
     }
+
+    fn copy_to_clipboard(&self, text: &str) -> Result<()> {
+        let mut clipboard = arboard::Clipboard::new().context("open clipboard")?;
+        clipboard
+            .set_text(text.to_string())
+            .context("copy row to clipboard")?;
+        Ok(())
+    }
 }
 
 pub(crate) fn run(inventory: &Inventory) -> Result<()> {
     let repo_root = repo_root_from_inventory(inventory)?;
-    let adapter = RealPromoteAdapter { repo_root };
+    let adapter = RealTuiAdapter { repo_root };
     let mut app = AppState::from_inventory(inventory);
     let session = TerminalSession::enter()?;
     let backend = CrosstermBackend::new(io::stdout());
@@ -51,7 +60,7 @@ pub(crate) fn run(inventory: &Inventory) -> Result<()> {
     Ok(())
 }
 
-fn event_loop<A: PromoteAdapter>(
+fn event_loop<A: TuiAdapter>(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     app: &mut AppState,
     adapter: &A,
@@ -88,13 +97,13 @@ fn event_loop<A: PromoteAdapter>(
     Ok(())
 }
 
-fn handle_outcome<A: PromoteAdapter>(
-    app: &mut AppState,
-    adapter: &A,
-    outcome: Outcome,
-) -> Result<()> {
+fn handle_outcome<A: TuiAdapter>(app: &mut AppState, adapter: &A, outcome: Outcome) -> Result<()> {
     match outcome {
         Outcome::Continue | Outcome::Quit => {}
+        Outcome::CopyRow { slug, text } => match adapter.copy_to_clipboard(&text) {
+            Ok(()) => app.set_status_message(format!("copied row {slug}")),
+            Err(err) => app.set_status_message(format!("copy failed: {err}")),
+        },
         Outcome::PromoteSeed { slug } => {
             if let Err(err) = adapter.promote_seed(&slug) {
                 app.set_status_message(format!("promote failed: {err}"));
@@ -158,35 +167,53 @@ mod tests {
     use std::fs;
     use std::path::Path;
 
-    struct RecordingPromoteAdapter {
+    struct RecordingTuiAdapter {
         reloaded: RefCell<Option<Inventory>>,
         error: Option<String>,
         promoted: RefCell<Vec<String>>,
+        copied: RefCell<Vec<String>>,
+        copy_error: Option<String>,
     }
 
-    impl RecordingPromoteAdapter {
-        fn success(_repo_root: std::path::PathBuf, reloaded: Inventory) -> Self {
+    impl RecordingTuiAdapter {
+        fn new(_repo_root: std::path::PathBuf) -> Self {
             Self {
-                reloaded: RefCell::new(Some(reloaded)),
+                reloaded: RefCell::new(None),
                 error: None,
                 promoted: RefCell::new(Vec::new()),
+                copied: RefCell::new(Vec::new()),
+                copy_error: None,
             }
         }
 
-        fn failure(_repo_root: std::path::PathBuf, message: &str) -> Self {
+        fn success(repo_root: std::path::PathBuf, reloaded: Inventory) -> Self {
+            let adapter = Self::new(repo_root);
+            *adapter.reloaded.borrow_mut() = Some(reloaded);
+            adapter
+        }
+
+        fn failure(repo_root: std::path::PathBuf, message: &str) -> Self {
             Self {
-                reloaded: RefCell::new(None),
                 error: Some(message.to_string()),
-                promoted: RefCell::new(Vec::new()),
+                ..Self::new(repo_root)
             }
+        }
+
+        fn with_copy_error(mut self, message: &str) -> Self {
+            self.copy_error = Some(message.to_string());
+            self
         }
 
         fn promoted_slugs(&self) -> Vec<String> {
             self.promoted.borrow().clone()
         }
+
+        fn copied_texts(&self) -> Vec<String> {
+            self.copied.borrow().clone()
+        }
     }
 
-    impl PromoteAdapter for RecordingPromoteAdapter {
+    impl TuiAdapter for RecordingTuiAdapter {
         fn promote_seed(&self, slug: &str) -> Result<()> {
             self.promoted.borrow_mut().push(slug.to_string());
             if let Some(message) = &self.error {
@@ -201,6 +228,14 @@ mod tests {
                 .take()
                 .context("no reloaded inventory configured")
         }
+
+        fn copy_to_clipboard(&self, text: &str) -> Result<()> {
+            self.copied.borrow_mut().push(text.to_string());
+            if let Some(message) = &self.copy_error {
+                anyhow::bail!("{message}");
+            }
+            Ok(())
+        }
     }
 
     #[test]
@@ -211,7 +246,7 @@ mod tests {
         let initial = test_inventory(root.path(), vec![seed]);
         let reloaded = test_inventory(root.path(), vec![leaf]);
         let mut app = AppState::from_inventory(&initial);
-        let adapter = RecordingPromoteAdapter::success(root.path().to_path_buf(), reloaded);
+        let adapter = RecordingTuiAdapter::success(root.path().to_path_buf(), reloaded);
 
         handle_outcome(
             &mut app,
@@ -234,7 +269,7 @@ mod tests {
         let seed = test_item(root.path(), Bucket::Seeds, "draft");
         let initial = test_inventory(root.path(), vec![seed]);
         let mut app = AppState::from_inventory(&initial);
-        let adapter = RecordingPromoteAdapter::failure(
+        let adapter = RecordingTuiAdapter::failure(
             root.path().to_path_buf(),
             "active leaf already exists: draft",
         );
@@ -253,6 +288,52 @@ mod tests {
     }
 
     #[test]
+    fn copy_outcome_writes_row_to_clipboard_and_reports_status() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let leaf = test_item(root.path(), Bucket::Leaves, "alpha");
+        let mut app = AppState::from_inventory(&test_inventory(root.path(), vec![leaf]));
+        let adapter = RecordingTuiAdapter::new(root.path().to_path_buf());
+
+        handle_outcome(
+            &mut app,
+            &adapter,
+            Outcome::CopyRow {
+                slug: "alpha".to_string(),
+                text: "leaf\tactive\tlearn\tintent\talpha\tok".to_string(),
+            },
+        )
+        .expect("copy outcome");
+
+        assert_eq!(
+            adapter.copied_texts(),
+            vec!["leaf\tactive\tlearn\tintent\talpha\tok"]
+        );
+        assert!(app.status_line().contains("copied row alpha"));
+    }
+
+    #[test]
+    fn copy_outcome_reports_clipboard_failure_without_exit() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let leaf = test_item(root.path(), Bucket::Leaves, "alpha");
+        let mut app = AppState::from_inventory(&test_inventory(root.path(), vec![leaf]));
+        let adapter = RecordingTuiAdapter::new(root.path().to_path_buf())
+            .with_copy_error("clipboard unavailable");
+
+        handle_outcome(
+            &mut app,
+            &adapter,
+            Outcome::CopyRow {
+                slug: "alpha".to_string(),
+                text: "leaf\tactive\tlearn\tintent\talpha\tok".to_string(),
+            },
+        )
+        .expect("failure is reported in app status, not returned");
+
+        assert!(app.status_line().contains("copy failed"));
+        assert!(app.status_line().contains("clipboard unavailable"));
+    }
+
+    #[test]
     fn real_promote_adapter_promotes_seed_and_reloads_inventory() {
         let root = assert_fs::TempDir::new().expect("temp repo");
         let leaf_root = root.path().join(".leaf");
@@ -267,7 +348,7 @@ mod tests {
         .expect("seed status");
         let initial = crate::inventory::load(root.path()).expect("initial inventory");
         let mut app = AppState::from_inventory(&initial);
-        let adapter = RealPromoteAdapter {
+        let adapter = RealTuiAdapter {
             repo_root: root.path().to_path_buf(),
         };
 
