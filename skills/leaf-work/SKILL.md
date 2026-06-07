@@ -132,6 +132,8 @@ diagram.
 | `references/engine.md` | you are inside ③–⑤ and need the full contract / variation point / generator mechanics + diagram |
 | `references/clarity-ledger.md` | you are scoring criteria dimensions at ③ — or using it as a lens in ① / ② to aim the next question or learning gap |
 | `references/decision-rationale.md` | you are inside ⑤ and a non-obvious choice needs durable rationale |
-| `references/design-critic.md` | ⑥ triggers fired and you need to run a critic pass |
+| `references/design-critic.md` | you are at ⑥ — every design gets at least a quick self-pass; read this for critic depth, output shape, or a durable critic pass |
+| `references/brownfield-html-capture.md` | brownfield web work needs a ④ artifact-specific wireframe after the text-first pass — capture the real page instead of redrawing it; not a replacement for ④ |
+| `references/task-pr-size-guidance.md` | you are slicing ⑦ tasks/PRs and need the reviewability size tripwires (small / medium / large-justified) |
 | `references/layout.md` | you are writing files: naming, folder layout, and what each gate file records |
 | `references/patterns.md` | you want a per-domain application template |

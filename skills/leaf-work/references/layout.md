@@ -57,7 +57,7 @@ record the promotion in `01-Learn/01-intent.md`.
 │
 ├── 03-Architect/
 │   ├── 05-design.md                          ⑤ Design — generator (consumes ④ contract)
-│   ├── 06-critic.md                          ⑥ Critic — lazy unless risk warrants it
+│   ├── 06-critic.md                          ⑥ Critic — gate always runs; file created when depth/risk warrants
 │   ├── 07-tasks.md                           ⑦ Task graph
 │   └── 08-execution.md                       ⑧ lazy execution log / handoff
 │

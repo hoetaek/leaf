@@ -26,8 +26,11 @@ that this version is fit for the next gate.
 - ③ Criteria: purpose states the desired effect, every ledger row is locked or
   carried as explicit risk, success checks can reject a bad instance.
 - ④ Wireframe: text-first instance uses realistic data, every placeholder has a
-  contract and variation point, the intended user can walk through it, cold
-  reader check is recorded when ambiguity or risk warrants it.
+  contract and variation point, the intended user can walk through it. For
+  user-facing, ambiguous, or high-risk wireframes, record a cold/blind reader
+  check: from the wireframe, mock data, labels, and visible sequence alone,
+  the reader can infer the actor, purpose, expected outcome, next action, and
+  important states.
 - ⑤ Design: consumes the approved ④ contract, generalizes across variation
   points, names alternatives and rationale for non-obvious choices.
 - ⑥ Critic: verdict is `APPROVE`, `ITERATE`, or `REJECT`, and revisions route

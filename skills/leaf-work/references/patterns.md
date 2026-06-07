@@ -83,6 +83,34 @@ THE PROTOTYPE SHALL distinguish status by text/icon as well as color.
 THE WORK SHALL prioritize scanability over decorative density.
 ```
 
+Three augmentations matter most for development work:
+
+- **Regression-sensitive behavior is explicit.** Brownfield changes preserve
+  more than they add; state what must keep working, or the agent will only
+  test the new path:
+
+  ```text
+  WHEN <condition>, THE SYSTEM SHALL CONTINUE TO <preserved behavior>.
+  ```
+
+- **Compound triggers** use GIVEN/AND when a behavior depends on preconditions,
+  not just the triggering event:
+
+  ```text
+  GIVEN <precondition> AND <precondition>, WHEN <trigger>, THE SYSTEM SHALL <response>.
+  ```
+
+- **Add a non-functional section** for performance, security, accessibility,
+  compatibility, privacy, migration, and similar constraints when they apply —
+  they rarely fit a WHEN/SHALL line but still reject bad designs at ⑤.
+
+**Brownfield note:** when the work changes an existing system, identify the
+behavior to preserve (write it as `SHALL CONTINUE TO` criteria) and the
+existing component responsibility the change extends or replaces *before*
+proposing a new structure. For existing web pages, the real rendered page can
+become the ④ artifact-specific wireframe — see
+`references/brownfield-html-capture.md`.
+
 ## CLI / config / API (diverges — own note)
 
 ④ wireframe is a command transcript or generated config (TOML/YAML) with

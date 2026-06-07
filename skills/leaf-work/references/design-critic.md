@@ -9,8 +9,11 @@ human, another agent, or a subagent.
 
 ## How deep to go
 
-Every design gets at least a quick self-pass. Go deep — external reviewer,
-multiple lenses, recorded rationale — when the design involves any of:
+Every design gets at least a quick self-pass. A low-risk quick self-pass still
+leaves a one-line record of what was checked — preferably in
+`03-Architect/05-design.md` when no `06-critic.md` file is created. Go deep —
+external reviewer, multiple lenses, recorded rationale — when the design
+involves any of:
 
 - security, privacy, safety, compliance, or permission boundaries
 - migrations, destructive changes, data loss risk, or irreversible operations

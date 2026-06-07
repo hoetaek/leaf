@@ -297,6 +297,21 @@ THE DRAFT SHALL support <claim> with <evidence type>.
 THE DOCUMENT SHALL NOT cover <non-goal>.
 ```
 
+When behavior is observable (product, web, CLI, API work), prefer EARS forms —
+this is a preference for observable behavior, not a requirement for every
+writing artifact:
+
+```text
+WHEN <trigger>, THE SYSTEM SHALL <observable behavior>.
+WHEN <condition>, THE SYSTEM SHALL CONTINUE TO <preserved behavior>.     (regression-sensitive)
+GIVEN <precondition> AND <precondition>, WHEN <trigger>, THE SYSTEM SHALL <response>.  (compound trigger)
+```
+
+State regression-sensitive behavior explicitly with `SHALL CONTINUE TO` —
+brownfield changes preserve more than they add. Name relevant non-functional
+constraints (performance, security, accessibility, compatibility) when they
+apply; see `patterns.md` for the web/product forms.
+
 ## ④ Wireframe
 
 Where ② experiments on the *world* (*is this true?*), this gate experiments on
@@ -324,12 +339,25 @@ Gate to continue:
 - Every placeholder is traced to a declared contract (declarative or ostensive)
   and checked against the real asset's constraints. An unaccounted placeholder
   means only an instance was validated, not the contract.
+- For user-facing, ambiguous, or high-risk wireframes, a cold reader (blind
+  reader) check passed: shown only the wireframe, mock data, labels, and
+  visible sequence, the reader can infer the actor, purpose, expected outcome,
+  next action, and important states. A wrong inference means the wireframe —
+  not the reader — needs revision.
 
 Form by artifact type: interactive → text-first screen sketch then HTML/Figma;
 CLI/config → command transcript + generated TOML/YAML + failure cases; API/data
 → request/response examples + error cases + state table; text → outline with
 placeholder evidence; proposal → one-page skeleton with stand-in numbers;
 research paper → section skeleton with placeholder findings.
+
+**Brownfield web changes still start text-first.** After the text-first pass,
+a captured copy of the real rendered page can serve as the artifact-specific
+wireframe instead of redrawing screens. Distinguish **locked context** —
+untouched real markup / current structure, verified reality, not a variation
+point — from **variation points** — the regions the change replaces, filled
+with mock data and declared axes/ranges. See
+`references/brownfield-html-capture.md` for the capture recipe.
 
 Return to ④ when ⑧ drafting reveals the structure does not match the workflow;
 ⑤ design rules keep colliding with the layout or approved case; a ⑨ reviewer
@@ -345,6 +373,13 @@ alternatives; (for product artifacts) component boundaries, state model,
 interaction rules, responsive rules, accessibility/focus rules, visual system
 rules. Data/state contracts are *consumed* from the ④ contract, not decided here.
 
+**Brownfield designs** can open with a model of the existing system before the
+new design: a **Static Model** (Purpose, Components, Business Rules) and a
+**Dynamic Model** (workflow or behavior). Check brownfield assumptions —
+which existing component is extended vs replaced, whether the stated current
+structure is actually true — against local code, docs, or current rendered
+behavior where the check is cheap; do not design against a remembered system.
+
 Gate to continue:
 
 - Each section has a role, not just a title.
@@ -358,6 +393,11 @@ Gate to continue:
 - The design matches audience, criteria, and the validated wireframe.
 - It explains how the approved case generalizes to realistic data volume,
   breakpoints, states, and edge cases.
+- Public terminology and model terms pass a project glossary / canonical
+  terminology check: when a term conflicts with existing docs or the project
+  glossary, the conflict is called out and the canonical term proposed before
+  ⑦ tasking. Terminology drift is the cheapest defect to fix here and the most
+  expensive to fix after it ships.
 
 Useful structures:
 
@@ -413,6 +453,13 @@ Gate to continue:
 - Dependencies are real, not just conversation order.
 - Parallel work is identified.
 - Each task has a check that proves it helped.
+
+**Task/PR size is a reviewability gate.** Label each slice `small` (1–5
+meaningful files, ≤ 200 meaningful changed lines), `medium` (6–10 files,
+≤ 400 lines), or `large-justified` (larger, kept together for an explicit
+coupling reason). These thresholds are tripwires, not schema rules — crossing
+one means "justify or split", not "forbidden". See
+`references/task-pr-size-guidance.md`.
 
 When a task is too large for one line, split it into several reviewable tasks in
 the same `03-Architect/07-tasks.md`. If the work truly needs an independent LEAF
