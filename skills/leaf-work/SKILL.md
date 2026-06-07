@@ -39,6 +39,12 @@ LEAF names the four kinds of uncertainty to close, in order:
   resume that folder instead of creating another. If an active leaf already
   exists under `.leaf/leaves/<slug>/`, resume the active leaf instead. Do not
   create loose `01-Learn/` … `04-Feedback/` folders at the repo root.
+- **Write in the user's preferred language.** Default user-facing replies and
+  durable `.leaf/` artifacts to the language the user appears to prefer from
+  their request and project context. If the user writes Korean or the work is
+  for Korean readers, write Korean. Preserve fixed source language where needed
+  for code identifiers, quoted text, citations, titles, or audience-specific
+  deliverables.
 - **Scaffolding is the first act — so the work stands on a firm foundation.**
   Learn, Example, and Architect lay that foundation; execution builds only once
   it is solid, not on guesses. The CLI scaffold creates `00-status.md` and the
