@@ -73,12 +73,18 @@ LEAF names the four kinds of uncertainty to close, in order:
 - **Phase transitions need explicit user approval by default; gate transitions
   inside the current phase are delegated unless they are high-impact.** AI may
   complete and consume ordinary gate artifacts inside the current phase after
-  the gate authoring loop passes. Escalate a gate for explicit approval when it
-  changes ① Intent, locks or changes decisive ③ Criteria, needs an
-  operator/reader to validate ④ Wireframe, commits a costly or public ⑤ Design
-  choice, marks ⑧ Artifact as passed or delivered, returns across an approved
-  phase boundary, or the user asks to review that gate. At approval points, AI
-  proposes the next phase or promoted snapshot; the user decides.
+  the gate authoring loop passes. The standing exception is Architect: before
+  starting ⑧ Artifact / Execution, require explicit user approval of the
+  promoted Architect snapshot -- ⑤ Design, ⑥ Critic verdict, ⑦ Task Graph,
+  execution scope, risks, and the first execution chunk. Escalate a gate for
+  explicit approval when it changes ① Intent, locks or changes decisive ③
+  Criteria, needs an operator/reader to validate ④ Wireframe, commits a costly
+  or public ⑤ Design choice, starts ⑧ Artifact / Execution, marks ⑧ Artifact as
+  passed or delivered, returns across an approved phase boundary, or the user
+  asks to review that gate. At approval points, AI proposes the next phase or
+  promoted snapshot; the user decides. Skip the ⑧ start approval only when the
+  user explicitly pre-authorized auto-execution for this leaf; if the work is so
+  small or low-risk that this feels wasteful, do not invoke leaf-work.
 - **Persistent files live inside the leaf project folder.** Use
   `.leaf/seeds/<slug>/` for exploratory work and `.leaf/leaves/<slug>/` for
   committed active work when a lifecycle command or explicit move promotes it.
@@ -110,6 +116,7 @@ changes. Then report:
 - the proposed next artifact to create or revise;
 - open questions that block the next gate;
 - a short task graph when entering Architect;
+- the promoted Architect snapshot for explicit approval before ⑧ execution;
 - review checks that prove the next pass is useful.
 
 For small requests, compress this into a concise plan and draft. For substantial

@@ -97,18 +97,23 @@ not-started      gate work has not begun
 active           gate work is currently being worked
 review-ready     gate work is complete enough for the gate authoring review loop
 complete         gate passed inside the current phase; no explicit approval was required
-needs-approval   phase boundary or escalated gate is ready for explicit user approval
-approved         user explicitly approved the phase transition or escalated gate
+needs-approval   phase boundary, escalated gate, or pre-execution Architect
+                 snapshot is ready for explicit user approval
+approved         user explicitly approved the phase transition, escalated gate,
+                 or pre-execution Architect snapshot
 ```
 
 Do not mark every completed gate `approved`. Use `complete` for ordinary gates
 the agent validated inside the current phase. Use `approved` only when
-the user explicitly approved a phase transition, escalated gate, or passed
-snapshot. A later return may invalidate or reopen a `complete` or `approved`
-gate; if the return crosses a previously approved phase boundary, escalate
-again. If work is blocked or intentionally deferred, keep the gate state as
-`active` or `not-started` and write the reason in `Next / Waiting on`
-(`blocked: <reason>` or `deferred: <resume condition>`).
+the user explicitly approved a phase transition, escalated gate, pre-execution
+Architect snapshot, or passed snapshot. When ⑦ Task Graph is ready and ⑧ is the
+next move, set ⑧ Artifact to `needs-approval` and write the required approval
+surface in `Next / Waiting on`. A later return may invalidate or reopen a
+`complete` or `approved` gate; if the return crosses a previously approved phase
+boundary or pre-execution Architect approval, escalate again. If work is blocked
+or intentionally deferred, keep the gate state as `active` or `not-started` and
+write the reason in `Next / Waiting on` (`blocked: <reason>` or
+`deferred: <resume condition>`).
 
 Recommended template:
 

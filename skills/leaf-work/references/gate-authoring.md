@@ -4,7 +4,8 @@ Use this when writing or revising a durable gate artifact. Gate files are not
 one-shot generation; they become authoritative after they pass the gate foci
 and the current approval policy. Default approval is by phase; individual gates
 escalate to explicit user approval only when they lock high-impact decisions,
-change previously approved direction, or the user asks to review them.
+change previously approved direction, start ⑧ execution, or the user asks to
+review them.
 
 ## Cycle
 
@@ -64,6 +65,9 @@ these are true:
 - ④ Wireframe needs the actual operator, reader, or stakeholder to confirm fit;
 - ⑤ Design commits public, costly, security/privacy-sensitive, or hard-to-revert
   structure;
+- ⑦ Task Graph is being promoted into ⑧ Artifact / Execution; approval covers
+  ⑤ Design, ⑥ Critic verdict, ⑦ Task Graph, execution scope, risks, and the
+  first execution chunk;
 - ⑧ Artifact is being marked passed, delivered, or externally shared;
 - a return invalidates a previously approved phase boundary;
 - the user explicitly asked to review the gate.

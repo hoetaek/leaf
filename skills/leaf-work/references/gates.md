@@ -487,6 +487,14 @@ Produce or revise the actual result. The artifact itself — text, code, video,
 whatever — lives wherever you keep your work; `03-Architect/08-execution.md`
 records *what was done*, one entry per work session, not the artifact.
 
+Do not start this gate by default until the user explicitly approves the
+promoted Architect snapshot: ⑤ Design, ⑥ Critic verdict, ⑦ Task Graph,
+execution scope, risks, and the first execution chunk. This is the exact line
+between scaffolding and execution. Skip it only when the user explicitly
+pre-authorized auto-execution for this leaf; if the work is too small or
+low-risk to justify that approval surface, it should not have invoked
+leaf-work.
+
 Rules: start with the most load-bearing uncertain chunk, not necessarily the
 first section; prefer ugly but checkable work over polished unsupported prose;
 keep claims and evidence linked; mark placeholders honestly. Log each session in
