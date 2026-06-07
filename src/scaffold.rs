@@ -47,7 +47,10 @@ const FILES: &[(&str, &str)] = &[
 ];
 
 pub(crate) fn create_seed(repo_root: &Path, slug: &str) -> Result<PathBuf> {
-    let seed = repo_root.join(".leaf").join("seeds").join(slug);
+    let seed = repo_root
+        .join(".leaf")
+        .join(crate::inventory::Bucket::Seeds.dir_name())
+        .join(slug);
     match fs::create_dir(&seed) {
         Ok(()) => {}
         Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {

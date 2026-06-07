@@ -63,7 +63,7 @@ fn execute(cli: Cli) -> Result<()> {
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             crate::storage::ensure_leaf_root(&paths)?;
             crate::scaffold::create_seed(&paths.root, &slug)?;
-            println!("created .leaf/seeds/{slug}/");
+            println!("created .leaf/01-seeds/{slug}/");
             Ok(())
         }
         Commands::Promote { slug } => {
@@ -71,7 +71,7 @@ fn execute(cli: Cli) -> Result<()> {
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             crate::storage::ensure_leaf_root(&paths)?;
             crate::lifecycle::promote_seed(&paths.root, &slug)?;
-            println!("moved .leaf/seeds/{slug}/ to .leaf/leaves/{slug}/");
+            println!("moved .leaf/01-seeds/{slug}/ to .leaf/02-leaves/{slug}/");
             Ok(())
         }
         Commands::Fall { slug, reason } => {
@@ -79,11 +79,12 @@ fn execute(cli: Cli) -> Result<()> {
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             crate::storage::ensure_leaf_root(&paths)?;
             crate::lifecycle::fall_leaf(&paths.root, &slug, &reason)?;
-            println!("moved .leaf/leaves/{slug}/ to .leaf/fallen/{slug}/");
+            println!("moved .leaf/02-leaves/{slug}/ to .leaf/03-fallen/{slug}/");
             Ok(())
         }
         Commands::List { json } => {
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            crate::storage::migrate_layout(&paths.root.join(".leaf"))?;
             let inventory = crate::inventory::load(&paths.root)?;
             if json {
                 let stdout = std::io::stdout();

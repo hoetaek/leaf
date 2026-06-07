@@ -67,10 +67,13 @@ fn init_creates_leaf_buckets_and_exclude_line() {
         .assert()
         .success();
 
-    repo.child(".leaf/seeds").assert(predicate::path::is_dir());
-    repo.child(".leaf/leaves").assert(predicate::path::is_dir());
-    repo.child(".leaf/fallen").assert(predicate::path::is_dir());
-    repo.child(".leaf/pressed")
+    repo.child(".leaf/01-seeds")
+        .assert(predicate::path::is_dir());
+    repo.child(".leaf/02-leaves")
+        .assert(predicate::path::is_dir());
+    repo.child(".leaf/03-fallen")
+        .assert(predicate::path::is_dir());
+    repo.child(".leaf/04-pressed")
         .assert(predicate::path::is_dir());
     assert_eq!(
         exclude_contents(repo.path())
@@ -120,8 +123,9 @@ fn init_from_nested_cwd_uses_repo_root() {
         .assert()
         .success();
 
-    repo.child(".leaf/seeds").assert(predicate::path::is_dir());
-    repo.child(".leaf/pressed")
+    repo.child(".leaf/01-seeds")
+        .assert(predicate::path::is_dir());
+    repo.child(".leaf/04-pressed")
         .assert(predicate::path::is_dir());
     repo.child("nested/deep/.leaf")
         .assert(predicate::path::missing());
@@ -216,16 +220,16 @@ fn init_works_in_git_worktree() {
         .success();
 
     worktree
-        .child(".leaf/seeds")
+        .child(".leaf/01-seeds")
         .assert(predicate::path::is_dir());
     worktree
-        .child(".leaf/leaves")
+        .child(".leaf/02-leaves")
         .assert(predicate::path::is_dir());
     worktree
-        .child(".leaf/fallen")
+        .child(".leaf/03-fallen")
         .assert(predicate::path::is_dir());
     worktree
-        .child(".leaf/pressed")
+        .child(".leaf/04-pressed")
         .assert(predicate::path::is_dir());
 }
 
@@ -235,7 +239,7 @@ fn list_writes_deterministic_text_output_for_captured_stdout() {
     git_init(repo.path());
     write_status(
         &repo,
-        ".leaf/leaves/active/00-status.md",
+        ".leaf/02-leaves/active/00-status.md",
         "- state: active\n\
          - current phase: Architect\n\
          - current gate: ⑦ Task Graph\n\
@@ -244,11 +248,13 @@ fn list_writes_deterministic_text_output_for_captured_stdout() {
     );
     write_status(
         &repo,
-        ".leaf/seeds/draft/00-status.md",
+        ".leaf/01-seeds/draft/00-status.md",
         "- state: seed\n- current phase: Learn\n",
     );
-    repo.child(".leaf/fallen").create_dir_all().expect("fallen");
-    repo.child(".leaf/pressed/summary.md")
+    repo.child(".leaf/03-fallen")
+        .create_dir_all()
+        .expect("fallen");
+    repo.child(".leaf/04-pressed/summary.md")
         .write_str("# Summary\n")
         .expect("pressed");
 
@@ -278,12 +284,12 @@ fn list_json_outputs_all_buckets_and_degraded_parse_states() {
     git_init(repo.path());
     write_status(
         &repo,
-        ".leaf/seeds/draft/00-status.md",
+        ".leaf/01-seeds/draft/00-status.md",
         "- state: seed\n- current phase: Learn\n",
     );
     write_status(
         &repo,
-        ".leaf/leaves/active/00-status.md",
+        ".leaf/02-leaves/active/00-status.md",
         "- state: active\n\
          - current phase: Architect\n\
          - current gate: ⑦ Task Graph\n\
@@ -292,10 +298,10 @@ fn list_json_outputs_all_buckets_and_degraded_parse_states() {
     );
     write_status(
         &repo,
-        ".leaf/fallen/done/00-status.md",
+        ".leaf/03-fallen/done/00-status.md",
         "- state: fallen\n- fall reason: completed\n",
     );
-    repo.child(".leaf/pressed/summary.md")
+    repo.child(".leaf/04-pressed/summary.md")
         .write_str("# Summary\n")
         .expect("pressed");
 
@@ -326,7 +332,7 @@ fn list_json_outputs_all_buckets_and_degraded_parse_states() {
     );
     assert_eq!(
         json["buckets"]["leaves"]["items"][0]["path"],
-        ".leaf/leaves/active"
+        ".leaf/02-leaves/active"
     );
     assert_eq!(
         json["buckets"]["leaves"]["items"][0]["status"]["parse_state"],
@@ -370,23 +376,24 @@ fn new_creates_seed_skeleton_and_bootstraps_repo() {
         .success();
 
     for path in [
-        ".leaf/seeds/research-memo/00-status.md",
-        ".leaf/seeds/research-memo/01-Learn/01-intent.md",
-        ".leaf/seeds/research-memo/01-Learn/02-unknowns.md",
-        ".leaf/seeds/research-memo/01-Learn/02-references/README.md",
-        ".leaf/seeds/research-memo/02-Example/03-criteria.md",
-        ".leaf/seeds/research-memo/02-Example/04-wireframe.md",
-        ".leaf/seeds/research-memo/03-Architect/05-design.md",
-        ".leaf/seeds/research-memo/03-Architect/07-tasks.md",
+        ".leaf/01-seeds/research-memo/00-status.md",
+        ".leaf/01-seeds/research-memo/01-Learn/01-intent.md",
+        ".leaf/01-seeds/research-memo/01-Learn/02-unknowns.md",
+        ".leaf/01-seeds/research-memo/01-Learn/02-references/README.md",
+        ".leaf/01-seeds/research-memo/02-Example/03-criteria.md",
+        ".leaf/01-seeds/research-memo/02-Example/04-wireframe.md",
+        ".leaf/01-seeds/research-memo/03-Architect/05-design.md",
+        ".leaf/01-seeds/research-memo/03-Architect/07-tasks.md",
     ] {
         repo.child(path).assert(predicate::path::is_file());
     }
-    repo.child(".leaf/seeds/research-memo/04-Feedback")
+    repo.child(".leaf/01-seeds/research-memo/04-Feedback")
         .assert(predicate::path::is_dir());
-    repo.child(".leaf/leaves/research-memo")
+    repo.child(".leaf/02-leaves/research-memo")
         .assert(predicate::path::missing());
-    repo.child(".leaf/fallen").assert(predicate::path::is_dir());
-    repo.child(".leaf/pressed")
+    repo.child(".leaf/03-fallen")
+        .assert(predicate::path::is_dir());
+    repo.child(".leaf/04-pressed")
         .assert(predicate::path::is_dir());
     assert_eq!(
         exclude_contents(repo.path())
@@ -401,10 +408,10 @@ fn new_creates_seed_skeleton_and_bootstraps_repo() {
 fn new_rejects_existing_seed_without_overwrite() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
-    repo.child(".leaf/seeds/research-memo")
+    repo.child(".leaf/01-seeds/research-memo")
         .create_dir_all()
         .expect("seed dir");
-    repo.child(".leaf/seeds/research-memo/00-status.md")
+    repo.child(".leaf/01-seeds/research-memo/00-status.md")
         .write_str("keep me\n")
         .expect("existing file");
 
@@ -415,7 +422,7 @@ fn new_rejects_existing_seed_without_overwrite() {
         .failure()
         .stderr(predicate::str::contains("leaf seed already exists"));
 
-    repo.child(".leaf/seeds/research-memo/00-status.md")
+    repo.child(".leaf/01-seeds/research-memo/00-status.md")
         .assert("keep me\n");
 }
 
@@ -444,7 +451,7 @@ fn promote_moves_seed_to_active_leaf_and_updates_status() {
         .args(["new", "research-memo"])
         .assert()
         .success();
-    repo.child(".leaf/seeds/research-memo/01-Learn/01-intent.md")
+    repo.child(".leaf/01-seeds/research-memo/01-Learn/01-intent.md")
         .write_str("preserve this intent\n")
         .expect("intent");
 
@@ -454,20 +461,23 @@ fn promote_moves_seed_to_active_leaf_and_updates_status() {
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "moved .leaf/seeds/research-memo/ to .leaf/leaves/research-memo/",
+            "moved .leaf/01-seeds/research-memo/ to .leaf/02-leaves/research-memo/",
         ));
 
-    repo.child(".leaf/seeds/research-memo")
+    repo.child(".leaf/01-seeds/research-memo")
         .assert(predicate::path::missing());
-    repo.child(".leaf/leaves/research-memo/01-Learn/01-intent.md")
+    repo.child(".leaf/02-leaves/research-memo/01-Learn/01-intent.md")
         .assert("preserve this intent\n");
 
-    let status = fs::read_to_string(repo.path().join(".leaf/leaves/research-memo/00-status.md"))
-        .expect("active leaf status");
+    let status = fs::read_to_string(
+        repo.path()
+            .join(".leaf/02-leaves/research-memo/00-status.md"),
+    )
+    .expect("active leaf status");
     assert!(status.contains("# Leaf Status"));
     assert!(status.contains("- state: active"));
     assert!(status.contains("- current phase: Example"));
-    assert!(status.contains("- promoted from: .leaf/seeds/research-memo"));
+    assert!(status.contains("- promoted from: .leaf/01-seeds/research-memo"));
     assert!(status.contains("## Promotion Log"));
     assert!(status.contains("## Previous Status"));
     assert!(status.contains("- state: seed"));
@@ -485,7 +495,7 @@ fn promote_rejects_missing_seed() {
         .failure()
         .stderr(predicate::str::contains("seed does not exist"));
 
-    repo.child(".leaf/leaves/research-memo")
+    repo.child(".leaf/02-leaves/research-memo")
         .assert(predicate::path::missing());
 }
 
@@ -493,16 +503,16 @@ fn promote_rejects_missing_seed() {
 fn promote_rejects_existing_active_leaf_without_overwrite() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
-    repo.child(".leaf/seeds/research-memo")
+    repo.child(".leaf/01-seeds/research-memo")
         .create_dir_all()
         .expect("seed dir");
-    repo.child(".leaf/seeds/research-memo/00-status.md")
+    repo.child(".leaf/01-seeds/research-memo/00-status.md")
         .write_str("seed status\n")
         .expect("seed status");
-    repo.child(".leaf/leaves/research-memo")
+    repo.child(".leaf/02-leaves/research-memo")
         .create_dir_all()
         .expect("leaf dir");
-    repo.child(".leaf/leaves/research-memo/00-status.md")
+    repo.child(".leaf/02-leaves/research-memo/00-status.md")
         .write_str("keep me\n")
         .expect("active status");
 
@@ -513,9 +523,9 @@ fn promote_rejects_existing_active_leaf_without_overwrite() {
         .failure()
         .stderr(predicate::str::contains("active leaf already exists"));
 
-    repo.child(".leaf/seeds/research-memo/00-status.md")
+    repo.child(".leaf/01-seeds/research-memo/00-status.md")
         .assert("seed status\n");
-    repo.child(".leaf/leaves/research-memo/00-status.md")
+    repo.child(".leaf/02-leaves/research-memo/00-status.md")
         .assert("keep me\n");
 }
 
@@ -523,10 +533,10 @@ fn promote_rejects_existing_active_leaf_without_overwrite() {
 fn promote_rejects_existing_fallen_leaf_without_overwrite() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
-    repo.child(".leaf/seeds/research-memo")
+    repo.child(".leaf/01-seeds/research-memo")
         .create_dir_all()
         .expect("seed dir");
-    repo.child(".leaf/fallen/research-memo")
+    repo.child(".leaf/03-fallen/research-memo")
         .create_dir_all()
         .expect("fallen dir");
 
@@ -537,9 +547,9 @@ fn promote_rejects_existing_fallen_leaf_without_overwrite() {
         .failure()
         .stderr(predicate::str::contains("fallen leaf already exists"));
 
-    repo.child(".leaf/seeds/research-memo")
+    repo.child(".leaf/01-seeds/research-memo")
         .assert(predicate::path::is_dir());
-    repo.child(".leaf/leaves/research-memo")
+    repo.child(".leaf/02-leaves/research-memo")
         .assert(predicate::path::missing());
 }
 
@@ -547,13 +557,13 @@ fn promote_rejects_existing_fallen_leaf_without_overwrite() {
 fn fall_moves_active_leaf_to_fallen_and_updates_status() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
-    repo.child(".leaf/leaves/research-memo/01-Learn")
+    repo.child(".leaf/02-leaves/research-memo/01-Learn")
         .create_dir_all()
         .expect("leaf dirs");
-    repo.child(".leaf/leaves/research-memo/00-status.md")
+    repo.child(".leaf/02-leaves/research-memo/00-status.md")
         .write_str("# Previous Status\n\n- state: leaf\n- next action: review\n")
         .expect("status");
-    repo.child(".leaf/leaves/research-memo/01-Learn/01-intent.md")
+    repo.child(".leaf/02-leaves/research-memo/01-Learn/01-intent.md")
         .write_str("preserve this intent\n")
         .expect("intent");
 
@@ -563,19 +573,22 @@ fn fall_moves_active_leaf_to_fallen_and_updates_status() {
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "moved .leaf/leaves/research-memo/ to .leaf/fallen/research-memo/",
+            "moved .leaf/02-leaves/research-memo/ to .leaf/03-fallen/research-memo/",
         ));
 
-    repo.child(".leaf/leaves/research-memo")
+    repo.child(".leaf/02-leaves/research-memo")
         .assert(predicate::path::missing());
-    repo.child(".leaf/fallen/research-memo/01-Learn/01-intent.md")
+    repo.child(".leaf/03-fallen/research-memo/01-Learn/01-intent.md")
         .assert("preserve this intent\n");
 
-    let status = fs::read_to_string(repo.path().join(".leaf/fallen/research-memo/00-status.md"))
-        .expect("fallen status");
+    let status = fs::read_to_string(
+        repo.path()
+            .join(".leaf/03-fallen/research-memo/00-status.md"),
+    )
+    .expect("fallen status");
     assert!(status.contains("# Leaf Status"));
     assert!(status.contains("- state: fallen"));
-    assert!(status.contains("- fallen from: .leaf/leaves/research-memo"));
+    assert!(status.contains("- fallen from: .leaf/02-leaves/research-memo"));
     assert!(status.contains("- fall reason: completed"));
     assert!(status.contains("- closure summary: -"));
     assert!(status.contains("- reusable lessons: -"));
@@ -590,7 +603,7 @@ fn fall_moves_active_leaf_to_fallen_and_updates_status() {
 fn fall_rejects_seed_without_active_leaf() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
-    repo.child(".leaf/seeds/research-memo")
+    repo.child(".leaf/01-seeds/research-memo")
         .create_dir_all()
         .expect("seed dir");
 
@@ -601,9 +614,9 @@ fn fall_rejects_seed_without_active_leaf() {
         .failure()
         .stderr(predicate::str::contains("active leaf does not exist"));
 
-    repo.child(".leaf/seeds/research-memo")
+    repo.child(".leaf/01-seeds/research-memo")
         .assert(predicate::path::is_dir());
-    repo.child(".leaf/fallen/research-memo")
+    repo.child(".leaf/03-fallen/research-memo")
         .assert(predicate::path::missing());
 }
 
@@ -611,13 +624,13 @@ fn fall_rejects_seed_without_active_leaf() {
 fn fall_rejects_existing_fallen_without_overwrite() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
-    repo.child(".leaf/leaves/research-memo")
+    repo.child(".leaf/02-leaves/research-memo")
         .create_dir_all()
         .expect("leaf dir");
-    repo.child(".leaf/fallen/research-memo")
+    repo.child(".leaf/03-fallen/research-memo")
         .create_dir_all()
         .expect("fallen dir");
-    repo.child(".leaf/fallen/research-memo/00-status.md")
+    repo.child(".leaf/03-fallen/research-memo/00-status.md")
         .write_str("keep me\n")
         .expect("fallen status");
 
@@ -628,9 +641,9 @@ fn fall_rejects_existing_fallen_without_overwrite() {
         .failure()
         .stderr(predicate::str::contains("fallen leaf already exists"));
 
-    repo.child(".leaf/leaves/research-memo")
+    repo.child(".leaf/02-leaves/research-memo")
         .assert(predicate::path::is_dir());
-    repo.child(".leaf/fallen/research-memo/00-status.md")
+    repo.child(".leaf/03-fallen/research-memo/00-status.md")
         .assert("keep me\n");
 }
 
@@ -638,7 +651,7 @@ fn fall_rejects_existing_fallen_without_overwrite() {
 fn fall_rejects_blank_reason() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
-    repo.child(".leaf/leaves/research-memo")
+    repo.child(".leaf/02-leaves/research-memo")
         .create_dir_all()
         .expect("leaf dir");
 
@@ -648,4 +661,81 @@ fn fall_rejects_blank_reason() {
         .assert()
         .failure()
         .stderr(predicate::str::contains("fall reason cannot be empty"));
+}
+
+#[test]
+fn init_creates_lifecycle_ordered_buckets() {
+    let repo = assert_fs::TempDir::new().expect("tempdir");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    repo.child(".leaf/01-seeds")
+        .assert(predicate::path::is_dir());
+    repo.child(".leaf/02-leaves")
+        .assert(predicate::path::is_dir());
+    repo.child(".leaf/03-fallen")
+        .assert(predicate::path::is_dir());
+    repo.child(".leaf/04-pressed")
+        .assert(predicate::path::is_dir());
+}
+
+#[test]
+fn legacy_buckets_migrate_to_prefixed_names_preserving_content() {
+    let repo = assert_fs::TempDir::new().expect("tempdir");
+    git_init(repo.path());
+    repo.child(".leaf/seeds/old-idea/00-status.md")
+        .write_str("- state: seed\n")
+        .expect("legacy seed status");
+    repo.child(".leaf/leaves/active/01-Learn/01-intent.md")
+        .write_str("# Intent\n")
+        .expect("legacy leaf intent");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("new")
+        .arg("fresh")
+        .assert()
+        .success();
+
+    repo.child(".leaf/01-seeds/old-idea/00-status.md")
+        .assert(predicate::path::is_file());
+    repo.child(".leaf/02-leaves/active/01-Learn/01-intent.md")
+        .assert(predicate::path::is_file());
+    repo.child(".leaf/seeds").assert(predicate::path::missing());
+    repo.child(".leaf/leaves")
+        .assert(predicate::path::missing());
+    repo.child(".leaf/01-seeds/fresh/00-status.md")
+        .assert(predicate::path::is_file());
+}
+
+#[test]
+fn migration_bails_on_legacy_new_conflict_without_moving() {
+    let repo = assert_fs::TempDir::new().expect("tempdir");
+    git_init(repo.path());
+    repo.child(".leaf/seeds/legacy-item/00-status.md")
+        .write_str("- state: seed\n")
+        .expect("legacy seed");
+    repo.child(".leaf/01-seeds/prefixed-item/00-status.md")
+        .write_str("- state: seed\n")
+        .expect("prefixed seed");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("new")
+        .arg("whatever")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("no files were moved"));
+
+    repo.child(".leaf/seeds/legacy-item/00-status.md")
+        .assert(predicate::path::is_file());
+    repo.child(".leaf/01-seeds/prefixed-item/00-status.md")
+        .assert(predicate::path::is_file());
+    repo.child(".leaf/01-seeds/whatever")
+        .assert(predicate::path::missing());
 }

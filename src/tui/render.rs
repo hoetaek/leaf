@@ -330,7 +330,7 @@ mod tests {
         assert!(text.contains("leaf list"));
         assert!(text.contains("BUCKET"));
         assert!(text.contains("korean-preview"));
-        assert!(text.contains(".leaf/leaves/korean-preview"));
+        assert!(text.contains(".leaf/02-leaves/korean-preview"));
         assert!(line_contains_text(
             &buffer,
             110,
@@ -492,11 +492,6 @@ mod tests {
     }
 
     fn bucket_dir(bucket: Bucket) -> &'static str {
-        match bucket {
-            Bucket::Seeds => "seeds",
-            Bucket::Leaves => "leaves",
-            Bucket::Fallen => "fallen",
-            Bucket::Pressed => "pressed",
-        }
+        bucket.dir_name()
     }
 }

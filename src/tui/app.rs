@@ -484,13 +484,13 @@ mod tests {
         assert_eq!(rows[0].phase(), "learn");
         assert_eq!(rows[0].gate(), "intent");
         assert_eq!(rows[0].parse_state(), ParseState::Ok);
-        assert_eq!(rows[0].relative_path(), ".leaf/seeds/alpha-seed");
+        assert_eq!(rows[0].relative_path(), ".leaf/01-seeds/alpha-seed");
         assert_searchable(
             rows[0].searchable_text(),
             &[
                 "seed",
                 "alpha-seed",
-                ".leaf/seeds/alpha-seed",
+                ".leaf/01-seeds/alpha-seed",
                 "ready",
                 "learn",
                 "intent",
@@ -500,7 +500,7 @@ mod tests {
 
         assert_eq!(rows[1].bucket(), Bucket::Leaves);
         assert_eq!(rows[1].bucket_label(), "leaf");
-        assert_eq!(rows[1].relative_path(), ".leaf/leaves/beta-leaf");
+        assert_eq!(rows[1].relative_path(), ".leaf/02-leaves/beta-leaf");
         assert_eq!(rows[1].parse_state(), ParseState::Partial);
 
         assert_eq!(rows[2].bucket(), Bucket::Fallen);
@@ -508,14 +508,14 @@ mod tests {
         assert_eq!(rows[2].state(), "?");
         assert_eq!(rows[2].phase(), "-");
         assert_eq!(rows[2].gate(), "-");
-        assert_eq!(rows[2].relative_path(), ".leaf/fallen/gamma-fallen");
+        assert_eq!(rows[2].relative_path(), ".leaf/03-fallen/gamma-fallen");
 
         assert_eq!(rows[3].bucket(), Bucket::Pressed);
         assert_eq!(rows[3].bucket_label(), "pressed");
         assert_eq!(rows[3].state(), "-");
         assert_eq!(rows[3].phase(), "-");
         assert_eq!(rows[3].gate(), "-");
-        assert_eq!(rows[3].relative_path(), ".leaf/pressed/delta-pressed.md");
+        assert_eq!(rows[3].relative_path(), ".leaf/04-pressed/delta-pressed.md");
     }
 
     #[test]
@@ -777,7 +777,7 @@ mod tests {
     }
 
     fn write_preview_status(root: &Path, slug: &str, body: &str) {
-        let status_path = root.join(".leaf/leaves").join(slug).join("00-status.md");
+        let status_path = root.join(".leaf/02-leaves").join(slug).join("00-status.md");
         std::fs::create_dir_all(status_path.parent().unwrap()).expect("preview dir");
         std::fs::write(status_path, format!("# Status\n\n{body}\n")).expect("preview status");
     }
@@ -807,7 +807,7 @@ mod tests {
     fn pressed_item(slug: &str, status: StatusSummary) -> InventoryItem {
         let path = repo_root()
             .join(".leaf")
-            .join("pressed")
+            .join(Bucket::Pressed.dir_name())
             .join(format!("{slug}.md"));
         InventoryItem {
             bucket: Bucket::Pressed,
@@ -852,12 +852,7 @@ mod tests {
     }
 
     fn bucket_dir(bucket: Bucket) -> &'static str {
-        match bucket {
-            Bucket::Seeds => "seeds",
-            Bucket::Leaves => "leaves",
-            Bucket::Fallen => "fallen",
-            Bucket::Pressed => "pressed",
-        }
+        bucket.dir_name()
     }
 
     fn visible_slugs(app: &AppState) -> Vec<&str> {

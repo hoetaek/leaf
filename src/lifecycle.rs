@@ -1,3 +1,4 @@
+use crate::inventory::Bucket;
 use anyhow::{Context, Result, bail};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -5,9 +6,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 pub(crate) fn promote_seed(repo_root: &Path, slug: &str) -> Result<PathBuf> {
     let leaf_root = repo_root.join(".leaf");
-    let source = leaf_root.join("seeds").join(slug);
-    let destination = leaf_root.join("leaves").join(slug);
-    let fallen = leaf_root.join("fallen").join(slug);
+    let source = leaf_root.join(Bucket::Seeds.dir_name()).join(slug);
+    let destination = leaf_root.join(Bucket::Leaves.dir_name()).join(slug);
+    let fallen = leaf_root.join(Bucket::Fallen.dir_name()).join(slug);
 
     require_directory(&source, "seed does not exist")?;
     if destination
@@ -47,8 +48,8 @@ pub(crate) fn promote_seed(repo_root: &Path, slug: &str) -> Result<PathBuf> {
 pub(crate) fn fall_leaf(repo_root: &Path, slug: &str, reason: &str) -> Result<PathBuf> {
     let reason = validate_reason(reason)?;
     let leaf_root = repo_root.join(".leaf");
-    let source = leaf_root.join("leaves").join(slug);
-    let destination = leaf_root.join("fallen").join(slug);
+    let source = leaf_root.join(Bucket::Leaves.dir_name()).join(slug);
+    let destination = leaf_root.join(Bucket::Fallen.dir_name()).join(slug);
 
     require_directory(&source, "active leaf does not exist")?;
     if destination
@@ -120,7 +121,7 @@ fn promoted_status(slug: &str, timestamp: &str, previous_status: Option<&str>) -
          - state: active\n\
          - current phase: Example\n\
          - promoted at: {timestamp}\n\
-         - promoted from: .leaf/seeds/{slug}\n\n\
+         - promoted from: .leaf/01-seeds/{slug}\n\n\
          ## Promotion Log\n\n\
          - {timestamp}: moved from seed to active leaf after Learn.\n"
     );
@@ -145,7 +146,7 @@ fn fallen_status(
         "# Leaf Status\n\n\
          - state: fallen\n\
          - fallen at: {timestamp}\n\
-         - fallen from: .leaf/leaves/{slug}\n\
+         - fallen from: .leaf/02-leaves/{slug}\n\
          - fall reason: {reason}\n\
          - closure summary: -\n\
          - reusable lessons: -\n\
