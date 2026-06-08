@@ -55,6 +55,7 @@ pub(crate) enum Outcome {
     Continue,
     Quit,
     PromoteSeed { slug: String },
+    Refresh,
     CopyRow { slug: String, text: String },
     CopyRows { count: usize, text: String },
 }
@@ -193,6 +194,10 @@ impl AppState {
 
     pub(crate) fn rows(&self) -> &[ListRow] {
         &self.rows
+    }
+
+    pub(crate) fn row_count(&self) -> usize {
+        self.rows().len()
     }
 
     pub(crate) fn visible_rows(&self) -> Vec<&ListRow> {
@@ -338,6 +343,7 @@ impl AppState {
             KeyInput::Char('a') => self.toggle_all_visible_selection(),
             KeyInput::Char('y') => return self.copy_marked_or_current_row(),
             KeyInput::Char('P') => self.begin_promote(),
+            KeyInput::Char('r') => return Outcome::Refresh,
             KeyInput::Char('q') => return Outcome::Quit,
             KeyInput::Esc => return self.clear_selection_or_quit(),
             KeyInput::Backspace | KeyInput::Char(_) => {}
@@ -1108,6 +1114,30 @@ mod tests {
         assert_eq!(app.handle_key(KeyInput::Char('P')), Outcome::Continue);
         assert_eq!(app.mode(), Mode::List);
         assert!(app.status_line().contains("only available for seed"));
+    }
+
+    #[test]
+    fn tui_app_r_in_list_mode_emits_refresh_outcome() {
+        let inventory = inventory_with_items(vec![leaf_item(
+            Bucket::Leaves,
+            "active",
+            complete_leaf_status(),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Char('r')), Outcome::Refresh);
+        assert_eq!(app.mode(), Mode::List);
+    }
+
+    #[test]
+    fn tui_app_r_in_filter_mode_is_filter_text() {
+        let inventory = inventory_with_slugs(&["alpha"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('/'));
+        assert_eq!(app.handle_key(KeyInput::Char('r')), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::FilterInput);
+        assert_eq!(app.filter(), "r");
     }
 
     #[test]

@@ -146,6 +146,15 @@ fn handle_outcome<A: TuiAdapter>(app: &mut AppState, adapter: &A, outcome: Outco
             Ok(()) => app.set_status_message(format!("copied {count} {}", row_word(count))),
             Err(err) => app.set_status_message(format!("copy failed: {err}")),
         },
+        Outcome::Refresh => match adapter.load_inventory() {
+            Ok(inventory) => {
+                app.replace_inventory(&inventory);
+                app.set_status_message("refreshed");
+            }
+            Err(err) => {
+                app.set_status_message(format!("refresh failed: {err}"));
+            }
+        },
         Outcome::PromoteSeed { slug } => {
             if let Err(err) = adapter.promote_seed(&slug) {
                 app.set_status_message(format!("promote failed: {err}"));
@@ -331,6 +340,49 @@ mod tests {
 
         assert_eq!(app.selected_row().map(ListRow::slug), Some("draft"));
         assert!(app.status_line().contains("active leaf already exists"));
+    }
+
+    #[test]
+    fn refresh_outcome_reloads_inventory_and_reports_refreshed() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let initial = test_inventory(
+            root.path(),
+            vec![test_item(root.path(), Bucket::Seeds, "draft")],
+        );
+        let reloaded = test_inventory(
+            root.path(),
+            vec![
+                test_item(root.path(), Bucket::Leaves, "alpha"),
+                test_item(root.path(), Bucket::Leaves, "beta"),
+            ],
+        );
+        let mut app = AppState::from_inventory(&initial);
+        assert_eq!(app.row_count(), 1);
+        let adapter = RecordingTuiAdapter::success(root.path().to_path_buf(), reloaded);
+
+        handle_outcome(&mut app, &adapter, Outcome::Refresh).expect("refresh outcome");
+
+        assert_eq!(app.row_count(), 2);
+        assert!(app.status_line().contains("refreshed"));
+    }
+
+    #[test]
+    fn refresh_outcome_preserves_list_when_load_fails() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let initial = test_inventory(
+            root.path(),
+            vec![test_item(root.path(), Bucket::Seeds, "draft")],
+        );
+        let mut app = AppState::from_inventory(&initial);
+        // RecordingTuiAdapter::new configures no reloaded inventory, so load_inventory errors.
+        let adapter = RecordingTuiAdapter::new(root.path().to_path_buf());
+
+        handle_outcome(&mut app, &adapter, Outcome::Refresh)
+            .expect("failure is reported in app status, not returned");
+
+        assert_eq!(app.row_count(), 1);
+        assert_eq!(app.selected_row().map(ListRow::slug), Some("draft"));
+        assert!(app.status_line().contains("refresh failed"));
     }
 
     #[test]

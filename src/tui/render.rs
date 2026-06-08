@@ -33,7 +33,7 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
 
 fn draw_header(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
     let visible_count = app.visible_rows().len();
-    let total_count = app.rows().len();
+    let total_count = app.row_count();
     let filter = if app.filter().is_empty() {
         "none".to_string()
     } else {
@@ -152,7 +152,7 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             app.status_line()
         ),
         Mode::List => format!(
-            "j/k up/down  h/l bucket  y copy  P promote  Space select  v range  a all  / filter  p preview  q quit  mouse select  {}",
+            "j/k up/down  h/l bucket  y copy  P promote  Space select  v range  a all  / filter  p preview  r refresh  q quit  mouse select  {}",
             app.status_line()
         ),
     };
@@ -412,8 +412,8 @@ mod tests {
         )]);
         let app = AppState::from_inventory(&inventory);
 
-        let buffer = render_buffer(110, 24, &app);
-        let text = buffer_to_text(&buffer, 110, 24);
+        let buffer = render_buffer(120, 24, &app);
+        let text = buffer_to_text(&buffer, 120, 24);
 
         assert!(text.contains("leaf list"));
         assert!(text.contains("BUCKET"));
@@ -484,6 +484,21 @@ mod tests {
         let text = buffer_text(90, 12, &app);
 
         assert!(text.contains("P promote"));
+    }
+
+    #[test]
+    fn normal_status_renders_refresh_hint() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Seeds,
+            "draft",
+            status(ParseState::Ok, Some("seed"), Some("Learn"), Some("-")),
+        )]);
+        let app = AppState::from_inventory(&inventory);
+
+        let text = buffer_text(110, 12, &app);
+
+        assert!(text.contains("r refresh"));
     }
 
     #[test]
