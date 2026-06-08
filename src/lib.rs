@@ -1,4 +1,6 @@
 mod cli;
+#[allow(dead_code)] // Wired into the CLI in doctor task T5.
+mod doctor;
 mod git;
 mod inventory;
 mod lifecycle;
