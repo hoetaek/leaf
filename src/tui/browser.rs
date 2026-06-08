@@ -104,6 +104,10 @@ fn handle_outcome<A: TuiAdapter>(app: &mut AppState, adapter: &A, outcome: Outco
             Ok(()) => app.set_status_message(format!("copied row {slug}")),
             Err(err) => app.set_status_message(format!("copy failed: {err}")),
         },
+        Outcome::CopyRows { count, text } => match adapter.copy_to_clipboard(&text) {
+            Ok(()) => app.set_status_message(format!("copied {count} rows")),
+            Err(err) => app.set_status_message(format!("copy failed: {err}")),
+        },
         Outcome::PromoteSeed { slug } => {
             if let Err(err) = adapter.promote_seed(&slug) {
                 app.set_status_message(format!("promote failed: {err}"));
@@ -309,6 +313,35 @@ mod tests {
             vec!["leaf\tactive\tlearn\tintent\talpha\tok"]
         );
         assert!(app.status_line().contains("copied row alpha"));
+    }
+
+    #[test]
+    fn copy_rows_outcome_writes_joined_text_and_reports_count() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let leaf = test_item(root.path(), Bucket::Leaves, "alpha");
+        let mut app = AppState::from_inventory(&test_inventory(root.path(), vec![leaf]));
+        let adapter = RecordingTuiAdapter::new(root.path().to_path_buf());
+
+        handle_outcome(
+            &mut app,
+            &adapter,
+            Outcome::CopyRows {
+                count: 2,
+                text:
+                    "leaf\tactive\tlearn\tintent\talpha\tok\nleaf\tactive\tlearn\tintent\tgamma\tok"
+                        .to_string(),
+            },
+        )
+        .expect("copy rows outcome");
+
+        assert_eq!(
+            adapter.copied_texts(),
+            vec![
+                "leaf\tactive\tlearn\tintent\talpha\tok\nleaf\tactive\tlearn\tintent\tgamma\tok"
+                    .to_string()
+            ]
+        );
+        assert!(app.status_line().contains("copied 2 rows"));
     }
 
     #[test]

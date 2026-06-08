@@ -39,15 +39,22 @@ fn draw_header(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
     } else {
         app.filter().to_string()
     };
-    let line = Line::from(vec![
+    let mut spans = vec![
         Span::styled("leaf list", Style::default().add_modifier(Modifier::BOLD)),
         Span::raw("  bucket "),
         Span::styled(bucket_filter_label(app.active_bucket()), chrome_style()),
         Span::raw(format!(
             "  filter {filter}  rows {visible_count}/{total_count}"
         )),
-    ]);
-    frame.render_widget(Paragraph::new(line), area);
+    ];
+    let selected_count = app.selected_row_count();
+    if selected_count > 0 {
+        spans.push(Span::styled(
+            format!("  selected {selected_count}"),
+            strong_style(),
+        ));
+    }
+    frame.render_widget(Paragraph::new(Line::from(spans)), area);
 }
 
 fn draw_table(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
@@ -70,11 +77,14 @@ fn draw_table(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         .enumerate()
         .skip(offset)
         .take(row_capacity)
-        .map(|(index, row)| table_row(row).style(row_style(app, index)));
+        .map(|(index, row)| {
+            table_row(row, app.visible_row_is_marked(index)).style(row_style(app, index))
+        });
 
     let table = Table::new(
         rows,
         [
+            Constraint::Length(1),
             Constraint::Length(8),
             Constraint::Length(9),
             Constraint::Length(14),
@@ -83,7 +93,9 @@ fn draw_table(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             Constraint::Length(8),
         ],
     )
-    .header(Row::new(["BUCKET", "STATE", "PHASE", "GATE", "SLUG", "STATUS"]).style(chrome_style()))
+    .header(
+        Row::new([" ", "BUCKET", "STATE", "PHASE", "GATE", "SLUG", "STATUS"]).style(chrome_style()),
+    )
     .column_spacing(1)
     .block(chrome_block().title("Inventory"));
     frame.render_widget(table, area);
@@ -129,16 +141,22 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             app.status_line()
         ),
         Mode::ConfirmPromote => app.status_line().to_string(),
+        Mode::RangeSelect => format!(
+            "RANGE  j/k extend  Esc keep selection  {}",
+            app.status_line()
+        ),
         Mode::List => format!(
-            "j/k up/down  h/l bucket  / filter  p preview  y copy  P promote  q quit  {}",
+            "j/k up/down  h/l bucket  y copy  P promote  / filter  p preview  space mark  v range  a all  q quit  {}",
             app.status_line()
         ),
     };
     frame.render_widget(Paragraph::new(Line::styled(status, dim_style())), area);
 }
 
-fn table_row(row: &ListRow) -> Row<'_> {
+fn table_row(row: &ListRow, marked: bool) -> Row<'_> {
+    let marker = if marked { "*" } else { " " };
     Row::new(vec![
+        Cell::from(marker).style(strong_style()),
         Cell::from(row.bucket_label().to_string()).style(bucket_style(row.bucket())),
         Cell::from(row.state().to_string()),
         Cell::from(row.phase().to_string()),
@@ -416,6 +434,51 @@ mod tests {
         let text = buffer_text(100, 12, &app);
 
         assert!(text.contains("y copy"));
+    }
+
+    #[test]
+    fn normal_status_renders_multi_select_hints() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            "alpha",
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("intent"),
+            ),
+        )]);
+        let app = AppState::from_inventory(&inventory);
+
+        let text = buffer_text(120, 12, &app);
+
+        assert!(text.contains("space mark"));
+        assert!(text.contains("v range"));
+        assert!(text.contains("a all"));
+    }
+
+    #[test]
+    fn marked_rows_render_a_selection_marker() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            "alpha",
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("intent"),
+            ),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        let before = buffer_text(110, 14, &app);
+        assert!(!before.contains('*'));
+
+        app.handle_key(KeyInput::Char(' '));
+        let after = buffer_text(110, 14, &app);
+        assert!(after.contains('*'));
     }
 
     #[test]
