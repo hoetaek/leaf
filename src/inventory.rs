@@ -295,6 +295,13 @@ pub(crate) fn parse_status_summary(content: &str, bucket: Bucket) -> StatusSumma
     let mut next_action = None;
 
     for line in content.lines() {
+        // Only the status preamble is canonical. A second-level-or-deeper
+        // heading (`##`, `###`, …) ends it, so archived sections like
+        // `## Previous Status` in a fallen file cannot override the real
+        // state. The single-`#` document title does not match.
+        if line.trim_start().starts_with("##") {
+            break;
+        }
         let Some((key, value)) = parse_field_line(line) else {
             continue;
         };
@@ -642,5 +649,69 @@ mod tests {
         assert!(summary.state.is_none());
         assert!(summary.current_phase.is_none());
         assert!(summary.missing_fields.is_empty());
+    }
+
+    #[test]
+    fn inventory_parse_status_summary_ignores_fields_after_section_heading() {
+        // A fallen archive file keeps the canonical `- state: fallen` in its
+        // preamble, then embeds the prior active status under a `## Previous
+        // Status` section. Only the preamble is canonical; the archived
+        // `- state: active`/phase/gate lines below the heading must NOT
+        // override it.
+        let content = "# Leaf Status\n\n\
+                       - state: fallen\n\
+                       \n\
+                       ## Previous Status\n\
+                       \n\
+                       - state: active\n\
+                       - current phase: Architect\n\
+                       - current gate: G3\n";
+
+        let summary = parse_status_summary(content, Bucket::Fallen);
+
+        assert_eq!(summary.parse_state, ParseState::Ok);
+        assert_eq!(summary.state.as_deref(), Some("fallen"));
+        assert!(summary.current_phase.is_none());
+        assert!(summary.current_gate.is_none());
+        assert!(summary.missing_fields.is_empty());
+    }
+
+    #[test]
+    fn inventory_parse_status_summary_title_does_not_end_preamble() {
+        // The single-`#` document title must NOT be treated as a section break;
+        // all five fields below it are still canonical for an active leaf, and a
+        // trailing `## Gate progress` section with junk is ignored.
+        let content = "# Leaf Status\n\n\
+                       - state: active\n\
+                       - current phase: Architect\n\
+                       - current gate: G3\n\
+                       - first missing gate: G4\n\
+                       - next action: write design\n\
+                       \n\
+                       ## Gate progress\n\
+                       - state: fallen\n";
+
+        let summary = parse_status_summary(content, Bucket::Leaves);
+
+        assert_eq!(summary.parse_state, ParseState::Ok);
+        assert_eq!(summary.state.as_deref(), Some("active"));
+        assert_eq!(summary.current_phase.as_deref(), Some("Architect"));
+        assert_eq!(summary.current_gate.as_deref(), Some("G3"));
+        assert!(summary.missing_fields.is_empty());
+    }
+
+    #[test]
+    fn inventory_parse_status_summary_heading_before_fields_yields_no_fields() {
+        // Boundary: a `##` heading before any field line ends the preamble
+        // immediately, so no canonical field is captured.
+        let content = "## Previous Status\n\
+                       - state: active\n\
+                       - current phase: Architect\n";
+
+        let summary = parse_status_summary(content, Bucket::Leaves);
+
+        assert!(summary.state.is_none());
+        assert!(summary.current_phase.is_none());
+        assert_eq!(summary.parse_state, ParseState::Partial);
     }
 }
