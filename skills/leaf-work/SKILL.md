@@ -45,6 +45,12 @@ LEAF names the four kinds of uncertainty to close, in order:
   for Korean readers, write Korean. Preserve fixed source language where needed
   for code identifiers, quoted text, citations, titles, or audience-specific
   deliverables.
+- **Handoff reviewable assumptions in the user's editor.** Mark assumptions,
+  placeholders, or reviewer questions with `USER REVIEW NEEDED:` or
+  `ASSUMPTION:`, then open the artifact in the user's preferred editor when
+  known (`cmux markdown`, `$VISUAL` / `$EDITOR`, `code`, `vim` / `nvim`,
+  Obsidian, Notepad, etc.). If no preference is known or opening is unavailable,
+  ask once or report the path and sections to review.
 - **Scaffolding is the first act — so the work stands on a firm foundation.**
   Learn, Example, and Architect lay that foundation; execution builds only once
   it is solid, not on guesses. The CLI scaffold creates `00-status.md` and the
@@ -126,6 +132,7 @@ changes. Then report:
 - the current phase and gate, plus the first missing gate, if any;
 - why the next move belongs to Learn, Example, Architect, or Feedback;
 - the proposed next artifact to create or revise;
+- files or sections opened for user review, if any;
 - open questions that block the next gate;
 - a short task graph when entering Architect;
 - the promoted Architect snapshot for explicit approval before ⑧ execution;

@@ -12,11 +12,11 @@ review them.
 1. **Draft** the smallest artifact that can be challenged in one pass.
 2. **Grill** it against the current gate's foci in `gates.md`; ask one focused
    question when the answer cannot be inferred or checked cheaply.
-3. **Revise** inline. Keep fact, assumption, decision, and open risk visibly
-   separate.
-4. **Display for review** with the lightest surface that lets the reviewer
-   verify the substance when this is a phase boundary, an escalated gate, or a
-   user-requested checkpoint.
+3. **Revise** inline. Keep fact, assumption, decision, open risk, and any
+   user-review placeholder visibly separate.
+4. **Display or open for review** with the lightest surface that lets the
+   reviewer verify the substance when this is a phase boundary, an escalated
+   gate, or a user-requested checkpoint.
 5. **Confirm or record delegation.** If explicit approval is required, wait for
    it before downstream gates consume the artifact. Otherwise record the
    self-review result and continue inside the current phase.
@@ -54,6 +54,11 @@ Default to summarize instead of dumping files: path, section, and one-line
 change. Quote only the few lines the user must approve or inspect. For longer
 artifacts, prefer an editor, rendered pane, or existing collapsed tool output
 over reprinting the file in chat.
+
+Mark assumptions, placeholders, or reviewer questions with `USER REVIEW NEEDED:`
+or `ASSUMPTION:`. Open the file in the user's preferred editor when known
+(`cmux markdown`, `$VISUAL` / `$EDITOR`, `code`, `vim` / `nvim`, Obsidian,
+Notepad, etc.); otherwise ask once or give the path and sections.
 
 ## Escalation Triggers
 
