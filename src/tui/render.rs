@@ -84,7 +84,7 @@ fn draw_table(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
     let table = Table::new(
         rows,
         [
-            Constraint::Length(1),
+            Constraint::Length(3),
             Constraint::Length(8),
             Constraint::Length(9),
             Constraint::Length(14),
@@ -94,7 +94,8 @@ fn draw_table(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         ],
     )
     .header(
-        Row::new([" ", "BUCKET", "STATE", "PHASE", "GATE", "SLUG", "STATUS"]).style(chrome_style()),
+        Row::new(["SEL", "BUCKET", "STATE", "PHASE", "GATE", "SLUG", "STATUS"])
+            .style(chrome_style()),
     )
     .column_spacing(1)
     .block(chrome_block().title("Inventory"));
@@ -134,6 +135,7 @@ fn draw_preview(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
 }
 
 fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
+    let selected_count = app.selected_row_count();
     let status = match app.mode() {
         Mode::FilterInput => format!(
             "filter: {}  Esc list  Backspace delete  {}",
@@ -142,11 +144,15 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         ),
         Mode::ConfirmPromote => app.status_line().to_string(),
         Mode::RangeSelect => format!(
-            "RANGE  j/k extend  Esc keep selection  {}",
+            "range {selected_count} selected  j/k extend  v/Esc done  y copy  q quit  {}",
+            app.status_line()
+        ),
+        Mode::List if selected_count > 0 => format!(
+            "{selected_count} selected  Space toggle  v range  a all  y copy  Esc clear  q quit  {}",
             app.status_line()
         ),
         Mode::List => format!(
-            "j/k up/down  h/l bucket  y copy  P promote  / filter  p preview  space mark  v range  a all  q quit  {}",
+            "j/k up/down  h/l bucket  y copy  P promote  Space select  v range  a all  / filter  p preview  q quit  {}",
             app.status_line()
         ),
     };
@@ -180,10 +186,17 @@ fn row_viewport_offset(selected_index: usize, row_capacity: usize) -> usize {
 }
 
 fn row_style(app: &AppState, index: usize) -> Style {
-    if app.selected_index() == index {
-        Style::default().bg(Color::DarkGray).fg(Color::White)
-    } else {
-        Style::default()
+    match (
+        app.selected_index() == index,
+        app.visible_row_is_marked(index),
+    ) {
+        (true, true) => Style::default()
+            .bg(Color::Blue)
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD),
+        (true, false) => Style::default().bg(Color::DarkGray).fg(Color::White),
+        (false, true) => Style::default().bg(Color::Blue).fg(Color::White),
+        (false, false) => Style::default(),
     }
 }
 
@@ -453,13 +466,14 @@ mod tests {
 
         let text = buffer_text(120, 12, &app);
 
-        assert!(text.contains("space mark"));
+        assert!(text.contains("Space select"));
         assert!(text.contains("v range"));
         assert!(text.contains("a all"));
+        assert!(text.contains("y copy"));
     }
 
     #[test]
-    fn marked_rows_render_a_selection_marker() {
+    fn marked_rows_render_a_selection_marker_and_selected_status() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
             Bucket::Leaves,
@@ -475,10 +489,39 @@ mod tests {
 
         let before = buffer_text(110, 14, &app);
         assert!(!before.contains('*'));
+        assert!(before.contains("SEL"));
 
         app.handle_key(KeyInput::Char(' '));
-        let after = buffer_text(110, 14, &app);
+        let after = buffer_text(120, 14, &app);
         assert!(after.contains('*'));
+        assert!(after.contains("1 selected"));
+        assert!(after.contains("Space toggle"));
+        assert!(after.contains("Esc clear"));
+    }
+
+    #[test]
+    fn range_mode_status_renders_extend_copy_and_quit_hints() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            "alpha",
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("intent"),
+            ),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.handle_key(KeyInput::Char('v'));
+
+        let text = buffer_text(120, 14, &app);
+
+        assert!(text.contains("range 1 selected"));
+        assert!(text.contains("j/k extend"));
+        assert!(text.contains("v/Esc done"));
+        assert!(text.contains("y copy"));
+        assert!(text.contains("q quit"));
     }
 
     #[test]

@@ -105,7 +105,7 @@ fn handle_outcome<A: TuiAdapter>(app: &mut AppState, adapter: &A, outcome: Outco
             Err(err) => app.set_status_message(format!("copy failed: {err}")),
         },
         Outcome::CopyRows { count, text } => match adapter.copy_to_clipboard(&text) {
-            Ok(()) => app.set_status_message(format!("copied {count} rows")),
+            Ok(()) => app.set_status_message(format!("copied {count} {}", row_word(count))),
             Err(err) => app.set_status_message(format!("copy failed: {err}")),
         },
         Outcome::PromoteSeed { slug } => {
@@ -156,6 +156,10 @@ fn key_input(key: KeyEvent) -> Option<KeyInput> {
 
 fn is_ctrl_c(key: KeyEvent) -> bool {
     key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL)
+}
+
+fn row_word(count: usize) -> &'static str {
+    if count == 1 { "row" } else { "rows" }
 }
 
 #[cfg(test)]
@@ -345,6 +349,31 @@ mod tests {
     }
 
     #[test]
+    fn copy_rows_outcome_reports_singular_count() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let leaf = test_item(root.path(), Bucket::Leaves, "alpha");
+        let mut app = AppState::from_inventory(&test_inventory(root.path(), vec![leaf]));
+        let adapter = RecordingTuiAdapter::new(root.path().to_path_buf());
+
+        handle_outcome(
+            &mut app,
+            &adapter,
+            Outcome::CopyRows {
+                count: 1,
+                text: "leaf\tactive\tlearn\tintent\talpha\tok".to_string(),
+            },
+        )
+        .expect("copy one selected row outcome");
+
+        assert_eq!(
+            adapter.copied_texts(),
+            vec!["leaf\tactive\tlearn\tintent\talpha\tok"]
+        );
+        assert!(app.status_line().contains("copied 1 row"));
+        assert!(!app.status_line().contains("copied 1 rows"));
+    }
+
+    #[test]
     fn copy_outcome_reports_clipboard_failure_without_exit() {
         let root = assert_fs::TempDir::new().expect("temp repo");
         let leaf = test_item(root.path(), Bucket::Leaves, "alpha");
@@ -482,6 +511,18 @@ mod tests {
         assert_eq!(
             key_input(key(KeyCode::Char('p'))),
             Some(KeyInput::Char('p'))
+        );
+        assert_eq!(
+            key_input(key(KeyCode::Char(' '))),
+            Some(KeyInput::Char(' '))
+        );
+        assert_eq!(
+            key_input(key(KeyCode::Char('a'))),
+            Some(KeyInput::Char('a'))
+        );
+        assert_eq!(
+            key_input(key(KeyCode::Char('v'))),
+            Some(KeyInput::Char('v'))
         );
         assert_eq!(
             key_input(key(KeyCode::Char('q'))),

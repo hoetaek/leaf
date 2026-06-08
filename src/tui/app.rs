@@ -280,7 +280,17 @@ impl AppState {
         match input {
             KeyInput::Up | KeyInput::Char('k') => self.move_selection_up(),
             KeyInput::Down | KeyInput::Char('j') => self.move_selection_down(),
-            KeyInput::Esc => self.commit_range_select(),
+            KeyInput::Char('a') => {
+                self.toggle_all_visible_selection();
+                self.range_anchor = None;
+                self.mode = Mode::List;
+            }
+            KeyInput::Char('y') => {
+                self.commit_range_select();
+                return self.copy_marked_or_current_row();
+            }
+            KeyInput::Char('v') | KeyInput::Esc => self.commit_range_select(),
+            KeyInput::Char('q') => return Outcome::Quit,
             _ => {}
         }
         Outcome::Continue
@@ -351,9 +361,14 @@ impl AppState {
     }
 
     fn begin_range_select(&mut self) {
-        if self.visible_rows().is_empty() {
+        let Some(key) = self
+            .selected_row()
+            .map(|row| row.relative_path().to_string())
+        else {
             return;
-        }
+        };
+        self.selected_keys.clear();
+        self.selected_keys.insert(key);
         self.range_anchor = Some(self.selected_index);
         self.mode = Mode::RangeSelect;
     }
@@ -367,6 +382,7 @@ impl AppState {
         if let Some(anchor) = self.range_anchor {
             let lo = anchor.min(self.selected_index);
             let hi = anchor.max(self.selected_index);
+            self.selected_keys.clear();
             for index in lo..=hi {
                 if let Some(key) = visible_keys.get(index) {
                     self.selected_keys.insert(key.clone());
@@ -382,6 +398,8 @@ impl AppState {
             Outcome::Quit
         } else {
             self.selected_keys.clear();
+            self.range_anchor = None;
+            self.status_line = "selection cleared".to_string();
             Outcome::Continue
         }
     }
@@ -514,6 +532,7 @@ impl AppState {
     fn refresh_visibility_state(&mut self) {
         self.clamp_selected_index();
         self.prune_hidden_selection();
+        self.clamp_range_anchor();
         self.update_status_line();
     }
 
@@ -523,6 +542,16 @@ impl AppState {
             self.selected_index = 0;
         } else if self.selected_index >= visible_count {
             self.selected_index = visible_count - 1;
+        }
+    }
+
+    fn clamp_range_anchor(&mut self) {
+        let visible_count = self.visible_count();
+        if self
+            .range_anchor
+            .is_some_and(|anchor| anchor >= visible_count)
+        {
+            self.range_anchor = None;
         }
     }
 
@@ -1166,6 +1195,86 @@ mod tests {
     }
 
     #[test]
+    fn tui_app_v_starts_fresh_range_clearing_prior_selection() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char(' '));
+        app.handle_key(KeyInput::Down);
+        app.handle_key(KeyInput::Down);
+        assert_eq!(app.handle_key(KeyInput::Char('v')), Outcome::Continue);
+
+        assert_eq!(app.mode(), Mode::RangeSelect);
+        assert_eq!(app.selected_index(), 2);
+        assert_eq!(app.selected_row_count(), 1);
+        assert!(!app.visible_row_is_marked(0));
+        assert!(!app.visible_row_is_marked(1));
+        assert!(app.visible_row_is_marked(2));
+    }
+
+    #[test]
+    fn tui_app_range_mode_v_exits_preserving_selected_range() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('v'));
+        app.handle_key(KeyInput::Char('j'));
+        assert_eq!(app.handle_key(KeyInput::Char('v')), Outcome::Continue);
+
+        assert_eq!(app.mode(), Mode::List);
+        assert_eq!(app.selected_row_count(), 2);
+        assert!(app.visible_row_is_marked(0));
+        assert!(app.visible_row_is_marked(1));
+        assert!(!app.visible_row_is_marked(2));
+    }
+
+    #[test]
+    fn tui_app_range_mode_y_copies_range_and_returns_to_list() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('v'));
+        app.handle_key(KeyInput::Char('j'));
+
+        assert_eq!(
+            app.handle_key(KeyInput::Char('y')),
+            Outcome::CopyRows {
+                count: 2,
+                text:
+                    "leaf\tactive\tlearn\tintent\talpha\tok\nleaf\tactive\tlearn\tintent\tbeta\tok"
+                        .to_string(),
+            }
+        );
+        assert_eq!(app.mode(), Mode::List);
+        assert_eq!(app.selected_row_count(), 2);
+    }
+
+    #[test]
+    fn tui_app_range_mode_q_quits() {
+        let inventory = inventory_with_slugs(&["alpha"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('v'));
+
+        assert_eq!(app.handle_key(KeyInput::Char('q')), Outcome::Quit);
+    }
+
+    #[test]
+    fn tui_app_range_mode_a_toggles_all_visible_and_returns_to_list() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('v'));
+        assert_eq!(app.handle_key(KeyInput::Char('a')), Outcome::Continue);
+
+        assert_eq!(app.mode(), Mode::List);
+        assert_eq!(app.selected_row_count(), 3);
+        assert!(app.visible_row_is_marked(0));
+        assert!(app.visible_row_is_marked(1));
+        assert!(app.visible_row_is_marked(2));
+    }
+
+    #[test]
     fn tui_app_a_toggles_all_current_visible_rows() {
         let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
         let mut app = AppState::from_inventory(&inventory);
@@ -1214,6 +1323,7 @@ mod tests {
         assert_eq!(app.handle_key(KeyInput::Esc), Outcome::Continue);
         assert_eq!(app.selected_row_count(), 0);
         assert_eq!(app.mode(), Mode::List);
+        assert!(app.status_line().contains("selection cleared"));
 
         assert_eq!(app.handle_key(KeyInput::Esc), Outcome::Quit);
     }
