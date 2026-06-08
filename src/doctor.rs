@@ -206,6 +206,20 @@ fn check_entries(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<
                             )
                             .with_path(format!(".leaf/{dir_name}/{name}")),
                         );
+                        continue;
+                    }
+                    // inventory::load reads each digest to project it into
+                    // `leaf list`; an unreadable .md surfaces there with
+                    // parse_state=error, so doctor reads it too and reports the
+                    // failure instead of trusting type/extension alone.
+                    if let Err(err) = fs::read_to_string(&path) {
+                        findings.push(
+                            DoctorFinding::error(
+                                "pressed_digest_unreadable",
+                                format!("failed to read pressed digest {dir_name}/{name}: {err}"),
+                            )
+                            .with_path(format!(".leaf/{dir_name}/{name}")),
+                        );
                     }
                 }
                 Bucket::Seeds | Bucket::Leaves | Bucket::Fallen => {
@@ -641,6 +655,36 @@ mod tests {
             Severity::Warn,
             "ignored_pressed_entry",
             Some(Location::Path(".leaf/04-pressed/notes.txt".into())),
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn check_errors_for_unreadable_pressed_digest() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_buckets(&root);
+        let digest = root.child(".leaf/04-pressed/locked.md");
+        digest.write_str("# Locked\n").expect("digest");
+        // An on-disk .md file that exists but cannot be read: inventory::load
+        // surfaces it in `leaf list` with parse_state=error, so doctor must
+        // report it rather than treating any .md as a valid digest.
+        fs::set_permissions(digest.path(), fs::Permissions::from_mode(0o000))
+            .expect("revoke read permission");
+
+        let report = check(root.path()).expect("doctor report");
+
+        // Restore permissions so the TempDir can be cleaned up.
+        fs::set_permissions(digest.path(), fs::Permissions::from_mode(0o644))
+            .expect("restore permission");
+
+        assert!(report.has_errors());
+        assert_finding(
+            &report,
+            Severity::Error,
+            "pressed_digest_unreadable",
+            Some(Location::Path(".leaf/04-pressed/locked.md".into())),
         );
     }
 
