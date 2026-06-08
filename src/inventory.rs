@@ -66,6 +66,20 @@ pub(crate) enum StatusField {
     NextAction,
 }
 
+impl StatusField {
+    /// The canonical snake_case label for this field, shared by list output and
+    /// doctor diagnostics so missing-field messages stay in sync.
+    pub(crate) fn label(self) -> &'static str {
+        match self {
+            StatusField::State => "state",
+            StatusField::CurrentPhase => "current_phase",
+            StatusField::CurrentGate => "current_gate",
+            StatusField::FirstMissingGate => "first_missing_gate",
+            StatusField::NextAction => "next_action",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum PreviewSource {
     LeafWork {

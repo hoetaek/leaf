@@ -1,5 +1,6 @@
-use crate::inventory::BUCKETS;
+use crate::inventory::{BUCKETS, Bucket, parse_status_summary};
 use anyhow::Result;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -67,6 +68,7 @@ pub(crate) fn check(repo_root: &Path) -> Result<DoctorReport> {
     }
 
     check_buckets(&leaf_root, &mut findings)?;
+    check_entries(&leaf_root, &mut findings)?;
 
     Ok(DoctorReport::new(".leaf", findings))
 }
@@ -157,6 +159,160 @@ fn check_buckets(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<
     }
 
     Ok(())
+}
+
+/// Read-only pass over the raw entries of each lifecycle bucket.
+///
+/// Classifies every entry (visible leaf-work directory, pressed digest, or
+/// ignored stray), validates the status file of each visible item, and reports
+/// slugs that appear in more than one lifecycle bucket. Bucket-level problems
+/// (missing, unreadable, not-a-directory) are already reported by
+/// [`check_buckets`], so unreadable buckets are simply skipped here.
+fn check_entries(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<()> {
+    // slug -> repo-relative directory paths, accumulated in lifecycle-bucket
+    // order so duplicate findings list their paths deterministically.
+    let mut slug_paths: BTreeMap<String, Vec<PathBuf>> = BTreeMap::new();
+
+    for bucket in BUCKETS {
+        let dir_name = bucket.dir_name();
+        let bucket_dir = leaf_root.join(dir_name);
+
+        let mut entries: Vec<(String, PathBuf, fs::FileType)> = Vec::new();
+        match fs::read_dir(&bucket_dir) {
+            Ok(read_dir) => {
+                for entry in read_dir {
+                    let entry = entry?;
+                    let file_type = entry.file_type()?;
+                    let name = entry.file_name().to_string_lossy().into_owned();
+                    entries.push((name, entry.path(), file_type));
+                }
+            }
+            // A missing or unreadable bucket is reported by check_buckets; skip it.
+            Err(_) => continue,
+        }
+
+        entries.sort_by(|left, right| left.0.cmp(&right.0));
+
+        for (name, path, file_type) in entries {
+            match bucket {
+                Bucket::Pressed => {
+                    let is_md_file = file_type.is_file()
+                        && path.extension().and_then(|ext| ext.to_str()) == Some("md");
+                    if !is_md_file {
+                        findings.push(
+                            DoctorFinding::warn(
+                                "ignored_pressed_entry",
+                                format!("ignored non-digest entry in {dir_name}: {name}"),
+                            )
+                            .with_path(format!(".leaf/{dir_name}/{name}")),
+                        );
+                    }
+                }
+                Bucket::Seeds | Bucket::Leaves | Bucket::Fallen => {
+                    if !file_type.is_dir() {
+                        findings.push(
+                            DoctorFinding::warn(
+                                "ignored_lifecycle_entry",
+                                format!("ignored non-directory entry in {dir_name}: {name}"),
+                            )
+                            .with_path(format!(".leaf/{dir_name}/{name}")),
+                        );
+                        continue;
+                    }
+                    slug_paths
+                        .entry(name.clone())
+                        .or_default()
+                        .push(PathBuf::from(format!(".leaf/{dir_name}/{name}")));
+                    check_item_status(bucket, dir_name, &name, &path, findings);
+                }
+            }
+        }
+    }
+
+    for paths in slug_paths.into_values() {
+        if paths.len() > 1 {
+            findings.push(
+                DoctorFinding::warn(
+                    "duplicate_slug",
+                    "slug appears in more than one lifecycle bucket",
+                )
+                .with_paths(paths),
+            );
+        }
+    }
+
+    Ok(())
+}
+
+/// Read and validate `<item>/00-status.md` for one visible leaf-work directory.
+fn check_item_status(
+    bucket: Bucket,
+    dir_name: &str,
+    slug: &str,
+    item_path: &Path,
+    findings: &mut Vec<DoctorFinding>,
+) {
+    let status_path = item_path.join("00-status.md");
+    let rel_status = format!(".leaf/{dir_name}/{slug}/00-status.md");
+
+    let content = match fs::read_to_string(&status_path) {
+        Ok(content) => content,
+        Err(err) => {
+            findings.push(
+                DoctorFinding::error(
+                    "status_unreadable",
+                    format!("failed to read status file {rel_status}: {err}"),
+                )
+                .with_path(rel_status),
+            );
+            return;
+        }
+    };
+
+    let summary = parse_status_summary(&content, bucket);
+
+    if !summary.missing_fields.is_empty() {
+        let labels = summary
+            .missing_fields
+            .iter()
+            .map(|&field| field.label())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let severity = match bucket {
+            Bucket::Fallen => Severity::Error,
+            _ => Severity::Warn,
+        };
+        findings.push(
+            DoctorFinding::new(
+                severity,
+                "status_missing_fields",
+                format!("missing status fields: {labels}"),
+            )
+            .with_path(rel_status.clone()),
+        );
+    }
+
+    if let (Some(expected), Some(actual)) = (expected_state(bucket), summary.state.as_deref()) {
+        if actual != expected {
+            findings.push(
+                DoctorFinding::error(
+                    "state_bucket_mismatch",
+                    format!("state {actual} conflicts with bucket {dir_name}; expected {expected}"),
+                )
+                .with_path(rel_status),
+            );
+        }
+    }
+}
+
+/// The lifecycle `state` value expected for items living in `bucket`.
+fn expected_state(bucket: Bucket) -> Option<&'static str> {
+    match bucket {
+        Bucket::Seeds => Some("seed"),
+        Bucket::Leaves => Some("active"),
+        Bucket::Fallen => Some("fallen"),
+        Bucket::Pressed => None,
+    }
 }
 
 impl DoctorReport {
@@ -345,12 +501,192 @@ mod tests {
         );
     }
 
-    fn assert_finding(
-        report: &DoctorReport,
+    fn create_lifecycle_buckets(root: &assert_fs::TempDir) {
+        for path in [
+            ".leaf/01-seeds",
+            ".leaf/02-leaves",
+            ".leaf/03-fallen",
+            ".leaf/04-pressed",
+        ] {
+            root.child(path).create_dir_all().expect("bucket");
+        }
+    }
+
+    fn write_status(root: &assert_fs::TempDir, path: &str, body: &str) {
+        root.child(path).write_str(body).expect("status");
+    }
+
+    #[test]
+    fn check_warns_for_partial_seed_status() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_buckets(&root);
+        write_status(
+            &root,
+            ".leaf/01-seeds/draft/00-status.md",
+            "# Status\n\n- state: seed\n- current phase: Learn\n",
+        );
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(!report.has_errors());
+        let finding = assert_finding(
+            &report,
+            Severity::Warn,
+            "status_missing_fields",
+            Some(Location::Path(".leaf/01-seeds/draft/00-status.md".into())),
+        );
+        assert!(finding.message.contains("current_gate"));
+        assert!(finding.message.contains("first_missing_gate"));
+        assert!(finding.message.contains("next_action"));
+    }
+
+    #[test]
+    fn check_errors_for_missing_active_status() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_buckets(&root);
+        root.child(".leaf/02-leaves/no-status/01-Learn")
+            .create_dir_all()
+            .expect("leaf");
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(report.has_errors());
+        assert_finding(
+            &report,
+            Severity::Error,
+            "status_unreadable",
+            Some(Location::Path(
+                ".leaf/02-leaves/no-status/00-status.md".into(),
+            )),
+        );
+    }
+
+    #[test]
+    fn check_errors_for_fallen_status_missing_state() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_buckets(&root);
+        write_status(
+            &root,
+            ".leaf/03-fallen/closed/00-status.md",
+            "# Leaf Status\n\n- fall reason: completed\n",
+        );
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(report.has_errors());
+        let finding = assert_finding(
+            &report,
+            Severity::Error,
+            "status_missing_fields",
+            Some(Location::Path(".leaf/03-fallen/closed/00-status.md".into())),
+        );
+        assert!(finding.message.contains("state"));
+    }
+
+    #[test]
+    fn check_errors_for_active_state_bucket_mismatch() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_buckets(&root);
+        write_status(
+            &root,
+            ".leaf/02-leaves/wrong-state/00-status.md",
+            "- state: seed\n\
+             - current phase: Example\n\
+             - current gate: ③ Criteria\n\
+             - first missing gate: ④ Wireframe\n\
+             - next action: continue\n",
+        );
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(report.has_errors());
+        let finding = assert_finding(
+            &report,
+            Severity::Error,
+            "state_bucket_mismatch",
+            Some(Location::Path(
+                ".leaf/02-leaves/wrong-state/00-status.md".into(),
+            )),
+        );
+        assert!(
+            finding
+                .message
+                .contains("state seed conflicts with bucket 02-leaves")
+        );
+        assert!(finding.message.contains("expected active"));
+    }
+
+    #[test]
+    fn check_warns_for_ignored_lifecycle_and_pressed_entries() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_buckets(&root);
+        root.child(".leaf/01-seeds/loose.md")
+            .write_str("ignored\n")
+            .expect("loose seed file");
+        root.child(".leaf/04-pressed/notes.txt")
+            .write_str("ignored\n")
+            .expect("pressed txt");
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(!report.has_errors());
+        assert_finding(
+            &report,
+            Severity::Warn,
+            "ignored_lifecycle_entry",
+            Some(Location::Path(".leaf/01-seeds/loose.md".into())),
+        );
+        assert_finding(
+            &report,
+            Severity::Warn,
+            "ignored_pressed_entry",
+            Some(Location::Path(".leaf/04-pressed/notes.txt".into())),
+        );
+    }
+
+    #[test]
+    fn check_warns_for_duplicate_slug_across_lifecycle_buckets() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_buckets(&root);
+        write_status(
+            &root,
+            ".leaf/01-seeds/duplicate/00-status.md",
+            "- state: seed\n\
+             - current phase: Learn\n\
+             - current gate: ② Unknowns & Context\n\
+             - first missing gate: ③ Criteria\n\
+             - next action: promote\n",
+        );
+        write_status(
+            &root,
+            ".leaf/02-leaves/duplicate/00-status.md",
+            "- state: active\n\
+             - current phase: Architect\n\
+             - current gate: ⑦ Tasks\n\
+             - first missing gate: ⑧ Artifact\n\
+             - next action: implement\n",
+        );
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(!report.has_errors());
+        assert_finding(
+            &report,
+            Severity::Warn,
+            "duplicate_slug",
+            Some(Location::Paths(vec![
+                ".leaf/01-seeds/duplicate".into(),
+                ".leaf/02-leaves/duplicate".into(),
+            ])),
+        );
+    }
+
+    fn assert_finding<'a>(
+        report: &'a DoctorReport,
         severity: Severity,
         code: &str,
         location: Option<Location>,
-    ) {
+    ) -> &'a DoctorFinding {
         let finding = report
             .findings
             .iter()
@@ -359,5 +695,6 @@ mod tests {
         if let Some(location) = location {
             assert_eq!(finding.location, location);
         }
+        finding
     }
 }

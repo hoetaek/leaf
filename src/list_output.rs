@@ -189,7 +189,7 @@ impl JsonStatus {
                 .missing_fields
                 .iter()
                 .copied()
-                .map(status_field_label)
+                .map(StatusField::label)
                 .collect(),
         }
     }
@@ -237,15 +237,5 @@ fn parse_state_label(state: ParseState) -> &'static str {
         ParseState::Ok => "ok",
         ParseState::Partial => "partial",
         ParseState::Error => "error",
-    }
-}
-
-fn status_field_label(field: StatusField) -> &'static str {
-    match field {
-        StatusField::State => "state",
-        StatusField::CurrentPhase => "current_phase",
-        StatusField::CurrentGate => "current_gate",
-        StatusField::FirstMissingGate => "first_missing_gate",
-        StatusField::NextAction => "next_action",
     }
 }
