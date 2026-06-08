@@ -43,6 +43,13 @@ pub(crate) enum KeyInput {
     Char(char),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum MouseInput {
+    Down { visible_index: usize, toggle: bool },
+    Drag { visible_index: usize },
+    Up,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Outcome {
     Continue,
@@ -64,6 +71,7 @@ pub(crate) struct AppState {
     pending_promote_slug: Option<String>,
     selected_keys: HashSet<String>,
     range_anchor: Option<usize>,
+    mouse_anchor: Option<usize>,
     preview_cache: RefCell<HashMap<String, Preview>>,
 }
 
@@ -176,6 +184,7 @@ impl AppState {
             pending_promote_slug: None,
             selected_keys: HashSet::new(),
             range_anchor: None,
+            mouse_anchor: None,
             preview_cache: RefCell::new(HashMap::new()),
         };
         state.refresh_visibility_state();
@@ -253,6 +262,66 @@ impl AppState {
             Mode::RangeSelect => self.handle_range_key(input),
             Mode::FilterInput => self.handle_filter_key(input),
             Mode::ConfirmPromote => self.handle_confirm_promote_key(input),
+        }
+    }
+
+    pub(crate) fn handle_mouse(&mut self, input: MouseInput) -> Outcome {
+        if matches!(self.mode, Mode::FilterInput | Mode::ConfirmPromote) {
+            return Outcome::Continue;
+        }
+        match input {
+            MouseInput::Down {
+                visible_index,
+                toggle,
+            } => {
+                if !self.select_visible_index(visible_index) {
+                    return Outcome::Continue;
+                }
+                if toggle {
+                    self.mouse_anchor = None;
+                    self.toggle_current_row_selection();
+                } else {
+                    self.mouse_anchor = Some(self.selected_index);
+                }
+            }
+            MouseInput::Drag { visible_index } => {
+                let Some(anchor) = self.mouse_anchor else {
+                    return Outcome::Continue;
+                };
+                if !self.select_visible_index(visible_index) {
+                    return Outcome::Continue;
+                }
+                self.mark_visible_range(anchor, self.selected_index);
+            }
+            MouseInput::Up => {
+                self.mouse_anchor = None;
+            }
+        }
+        Outcome::Continue
+    }
+
+    fn select_visible_index(&mut self, visible_index: usize) -> bool {
+        if visible_index < self.visible_count() {
+            self.selected_index = visible_index;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn mark_visible_range(&mut self, anchor: usize, current: usize) {
+        let visible_keys: Vec<String> = self
+            .visible_rows()
+            .iter()
+            .map(|row| row.relative_path().to_string())
+            .collect();
+        let lo = anchor.min(current);
+        let hi = anchor.max(current);
+        self.selected_keys.clear();
+        for index in lo..=hi {
+            if let Some(key) = visible_keys.get(index) {
+                self.selected_keys.insert(key.clone());
+            }
         }
     }
 
@@ -606,6 +675,7 @@ impl AppState {
         self.pending_promote_slug = None;
         self.selected_keys.clear();
         self.range_anchor = None;
+        self.mouse_anchor = None;
         self.mode = Mode::List;
         self.refresh_visibility_state();
     }
@@ -1342,6 +1412,177 @@ mod tests {
         assert_eq!(app.mode(), Mode::FilterInput);
         assert_eq!(app.filter(), "yav ");
         assert_eq!(app.selected_row_count(), 0);
+    }
+
+    #[test]
+    fn tui_app_mouse_row_click_moves_cursor_without_selecting() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::Down {
+                visible_index: 1,
+                toggle: false,
+            }),
+            Outcome::Continue
+        );
+
+        assert_eq!(app.selected_index(), 1);
+        assert_eq!(app.selected_row().map(ListRow::slug), Some("beta"));
+        assert_eq!(app.selected_row_count(), 0);
+    }
+
+    #[test]
+    fn tui_app_mouse_sel_click_toggles_row_selection() {
+        let inventory = inventory_with_slugs(&["alpha", "beta"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::Down {
+                visible_index: 1,
+                toggle: true,
+            }),
+            Outcome::Continue
+        );
+        assert_eq!(app.selected_index(), 1);
+        assert_eq!(app.selected_row_count(), 1);
+        assert!(app.visible_row_is_marked(1));
+        assert!(!app.visible_row_is_marked(0));
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::Down {
+                visible_index: 1,
+                toggle: true,
+            }),
+            Outcome::Continue
+        );
+        assert_eq!(app.selected_row_count(), 0);
+    }
+
+    #[test]
+    fn tui_app_mouse_drag_marks_range_from_press_to_current_row() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma", "delta"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_mouse(MouseInput::Down {
+            visible_index: 0,
+            toggle: false,
+        });
+        app.handle_mouse(MouseInput::Drag { visible_index: 1 });
+        assert_eq!(
+            app.handle_mouse(MouseInput::Drag { visible_index: 2 }),
+            Outcome::Continue
+        );
+
+        assert_eq!(app.selected_index(), 2);
+        assert_eq!(app.selected_row_count(), 3);
+        assert!(app.visible_row_is_marked(0));
+        assert!(app.visible_row_is_marked(1));
+        assert!(app.visible_row_is_marked(2));
+        assert!(!app.visible_row_is_marked(3));
+
+        assert_eq!(app.handle_mouse(MouseInput::Up), Outcome::Continue);
+        assert_eq!(app.selected_row_count(), 3);
+    }
+
+    #[test]
+    fn tui_app_mouse_reverse_drag_marks_range_upward() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_mouse(MouseInput::Down {
+            visible_index: 2,
+            toggle: false,
+        });
+        app.handle_mouse(MouseInput::Drag { visible_index: 0 });
+
+        assert_eq!(app.selected_index(), 0);
+        assert_eq!(app.selected_row_count(), 3);
+        assert!(app.visible_row_is_marked(0));
+        assert!(app.visible_row_is_marked(1));
+        assert!(app.visible_row_is_marked(2));
+    }
+
+    #[test]
+    fn tui_app_y_copies_rows_marked_by_mouse_drag() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_mouse(MouseInput::Down {
+            visible_index: 0,
+            toggle: false,
+        });
+        app.handle_mouse(MouseInput::Drag { visible_index: 1 });
+        app.handle_mouse(MouseInput::Up);
+
+        assert_eq!(
+            app.handle_key(KeyInput::Char('y')),
+            Outcome::CopyRows {
+                count: 2,
+                text:
+                    "leaf\tactive\tlearn\tintent\talpha\tok\nleaf\tactive\tlearn\tintent\tbeta\tok"
+                        .to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn tui_app_mouse_out_of_range_index_is_ignored() {
+        let inventory = inventory_with_slugs(&["alpha", "beta"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::Down {
+                visible_index: 9,
+                toggle: false,
+            }),
+            Outcome::Continue
+        );
+        assert_eq!(app.selected_index(), 0);
+        assert_eq!(app.selected_row_count(), 0);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::Down {
+                visible_index: 9,
+                toggle: true,
+            }),
+            Outcome::Continue
+        );
+        assert_eq!(app.selected_row_count(), 0);
+    }
+
+    #[test]
+    fn tui_app_mouse_is_ignored_in_filter_and_confirm_modes() {
+        let inventory = inventory_with_items(vec![leaf_item(
+            Bucket::Seeds,
+            "draft",
+            complete_leaf_status(),
+        )]);
+
+        let mut filter_app = AppState::from_inventory(&inventory);
+        filter_app.handle_key(KeyInput::Char('/'));
+        assert_eq!(
+            filter_app.handle_mouse(MouseInput::Down {
+                visible_index: 0,
+                toggle: true,
+            }),
+            Outcome::Continue
+        );
+        assert_eq!(filter_app.mode(), Mode::FilterInput);
+        assert_eq!(filter_app.selected_row_count(), 0);
+
+        let mut confirm_app = AppState::from_inventory(&inventory);
+        confirm_app.handle_key(KeyInput::Char('P'));
+        assert_eq!(confirm_app.mode(), Mode::ConfirmPromote);
+        assert_eq!(
+            confirm_app.handle_mouse(MouseInput::Down {
+                visible_index: 0,
+                toggle: true,
+            }),
+            Outcome::Continue
+        );
+        assert_eq!(confirm_app.mode(), Mode::ConfirmPromote);
+        assert_eq!(confirm_app.selected_row_count(), 0);
     }
 
     fn inventory_with_slugs(slugs: &[&str]) -> Inventory {

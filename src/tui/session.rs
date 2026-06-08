@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use crossterm::{
+    event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -25,7 +26,9 @@ impl TerminalEffects for CrosstermEffects {
 trait CrosstermSideEffects {
     fn enable_raw_mode(&self) -> Result<()>;
     fn enter_alternate_screen(&self) -> Result<()>;
+    fn enable_mouse_capture(&self) -> Result<()>;
     fn flush_enter(&self) -> Result<()>;
+    fn disable_mouse_capture(&self) -> Result<()>;
     fn leave_alternate_screen(&self) -> Result<()>;
     fn flush_leave(&self) -> Result<()>;
     fn disable_raw_mode(&self) -> Result<()>;
@@ -42,8 +45,16 @@ impl CrosstermSideEffects for RealCrosstermSideEffects {
         execute!(io::stdout(), EnterAlternateScreen).context("enter alternate screen")
     }
 
+    fn enable_mouse_capture(&self) -> Result<()> {
+        execute!(io::stdout(), EnableMouseCapture).context("enable mouse capture")
+    }
+
     fn flush_enter(&self) -> Result<()> {
         io::stdout().flush().context("flush alternate screen enter")
+    }
+
+    fn disable_mouse_capture(&self) -> Result<()> {
+        execute!(io::stdout(), DisableMouseCapture).context("disable mouse capture")
     }
 
     fn leave_alternate_screen(&self) -> Result<()> {
@@ -65,7 +76,13 @@ fn enter_crossterm_terminal(side_effects: &impl CrosstermSideEffects) -> Result<
         let _ = side_effects.disable_raw_mode();
         return Err(err);
     }
+    if let Err(err) = side_effects.enable_mouse_capture() {
+        let _ = side_effects.leave_alternate_screen();
+        let _ = side_effects.disable_raw_mode();
+        return Err(err);
+    }
     if let Err(err) = side_effects.flush_enter() {
+        let _ = side_effects.disable_mouse_capture();
         let _ = side_effects.leave_alternate_screen();
         let _ = side_effects.disable_raw_mode();
         return Err(err);
@@ -74,18 +91,14 @@ fn enter_crossterm_terminal(side_effects: &impl CrosstermSideEffects) -> Result<
 }
 
 fn leave_crossterm_terminal(side_effects: &impl CrosstermSideEffects) -> Result<()> {
+    let mouse_result = side_effects.disable_mouse_capture();
     let screen_result = side_effects
         .leave_alternate_screen()
         .and_then(|()| side_effects.flush_leave());
     let raw_result = side_effects.disable_raw_mode();
 
-    match (screen_result, raw_result) {
-        (Ok(()), Ok(())) => Ok(()),
-        (Err(err), Ok(())) | (Ok(()), Err(err)) => Err(err),
-        (Err(screen_err), Err(raw_err)) => {
-            Err(screen_err.context(format!("also failed to {raw_err}")))
-        }
-    }
+    // Attempt every cleanup step, then surface the first failure.
+    mouse_result.and(screen_result).and(raw_result)
 }
 
 pub(crate) struct TerminalSession<E: TerminalEffects = CrosstermEffects> {
@@ -159,6 +172,7 @@ mod tests {
     struct RecordingCrosstermSideEffects {
         log: Arc<Mutex<Vec<&'static str>>>,
         fail_enter_flush: bool,
+        fail_mouse_capture: bool,
     }
 
     impl CrosstermSideEffects for RecordingCrosstermSideEffects {
@@ -172,6 +186,15 @@ mod tests {
             Ok(())
         }
 
+        fn enable_mouse_capture(&self) -> Result<()> {
+            self.log.lock().unwrap().push("enable_mouse_capture");
+            if self.fail_mouse_capture {
+                Err(anyhow!("mouse capture failed"))
+            } else {
+                Ok(())
+            }
+        }
+
         fn flush_enter(&self) -> Result<()> {
             self.log.lock().unwrap().push("flush_enter");
             if self.fail_enter_flush {
@@ -179,6 +202,11 @@ mod tests {
             } else {
                 Ok(())
             }
+        }
+
+        fn disable_mouse_capture(&self) -> Result<()> {
+            self.log.lock().unwrap().push("disable_mouse_capture");
+            Ok(())
         }
 
         fn leave_alternate_screen(&self) -> Result<()> {
@@ -236,6 +264,7 @@ mod tests {
         let effects = RecordingCrosstermSideEffects {
             log: Arc::new(Mutex::new(Vec::new())),
             fail_enter_flush: true,
+            ..RecordingCrosstermSideEffects::default()
         };
         let log = Arc::clone(&effects.log);
 
@@ -247,9 +276,72 @@ mod tests {
             vec![
                 "enable_raw_mode",
                 "enter_alternate_screen",
+                "enable_mouse_capture",
                 "flush_enter",
+                "disable_mouse_capture",
                 "leave_alternate_screen",
                 "disable_raw_mode"
+            ]
+        );
+    }
+
+    #[test]
+    fn enter_enables_mouse_capture_before_flush() {
+        let effects = RecordingCrosstermSideEffects::default();
+        let log = Arc::clone(&effects.log);
+
+        enter_crossterm_terminal(&effects).expect("enter terminal");
+
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec![
+                "enable_raw_mode",
+                "enter_alternate_screen",
+                "enable_mouse_capture",
+                "flush_enter",
+            ]
+        );
+    }
+
+    #[test]
+    fn enter_mouse_capture_failure_cleans_up_screen_and_raw_mode() {
+        let effects = RecordingCrosstermSideEffects {
+            log: Arc::new(Mutex::new(Vec::new())),
+            fail_mouse_capture: true,
+            ..RecordingCrosstermSideEffects::default()
+        };
+        let log = Arc::clone(&effects.log);
+
+        let err =
+            enter_crossterm_terminal(&effects).expect_err("mouse capture failure should error");
+
+        assert_eq!(err.to_string(), "mouse capture failed");
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec![
+                "enable_raw_mode",
+                "enter_alternate_screen",
+                "enable_mouse_capture",
+                "leave_alternate_screen",
+                "disable_raw_mode",
+            ]
+        );
+    }
+
+    #[test]
+    fn leave_disables_mouse_capture_before_leaving_screen_and_raw_mode() {
+        let effects = RecordingCrosstermSideEffects::default();
+        let log = Arc::clone(&effects.log);
+
+        leave_crossterm_terminal(&effects).expect("leave terminal");
+
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec![
+                "disable_mouse_capture",
+                "leave_alternate_screen",
+                "flush_leave",
+                "disable_raw_mode",
             ]
         );
     }

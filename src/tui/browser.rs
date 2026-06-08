@@ -1,11 +1,15 @@
 use crate::inventory::{Bucket, Inventory};
-use crate::tui::app::{AppState, KeyInput, Outcome};
+use crate::tui::app::{AppState, KeyInput, MouseInput, Outcome};
 use crate::tui::render::draw;
 use crate::tui::session::TerminalSession;
 use anyhow::{Context, Result};
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::event::{
+    self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent,
+    MouseEventKind,
+};
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
+use ratatui::layout::Rect;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -90,11 +94,45 @@ fn event_loop<A: TuiAdapter>(
                 }
                 handle_outcome(app, adapter, outcome)?;
             }
+            Event::Mouse(mouse) => {
+                let size = terminal
+                    .size()
+                    .context("read leaf list TUI size for mouse event")?;
+                let area = Rect::new(0, 0, size.width, size.height);
+                let Some(input) = mouse_input(area, app, mouse) else {
+                    continue;
+                };
+
+                let outcome = app.handle_mouse(input);
+                if outcome == Outcome::Quit {
+                    break;
+                }
+                handle_outcome(app, adapter, outcome)?;
+            }
             Event::Resize(_, _) => {}
             _ => {}
         }
     }
     Ok(())
+}
+
+fn mouse_input(area: Rect, app: &AppState, mouse: MouseEvent) -> Option<MouseInput> {
+    match mouse.kind {
+        MouseEventKind::Down(MouseButton::Left) => {
+            crate::tui::render::table_mouse_target(area, app, mouse.column, mouse.row).map(
+                |(visible_index, selection_column)| MouseInput::Down {
+                    visible_index,
+                    toggle: selection_column,
+                },
+            )
+        }
+        MouseEventKind::Drag(MouseButton::Left) => {
+            crate::tui::render::table_mouse_target(area, app, mouse.column, mouse.row)
+                .map(|(visible_index, _)| MouseInput::Drag { visible_index })
+        }
+        MouseEventKind::Up(MouseButton::Left) => Some(MouseInput::Up),
+        _ => None,
+    }
 }
 
 fn handle_outcome<A: TuiAdapter>(app: &mut AppState, adapter: &A, outcome: Outcome) -> Result<()> {
@@ -490,6 +528,110 @@ mod tests {
                 unknowns_path: path.join("01-Learn/02-unknowns.md"),
                 criteria_path: path.join("02-Example/03-criteria.md"),
             },
+        }
+    }
+
+    #[test]
+    fn maps_left_mouse_down_drag_and_up_to_mouse_input() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let app = AppState::from_inventory(&test_inventory(
+            root.path(),
+            vec![
+                test_item(root.path(), Bucket::Leaves, "alpha"),
+                test_item(root.path(), Bucket::Leaves, "beta"),
+                test_item(root.path(), Bucket::Leaves, "gamma"),
+            ],
+        ));
+        // Rect(0,0,80,10): table data rows start at y=3; SEL column spans x=1..=3.
+        let area = Rect::new(0, 0, 80, 10);
+
+        assert_eq!(
+            mouse_input(
+                area,
+                &app,
+                mouse(MouseEventKind::Down(MouseButton::Left), 20, 3)
+            ),
+            Some(MouseInput::Down {
+                visible_index: 0,
+                toggle: false,
+            })
+        );
+        assert_eq!(
+            mouse_input(
+                area,
+                &app,
+                mouse(MouseEventKind::Down(MouseButton::Left), 2, 4)
+            ),
+            Some(MouseInput::Down {
+                visible_index: 1,
+                toggle: true,
+            })
+        );
+        assert_eq!(
+            mouse_input(
+                area,
+                &app,
+                mouse(MouseEventKind::Drag(MouseButton::Left), 20, 5)
+            ),
+            Some(MouseInput::Drag { visible_index: 2 })
+        );
+        // Up maps even when the row is outside the table area.
+        assert_eq!(
+            mouse_input(
+                area,
+                &app,
+                mouse(MouseEventKind::Up(MouseButton::Left), 20, 0)
+            ),
+            Some(MouseInput::Up)
+        );
+    }
+
+    #[test]
+    fn ignores_non_left_mouse_and_non_table_coordinates() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let app = AppState::from_inventory(&test_inventory(
+            root.path(),
+            vec![test_item(root.path(), Bucket::Leaves, "alpha")],
+        ));
+        let area = Rect::new(0, 0, 80, 10);
+
+        assert_eq!(
+            mouse_input(
+                area,
+                &app,
+                mouse(MouseEventKind::Down(MouseButton::Right), 20, 3)
+            ),
+            None
+        );
+        assert_eq!(
+            mouse_input(area, &app, mouse(MouseEventKind::ScrollDown, 20, 3)),
+            None
+        );
+        assert_eq!(
+            mouse_input(area, &app, mouse(MouseEventKind::ScrollUp, 20, 3)),
+            None
+        );
+        assert_eq!(
+            mouse_input(area, &app, mouse(MouseEventKind::Moved, 20, 3)),
+            None
+        );
+        // Left down on the header row is not a data row.
+        assert_eq!(
+            mouse_input(
+                area,
+                &app,
+                mouse(MouseEventKind::Down(MouseButton::Left), 20, 2)
+            ),
+            None
+        );
+    }
+
+    fn mouse(kind: MouseEventKind, column: u16, row: u16) -> MouseEvent {
+        MouseEvent {
+            kind,
+            column,
+            row,
+            modifiers: KeyModifiers::NONE,
         }
     }
 

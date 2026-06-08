@@ -152,7 +152,7 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             app.status_line()
         ),
         Mode::List => format!(
-            "j/k up/down  h/l bucket  y copy  P promote  Space select  v range  a all  / filter  p preview  q quit  {}",
+            "j/k up/down  h/l bucket  y copy  P promote  Space select  v range  a all  / filter  p preview  q quit  mouse select  {}",
             app.status_line()
         ),
     };
@@ -171,6 +171,63 @@ fn table_row(row: &ListRow, marked: bool) -> Row<'_> {
         Cell::from(parse_state_label(row.parse_state()).to_string())
             .style(parse_state_style(row.parse_state())),
     ])
+}
+
+/// Computes the table chunk for a full terminal `Rect`, mirroring the layout
+/// `draw` uses so mouse hit-testing maps onto the same rows `draw_table` renders.
+fn table_chunk(area: Rect, app: &AppState) -> Rect {
+    let show_preview = app.preview_open() && area.height >= PREVIEW_MIN_HEIGHT;
+    let mut constraints = vec![Constraint::Length(1), Constraint::Min(1)];
+    if show_preview {
+        constraints.push(Constraint::Length(preview_height(area)));
+    }
+    constraints.push(Constraint::Length(1));
+    Layout::vertical(constraints).split(area)[1]
+}
+
+/// Maps a terminal `(column, row)` click onto the visible row it covers.
+///
+/// Returns `Some((visible_index, is_sel_column))` when the coordinate lands on a
+/// data row inside the table, or `None` for the header, borders, status line, or
+/// any coordinate outside the rendered rows. Data rows start at `table.y + 2`
+/// (top border + header); the `SEL` column spans `table.x + 1..=table.x + 3`.
+pub(crate) fn table_mouse_target(
+    area: Rect,
+    app: &AppState,
+    column: u16,
+    row: u16,
+) -> Option<(usize, bool)> {
+    let table = table_chunk(area, app);
+    if table.height == 0 || table.width < 2 {
+        return None;
+    }
+
+    let inner_left = table.x + 1;
+    let inner_right = table.x + table.width - 2;
+    if column < inner_left || column > inner_right {
+        return None;
+    }
+
+    let first_data_row = table.y + 2;
+    if row < first_data_row {
+        return None;
+    }
+    let data_row_index = (row - first_data_row) as usize;
+    let row_capacity = table_row_capacity(table);
+    if data_row_index >= row_capacity {
+        return None;
+    }
+
+    let offset = row_viewport_offset(app.selected_index(), row_capacity);
+    let visible_index = offset + data_row_index;
+    if visible_index >= app.visible_rows().len() {
+        return None;
+    }
+
+    // The `SEL` column spans `table.x + 1..=table.x + 3`; the lower bound is
+    // already guaranteed by the `inner_left` check above.
+    let is_sel_column = column <= table.x + 3;
+    Some((visible_index, is_sel_column))
 }
 
 fn table_row_capacity(area: Rect) -> usize {
@@ -450,6 +507,26 @@ mod tests {
     }
 
     #[test]
+    fn normal_status_renders_mouse_select_hint() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            "alpha",
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("intent"),
+            ),
+        )]);
+        let app = AppState::from_inventory(&inventory);
+
+        let text = buffer_text(140, 12, &app);
+
+        assert!(text.contains("mouse select"));
+    }
+
+    #[test]
     fn normal_status_renders_multi_select_hints() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
@@ -543,6 +620,62 @@ mod tests {
     }
 
     #[test]
+    fn table_mouse_target_maps_data_rows_and_sel_column() {
+        let fixture = RenderFixture::new();
+        let app = AppState::from_inventory(&fixture.inventory_with_items(vec![
+            fixture.plain_leaf("alpha"),
+            fixture.plain_leaf("beta"),
+            fixture.plain_leaf("gamma"),
+        ]));
+
+        // Terminal Rect(0,0,80,10): header y=0, table y=1 height=8, status y=9.
+        // Data rows begin at table.y + 2 = 3. SEL column spans x=1..=3.
+        let area = Rect::new(0, 0, 80, 10);
+
+        assert_eq!(table_mouse_target(area, &app, 20, 3), Some((0, false)));
+        assert_eq!(table_mouse_target(area, &app, 2, 4), Some((1, true)));
+        assert_eq!(table_mouse_target(area, &app, 1, 5), Some((2, true)));
+        assert_eq!(table_mouse_target(area, &app, 3, 5), Some((2, true)));
+        assert_eq!(table_mouse_target(area, &app, 4, 5), Some((2, false)));
+    }
+
+    #[test]
+    fn table_mouse_target_honors_viewport_offset() {
+        let fixture = RenderFixture::new();
+        let leaves: Vec<_> = (0..10)
+            .map(|index| fixture.plain_leaf(&format!("leaf-{index:02}")))
+            .collect();
+        let mut app = AppState::from_inventory(&fixture.inventory_with_items(leaves));
+        for _ in 0..9 {
+            app.handle_key(KeyInput::Down);
+        }
+        assert_eq!(app.selected_index(), 9);
+
+        // table height 8 -> capacity 5 -> offset = 9 - 4 = 5.
+        let area = Rect::new(0, 0, 80, 10);
+        assert_eq!(table_mouse_target(area, &app, 20, 3), Some((5, false)));
+        assert_eq!(table_mouse_target(area, &app, 20, 7), Some((9, false)));
+    }
+
+    #[test]
+    fn table_mouse_target_ignores_header_border_and_out_of_range() {
+        let fixture = RenderFixture::new();
+        let app = AppState::from_inventory(&fixture.inventory_with_items(vec![
+            fixture.plain_leaf("alpha"),
+            fixture.plain_leaf("beta"),
+        ]));
+        let area = Rect::new(0, 0, 80, 10);
+
+        assert_eq!(table_mouse_target(area, &app, 20, 1), None); // top border
+        assert_eq!(table_mouse_target(area, &app, 20, 2), None); // header
+        assert_eq!(table_mouse_target(area, &app, 20, 8), None); // bottom border
+        assert_eq!(table_mouse_target(area, &app, 20, 9), None); // status line
+        assert_eq!(table_mouse_target(area, &app, 20, 5), None); // beyond last row
+        assert_eq!(table_mouse_target(area, &app, 0, 3), None); // left border
+        assert_eq!(table_mouse_target(area, &app, 79, 3), None); // right border
+    }
+
+    #[test]
     fn empty_inventory_renders_without_panicking() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(Vec::new());
@@ -600,6 +733,19 @@ mod tests {
                     },
                 ],
             }
+        }
+
+        fn plain_leaf(&self, slug: &str) -> InventoryItem {
+            self.leaf_item(
+                Bucket::Leaves,
+                slug,
+                status(
+                    ParseState::Ok,
+                    Some("active"),
+                    Some("Learn"),
+                    Some("intent"),
+                ),
+            )
         }
 
         fn leaf_item(&self, bucket: Bucket, slug: &str, status: StatusSummary) -> InventoryItem {
