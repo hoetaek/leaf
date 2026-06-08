@@ -41,7 +41,8 @@ fn help_lists_init_and_new() {
         .stdout(predicate::str::contains("new"))
         .stdout(predicate::str::contains("promote"))
         .stdout(predicate::str::contains("fall"))
-        .stdout(predicate::str::contains("list"));
+        .stdout(predicate::str::contains("list"))
+        .stdout(predicate::str::contains("doctor"));
 }
 
 #[test]
@@ -362,6 +363,153 @@ fn list_missing_leaf_root_fails_without_bootstrapping() {
 
     repo.child(".leaf").assert(predicate::path::missing());
     assert_eq!(exclude_contents(repo.path()), exclude_before);
+}
+
+#[test]
+fn doctor_healthy_workspace_exits_zero_with_ready_result() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("summary  errors 0  warnings 0"))
+        .stdout(predicate::str::contains(
+            "result   ready: leaf list should display cleanly",
+        ))
+        .stdout(predicate::str::contains("OK checks"))
+        .stdout(predicate::str::contains("OK leaf_root_present"))
+        .stdout(predicate::str::contains("OK lifecycle_buckets_readable"));
+}
+
+#[test]
+fn doctor_warning_only_workspace_exits_zero_with_warning_result() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_status(
+        &repo,
+        ".leaf/01-seeds/draft/00-status.md",
+        "- state: seed\n- current phase: Learn\n",
+    );
+    repo.child(".leaf/02-leaves")
+        .create_dir_all()
+        .expect("leaves");
+    repo.child(".leaf/03-fallen")
+        .create_dir_all()
+        .expect("fallen");
+    repo.child(".leaf/04-pressed")
+        .create_dir_all()
+        .expect("pressed");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "result   usable with warnings: leaf list may be degraded",
+        ))
+        .stdout(predicate::str::contains("WARN status_missing_fields"))
+        .stdout(predicate::str::contains(
+            "path    .leaf/01-seeds/draft/00-status.md",
+        ))
+        .stdout(predicate::str::contains(
+            "reason  missing status fields: current_gate, first_missing_gate, next_action",
+        ));
+}
+
+#[test]
+fn doctor_error_workspace_prints_findings_then_exits_one() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    repo.child(".leaf/01-seeds")
+        .create_dir_all()
+        .expect("seeds");
+    repo.child(".leaf/02-leaves/no-status/01-Learn")
+        .create_dir_all()
+        .expect("leaf");
+    repo.child(".leaf/03-fallen")
+        .create_dir_all()
+        .expect("fallen");
+    repo.child(".leaf/04-pressed")
+        .create_dir_all()
+        .expect("pressed");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .failure()
+        .stdout(predicate::str::contains(
+            "result   not ready: fix errors before trusting leaf list",
+        ))
+        .stdout(predicate::str::contains("ERROR status_unreadable"))
+        .stdout(predicate::str::contains(
+            "path    .leaf/02-leaves/no-status/00-status.md",
+        ));
+}
+
+#[test]
+fn doctor_json_outputs_flat_findings_with_paths() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_status(
+        &repo,
+        ".leaf/01-seeds/duplicate/00-status.md",
+        "- state: seed\n\
+         - current phase: Learn\n\
+         - current gate: ② Unknowns & Context\n\
+         - first missing gate: ③ Criteria\n\
+         - next action: promote\n",
+    );
+    write_status(
+        &repo,
+        ".leaf/02-leaves/duplicate/00-status.md",
+        "- state: active\n\
+         - current phase: Architect\n\
+         - current gate: ⑦ Tasks\n\
+         - first missing gate: ⑧ Artifact\n\
+         - next action: implement\n",
+    );
+    repo.child(".leaf/03-fallen")
+        .create_dir_all()
+        .expect("fallen");
+    repo.child(".leaf/04-pressed")
+        .create_dir_all()
+        .expect("pressed");
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["doctor", "--json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("valid json");
+
+    assert_eq!(json["leaf_root"], ".leaf");
+    assert_eq!(json["summary"]["errors"], 0);
+    assert_eq!(json["summary"]["warnings"], 1);
+    let duplicate = json["findings"]
+        .as_array()
+        .expect("findings array")
+        .iter()
+        .find(|finding| finding["code"] == "duplicate_slug")
+        .expect("duplicate finding");
+    assert_eq!(duplicate["severity"], "warn");
+    assert_eq!(
+        duplicate["paths"],
+        serde_json::json!([".leaf/01-seeds/duplicate", ".leaf/02-leaves/duplicate"])
+    );
+    assert!(duplicate.get("path").is_none());
 }
 
 #[test]
