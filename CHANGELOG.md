@@ -8,9 +8,26 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+## 0.4.0 - 2026-06-10
+
 - `leaf-press` now writes a paper-style `## Press Abstract` into the source
   `00-status.md` while also creating the citable `.leaf/04-pressed/{slug}.md`
   digest.
+- `leaf list` can open a read-only full review reader for a selected active
+  leaf, combining the current gate source files from the originals without
+  creating a persistent derived review file.
+- The review reader renders lightweight Markdown, supports scrolling,
+  half-page movement with `d`/`u`, `r` refresh, live source refresh while open,
+  prominent file separators, and `Esc`/`q` back to the inventory list.
+- `leaf list` preview placement now follows a gh-dash-style auto layout:
+  right-side preview on wide terminals, bottom preview when the table would
+  become too narrow.
+- `leaf list` TUI polish: clearer two-line inventory header, readable selected
+  rows, no redundant `state` column, narrower phase column, title-first row
+  labels when available, tab-delimited multi-row copy output, and a larger
+  preview area.
+- LEAF skill guidance now includes a shared `leaf-soul` conduct/reporting
+  layer and clearer split between idea/work/press/fall capabilities.
 
 ## 0.3.0 - 2026-06-09
 
