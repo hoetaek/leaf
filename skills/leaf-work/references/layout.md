@@ -54,7 +54,8 @@ the user approves moving to Example, `leaf promote <slug>` moves the project to
 ├── 01-Learn/
 │   ├── 01-intent.md                          ① Intent
 │   ├── 02-unknowns.md                        ② Unknowns, sourced answers, context
-│   └── 02-references/                        ② collected materials & search notes, by topic
+│   ├── 02-references/                        ② collected materials & search notes, by topic
+│   └── 02-experiments/                       ② experiment process logs by problem; clean result summarized back to 02-unknowns.md
 │
 ├── 02-Example/
 │   ├── 03-criteria.md                        ③ Criteria (purpose + requirements)
@@ -203,8 +204,12 @@ inside drop the keyword:
   answers, context notes, assumptions, and unresolved questions stay together in
   `01-Learn/02-unknowns.md`. This is deliberate: the agent naturally records a
   question and then updates the same entry with what was found. Put bulky source
-  material in `01-Learn/02-references/`, but summarize the useful answer back in
-  `02-unknowns.md`.
+  material in `01-Learn/02-references/`, and keep messy experiment process logs
+  in `01-Learn/02-experiments/{name}.md`, but summarize the useful answer back in
+  `02-unknowns.md`. Both sidecars share ②'s `02` prefix because they serve gate
+  ②, and both exist to keep `02-unknowns.md` a clean index of what is now known
+  rather than a scratchpad of every source or trial. See
+  `references/experiment-log.md` for the experiment machine.
 - **③ is one gate, not a merge.** Criteria combines purpose and requirements
   because both are pre-instance judgment. Keep purpose and requirements as
   visible sections inside `02-Example/03-criteria.md`.
@@ -221,8 +226,8 @@ inside drop the keyword:
   inside it.
 - **File or folder by count.** Keep gate outputs as prefix files inside their
   phase folder when there are one or two; promote to a folder when three or more
-  pile up (`01-Learn/02-references/`, `04-Feedback/09-reviews/`,
-  `04-Feedback/10-retrospective/`).
+  pile up (`01-Learn/02-references/`, `01-Learn/02-experiments/`,
+  `04-Feedback/09-reviews/`, `04-Feedback/10-retrospective/`).
 - **`08-execution.md` is a running log.** Append one entry per work session —
   what you did, what came of it, what's next. The artifact itself lives outside
   leaf-work; this file keeps the record of what was done.
