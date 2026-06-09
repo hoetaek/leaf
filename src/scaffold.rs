@@ -14,7 +14,12 @@ const DIRECTORIES: &[&str] = &[
 const FILES: &[(&str, &str)] = &[
     (
         "00-status.md",
-        "# Seed Status\n\n- state: seed\n- current phase: Learn\n",
+        "# Seed Status\n\n\
+         - state: seed\n\
+         - current phase: Learn\n\
+         - current gate: ① Intent\n\
+         - first missing gate: ① Intent\n\
+         - next action: draft the one-sentence intent in 01-Learn/01-intent.md\n",
     ),
     (
         "01-Learn/01-intent.md",
@@ -83,4 +88,34 @@ fn write_new_file(path: &Path, body: &str) -> Result<()> {
     file.write_all(body.as_bytes())
         .with_context(|| format!("failed to write file {}", path.display()))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::inventory::{Bucket, ParseState, parse_status_summary};
+
+    /// A freshly scaffolded seed must satisfy every status field `leaf doctor`
+    /// requires for the seeds bucket, so `leaf new` followed by `leaf doctor`
+    /// reports no `status_missing_fields` warning.
+    #[test]
+    fn seed_status_template_has_all_doctor_required_fields() {
+        let body = FILES
+            .iter()
+            .find(|(name, _)| *name == "00-status.md")
+            .map(|(_, body)| *body)
+            .expect("seed scaffold includes 00-status.md");
+
+        let summary = parse_status_summary(body, Bucket::Seeds);
+
+        assert_eq!(summary.parse_state, ParseState::Ok);
+        assert!(
+            summary.missing_fields.is_empty(),
+            "fresh seed status is missing doctor-required fields: {:?}",
+            summary.missing_fields
+        );
+        assert_eq!(summary.state.as_deref(), Some("seed"));
+        assert_eq!(summary.current_phase.as_deref(), Some("Learn"));
+        assert_eq!(summary.current_gate.as_deref(), Some("① Intent"));
+    }
 }

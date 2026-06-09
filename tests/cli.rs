@@ -553,6 +553,29 @@ fn new_creates_seed_skeleton_and_bootstraps_repo() {
 }
 
 #[test]
+fn new_seed_passes_doctor_without_warnings() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("summary  errors 0  warnings 0"))
+        .stdout(predicate::str::contains(
+            "result   ready: leaf list should display cleanly",
+        ))
+        .stdout(predicate::str::contains("status_missing_fields").not());
+}
+
+#[test]
 fn new_rejects_existing_seed_without_overwrite() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
