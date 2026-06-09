@@ -92,7 +92,7 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
 
     frame.render_widget(
         Paragraph::new(Line::styled(
-            "↑/↓ scroll  PgUp/PgDn  g/G top/bottom  r refresh  Esc back  q quit",
+            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Esc back  q quit",
             dim_style(),
         )),
         chunks[4],
@@ -154,17 +154,13 @@ fn draw_table(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         [
             Constraint::Length(3),
             Constraint::Length(8),
-            Constraint::Length(9),
             Constraint::Length(14),
             Constraint::Length(18),
             Constraint::Min(18),
             Constraint::Length(8),
         ],
     )
-    .header(
-        Row::new(["SEL", "BUCKET", "STATE", "PHASE", "GATE", "SLUG", "STATUS"])
-            .style(chrome_style()),
-    )
+    .header(Row::new(["SEL", "BUCKET", "PHASE", "GATE", "SLUG", "STATUS"]).style(chrome_style()))
     .column_spacing(1)
     .block(chrome_block().title("Inventory"));
     frame.render_widget(table, area);
@@ -216,7 +212,8 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             app.status_line()
         ),
         Mode::Review => {
-            "↑/↓ scroll  PgUp/PgDn  g/G top/bottom  r refresh  Esc back  q quit".to_string()
+            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Esc back  q quit"
+                .to_string()
         }
         Mode::List if selected_count > 0 => format!(
             "{selected_count} selected  Space toggle  v range  a all  y copy  Esc clear  q quit  {}",
@@ -235,7 +232,6 @@ fn table_row(row: &ListRow, marked: bool) -> Row<'_> {
     Row::new(vec![
         Cell::from(marker).style(strong_style()),
         Cell::from(row.bucket_label().to_string()).style(bucket_style(row.bucket())),
-        Cell::from(row.state().to_string()),
         Cell::from(row.phase().to_string()),
         Cell::from(row.gate().to_string()),
         Cell::from(row.slug().to_string()),
@@ -329,7 +325,7 @@ fn row_style(app: &AppState, index: usize) -> Style {
 }
 
 fn preview_height(area: Rect) -> u16 {
-    area.height.saturating_sub(8).clamp(5, 9)
+    (area.height.saturating_sub(2) / 2).clamp(6, 18)
 }
 
 fn preview_line(line: &PreviewLine) -> Line<'static> {
@@ -366,7 +362,10 @@ fn preview_span(span: &PreviewSpan) -> Span<'static> {
 
 fn review_line(line: &ReviewLine) -> Line<'static> {
     match line {
-        ReviewLine::Separator(path) => Line::styled(path.clone(), dim_style()),
+        ReviewLine::Separator(path) => Line::from(vec![
+            Span::styled("FILE ", strong_style().fg(Color::Yellow)),
+            Span::styled(path.clone(), strong_style()),
+        ]),
         ReviewLine::MissingSource { relative_path } => Line::from(vec![
             Span::styled("MISSING SOURCE", Style::default().fg(Color::Red)),
             Span::raw(" "),
@@ -541,6 +540,7 @@ mod tests {
 
         assert!(text.contains("leaf list"));
         assert!(text.contains("BUCKET"));
+        assert!(!text.contains("STATE"));
         assert!(text.contains("korean-preview"));
         assert!(text.contains(".leaf/02-leaves/korean-preview"));
         assert!(line_contains_text(
@@ -571,6 +571,13 @@ mod tests {
 
         assert!(text.contains("compact"));
         assert!(!text.contains("다음 행동을 정리한다."));
+    }
+
+    #[test]
+    fn large_terminal_allocates_more_space_to_preview() {
+        let area = Rect::new(0, 0, 120, 32);
+
+        assert_eq!(preview_height(area), 15);
     }
 
     #[test]
@@ -660,6 +667,26 @@ mod tests {
 
         assert!(rendered.contains("•"));
         assert!(rendered.contains("source item"));
+    }
+
+    #[test]
+    fn review_separator_renders_as_prominent_file_boundary() {
+        let line = review_line(&ReviewLine::Separator(
+            ".leaf/02-leaves/demo/01-Learn/01-intent.md".to_string(),
+        ));
+        let rendered = line
+            .spans
+            .iter()
+            .map(|span| span.content.as_ref())
+            .collect::<String>();
+
+        assert!(rendered.starts_with("FILE "));
+        assert!(rendered.contains(".leaf/02-leaves/demo/01-Learn/01-intent.md"));
+        assert!(
+            line.spans
+                .iter()
+                .any(|span| span.style.add_modifier.contains(Modifier::BOLD))
+        );
     }
 
     #[test]
@@ -883,6 +910,38 @@ mod tests {
         assert!(line_contains_text(&buffer, 120, 18, "Leaf 상태"));
         assert!(text.contains("• rendered item"));
         assert!(!text.contains("# Intent"));
+    }
+
+    #[test]
+    fn review_mode_footer_omits_non_interactive_auto_watch_hint() {
+        let fixture = RenderFixture::new();
+        let slug = "demo";
+        let status_path = fixture
+            .root
+            .path()
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug)
+            .join("00-status.md");
+        std::fs::create_dir_all(status_path.parent().unwrap()).expect("leaf dir");
+        std::fs::write(&status_path, "# Status\n\n- current gate: ① Intent\n").expect("status");
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            slug,
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("① Intent"),
+            ),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        let text = buffer_text(140, 18, &app);
+
+        assert!(text.contains("r refresh"));
+        assert!(!text.contains("auto-watch"));
     }
 
     #[test]

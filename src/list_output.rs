@@ -10,7 +10,6 @@ use std::path::{Path, PathBuf};
 struct ListRow {
     bucket_label: String,
     slug: String,
-    state: String,
     phase: String,
     gate: String,
     parse_state: ParseState,
@@ -21,16 +20,15 @@ pub(crate) fn write_text(writer: &mut impl Write, inventory: &Inventory) -> Resu
 
     writeln!(
         writer,
-        "{:<7} {:<7} {:<10} {:<14} {:<8} SLUG",
-        "BUCKET", "STATE", "PHASE", "GATE", "STATUS"
+        "{:<7} {:<10} {:<14} {:<8} SLUG",
+        "BUCKET", "PHASE", "GATE", "STATUS"
     )?;
 
     for row in &rows {
         writeln!(
             writer,
-            "{:<7} {:<7} {:<10} {:<14} {:<8} {}",
+            "{:<7} {:<10} {:<14} {:<8} {}",
             row.bucket_label,
-            row.state,
             row.phase,
             row.gate,
             parse_state_label(row.parse_state),
@@ -72,19 +70,10 @@ impl ListRow {
         ListRow {
             bucket_label: bucket_label_singular(item.bucket).to_string(),
             slug: item.slug.clone(),
-            state: display_state(item),
             phase: display_optional(&item.status.current_phase, "-"),
             gate: display_optional(&item.status.current_gate, "-"),
             parse_state: item.status.parse_state,
         }
-    }
-}
-
-fn display_state(item: &InventoryItem) -> String {
-    match (&item.status.state, item.kind) {
-        (Some(state), _) => state.clone(),
-        (None, ItemKind::PressedDigest) => "-".to_string(),
-        (None, ItemKind::LeafWork) => "?".to_string(),
     }
 }
 

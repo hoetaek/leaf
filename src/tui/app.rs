@@ -1,4 +1,4 @@
-use crate::inventory::{Bucket, Inventory, InventoryItem, ItemKind, ParseState, PreviewSource};
+use crate::inventory::{Bucket, Inventory, InventoryItem, ParseState, PreviewSource};
 use crate::preview::{self, Preview, PreviewLine};
 use crate::review::{self, ReviewDocument, ReviewSource};
 use std::cell::{Cell, RefCell};
@@ -10,7 +10,6 @@ pub(crate) struct ListRow {
     bucket: Bucket,
     bucket_label: String,
     slug: String,
-    state: String,
     phase: String,
     gate: String,
     parse_state: ParseState,
@@ -44,6 +43,8 @@ pub(crate) enum KeyInput {
     Enter,
     PageUp,
     PageDown,
+    HalfPageUp,
+    HalfPageDown,
     Esc,
     Backspace,
     Char(char),
@@ -105,17 +106,14 @@ impl ListRow {
     fn from_item(inventory: &Inventory, item: &InventoryItem) -> Self {
         let bucket_label = bucket_label_singular(item.bucket).to_string();
         let relative_path = relative_leaf_path(inventory, &item.path);
-        let state = display_state(item);
         let phase = display_optional(&item.status.current_phase, "-");
         let gate = display_optional(&item.status.current_gate, "-");
-        let searchable_text =
-            searchable_text(item, &bucket_label, &relative_path, &state, &phase, &gate);
+        let searchable_text = searchable_text(item, &bucket_label, &relative_path, &phase, &gate);
 
         ListRow {
             bucket: item.bucket,
             bucket_label,
             slug: item.slug.clone(),
-            state,
             phase,
             gate,
             parse_state: item.status.parse_state,
@@ -136,10 +134,6 @@ impl ListRow {
 
     pub(crate) fn slug(&self) -> &str {
         &self.slug
-    }
-
-    pub(crate) fn state(&self) -> &str {
-        &self.state
     }
 
     pub(crate) fn phase(&self) -> &str {
@@ -168,18 +162,6 @@ impl ListRow {
 
     pub(crate) fn review_source(&self) -> Option<&ReviewSource> {
         self.review_source.as_ref()
-    }
-
-    pub(crate) fn copy_line(&self) -> String {
-        format!(
-            "{}\t{}\t{}\t{}\t{}\t{}",
-            self.bucket_label,
-            self.state,
-            self.phase,
-            self.gate,
-            self.slug,
-            parse_state_label(self.parse_state),
-        )
     }
 }
 
@@ -383,7 +365,12 @@ impl AppState {
             KeyInput::Enter => self.open_review(),
             KeyInput::Char('q') => return Outcome::Quit,
             KeyInput::Esc => return self.clear_selection_or_quit(),
-            KeyInput::Backspace | KeyInput::PageUp | KeyInput::PageDown | KeyInput::Char(_) => {}
+            KeyInput::Backspace
+            | KeyInput::PageUp
+            | KeyInput::PageDown
+            | KeyInput::HalfPageUp
+            | KeyInput::HalfPageDown
+            | KeyInput::Char(_) => {}
         }
         Outcome::Continue
     }
@@ -414,6 +401,12 @@ impl AppState {
             KeyInput::Up | KeyInput::Char('k') => self.scroll_review_up(1),
             KeyInput::PageDown => self.scroll_review_down(self.review_page_step()),
             KeyInput::PageUp => self.scroll_review_up(self.review_page_step()),
+            KeyInput::HalfPageDown | KeyInput::Char('d') => {
+                self.scroll_review_down(self.review_half_page_step())
+            }
+            KeyInput::HalfPageUp | KeyInput::Char('u') => {
+                self.scroll_review_up(self.review_half_page_step())
+            }
             KeyInput::Char('g') => self.scroll_review_top(),
             KeyInput::Char('G') => self.scroll_review_bottom(),
             KeyInput::Char('r') => self.refresh_review(),
@@ -479,8 +472,42 @@ impl AppState {
         }
     }
 
+    pub(crate) fn refresh_review_if_changed(&mut self) -> bool {
+        let Some(state) = &self.review_state else {
+            return false;
+        };
+        let source = state.source.clone();
+        let current_document = state.document.clone();
+        let current_scroll_offset = state.scroll_offset;
+        let body_height = self.review_body_height.get();
+        match review::build(&source) {
+            Ok(document) if document != current_document => {
+                let scroll_offset =
+                    current_scroll_offset.min(max_review_scroll(&document, body_height));
+                self.review_state = Some(ReviewState {
+                    source,
+                    document,
+                    scroll_offset,
+                    status_message: "updated from source".to_string(),
+                });
+                true
+            }
+            Ok(_) => false,
+            Err(err) => {
+                if let Some(state) = &mut self.review_state {
+                    state.status_message = format!("auto refresh failed: {err}");
+                }
+                false
+            }
+        }
+    }
+
     fn review_page_step(&self) -> usize {
         self.review_body_height.get().max(1)
+    }
+
+    fn review_half_page_step(&self) -> usize {
+        (self.review_page_step() / 2).max(1)
     }
 
     fn scroll_review_down(&mut self, amount: usize) {
@@ -514,12 +541,12 @@ impl AppState {
     }
 
     fn copy_marked_or_current_row(&mut self) -> Outcome {
-        let marked = self.marked_copy_lines();
+        let marked = self.marked_copy_rows();
         match marked.len() {
             0 => match self.selected_row() {
                 Some(row) => Outcome::CopyRow {
                     slug: row.slug().to_string(),
-                    text: row.copy_line(),
+                    text: markdown_copy_table(&[row]),
                 },
                 None => {
                     self.status_line = "no row selected to copy".to_string();
@@ -528,17 +555,17 @@ impl AppState {
             },
             count => Outcome::CopyRows {
                 count,
-                text: marked.join("\n"),
+                text: markdown_copy_table(&marked),
             },
         }
     }
 
-    fn marked_copy_lines(&self) -> Vec<String> {
+    fn marked_copy_rows(&self) -> Vec<&ListRow> {
         self.visible_rows()
-            .iter()
+            .into_iter()
             .enumerate()
             .filter(|(index, _)| self.visible_row_is_marked(*index))
-            .map(|(_, row)| row.copy_line())
+            .map(|(_, row)| row)
             .collect()
     }
 
@@ -713,7 +740,9 @@ impl AppState {
             | KeyInput::Right
             | KeyInput::Enter
             | KeyInput::PageUp
-            | KeyInput::PageDown => {}
+            | KeyInput::PageDown
+            | KeyInput::HalfPageUp
+            | KeyInput::HalfPageDown => {}
         }
         Outcome::Continue
     }
@@ -861,7 +890,6 @@ fn searchable_text(
     item: &InventoryItem,
     bucket_label: &str,
     relative_path: &str,
-    state: &str,
     phase: &str,
     gate: &str,
 ) -> String {
@@ -870,7 +898,6 @@ fn searchable_text(
         bucket_label_plural(item.bucket).to_string(),
         item.slug.clone(),
         relative_path.to_string(),
-        state.to_string(),
         phase.to_string(),
         gate.to_string(),
     ];
@@ -880,6 +907,28 @@ fn searchable_text(
     }
 
     parts.join(" ")
+}
+
+fn markdown_copy_table(rows: &[&ListRow]) -> String {
+    let mut lines = vec![
+        "| BUCKET | PHASE | GATE | SLUG | STATUS |".to_string(),
+        "| --- | --- | --- | --- | --- |".to_string(),
+    ];
+    lines.extend(rows.iter().map(|row| {
+        format!(
+            "| {} | {} | {} | {} | {} |",
+            markdown_table_cell(row.bucket_label()),
+            markdown_table_cell(row.phase()),
+            markdown_table_cell(row.gate()),
+            markdown_table_cell(row.slug()),
+            markdown_table_cell(parse_state_label(row.parse_state())),
+        )
+    }));
+    lines.join("\n")
+}
+
+fn markdown_table_cell(value: &str) -> String {
+    value.replace(['\r', '\n'], " ").replace('|', "\\|")
 }
 
 fn relative_leaf_path(inventory: &Inventory, path: &Path) -> String {
@@ -903,14 +952,6 @@ fn relative_leaf_path(inventory: &Inventory, path: &Path) -> String {
 
 fn normalize_path(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
-}
-
-fn display_state(item: &InventoryItem) -> String {
-    match (&item.status.state, item.kind) {
-        (Some(state), _) => state.clone(),
-        (None, ItemKind::PressedDigest) => "-".to_string(),
-        (None, ItemKind::LeafWork) => "?".to_string(),
-    }
 }
 
 fn display_optional(value: &Option<String>, fallback: &str) -> String {
@@ -1003,7 +1044,6 @@ mod tests {
         assert_eq!(rows[0].bucket(), Bucket::Seeds);
         assert_eq!(rows[0].bucket_label(), "seed");
         assert_eq!(rows[0].slug(), "alpha-seed");
-        assert_eq!(rows[0].state(), "ready");
         assert_eq!(rows[0].phase(), "learn");
         assert_eq!(rows[0].gate(), "intent");
         assert_eq!(rows[0].parse_state(), ParseState::Ok);
@@ -1014,12 +1054,12 @@ mod tests {
                 "seed",
                 "alpha-seed",
                 ".leaf/01-seeds/alpha-seed",
-                "ready",
                 "learn",
                 "intent",
                 "write examples",
             ],
         );
+        assert!(!rows[0].searchable_text().contains("ready"));
 
         assert_eq!(rows[1].bucket(), Bucket::Leaves);
         assert_eq!(rows[1].bucket_label(), "leaf");
@@ -1028,14 +1068,12 @@ mod tests {
 
         assert_eq!(rows[2].bucket(), Bucket::Fallen);
         assert_eq!(rows[2].bucket_label(), "fallen");
-        assert_eq!(rows[2].state(), "?");
         assert_eq!(rows[2].phase(), "-");
         assert_eq!(rows[2].gate(), "-");
         assert_eq!(rows[2].relative_path(), ".leaf/03-fallen/gamma-fallen");
 
         assert_eq!(rows[3].bucket(), Bucket::Pressed);
         assert_eq!(rows[3].bucket_label(), "pressed");
-        assert_eq!(rows[3].state(), "-");
         assert_eq!(rows[3].phase(), "-");
         assert_eq!(rows[3].gate(), "-");
         assert_eq!(rows[3].relative_path(), ".leaf/04-pressed/delta-pressed.md");
@@ -1387,6 +1425,46 @@ mod tests {
     }
 
     #[test]
+    fn tui_app_review_auto_refresh_rebuilds_document_when_sources_change() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_preview_status(
+            root.path(),
+            Bucket::Leaves,
+            slug,
+            "- current gate: ① Intent\n",
+        );
+        let intent_path = root
+            .path()
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug)
+            .join("01-Learn/01-intent.md");
+        std::fs::create_dir_all(intent_path.parent().unwrap()).expect("intent dir");
+        std::fs::write(&intent_path, "# Intent\n\nold text\n").expect("old intent");
+        let item = leaf_item_at(root.path(), Bucket::Leaves, slug, complete_leaf_status());
+        let inventory = inventory_with_root(root.path(), vec![item]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+        app.set_review_body_height(8);
+        assert!(
+            app.review_state()
+                .unwrap()
+                .document
+                .visible_text()
+                .contains("old text")
+        );
+
+        std::fs::write(&intent_path, "# Intent\n\nnew text\n").expect("new intent");
+
+        assert!(app.refresh_review_if_changed());
+        let review = app.review_state().expect("review state");
+        assert!(review.document.visible_text().contains("new text"));
+        assert!(review.status_message.contains("updated from source"));
+    }
+
+    #[test]
     fn tui_app_review_page_keys_use_rendered_body_height() {
         let root = assert_fs::TempDir::new().expect("temp repo");
         let slug = "demo";
@@ -1419,6 +1497,47 @@ mod tests {
         assert_eq!(app.review_state().unwrap().scroll_offset, 4);
 
         assert_eq!(app.handle_key(KeyInput::PageUp), Outcome::Continue);
+        assert_eq!(app.review_state().unwrap().scroll_offset, 0);
+    }
+
+    #[test]
+    fn tui_app_review_half_page_keys_use_half_rendered_body_height() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_preview_status(
+            root.path(),
+            Bucket::Leaves,
+            slug,
+            "- current gate: ① Intent\n",
+        );
+        let intent_path = root
+            .path()
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug)
+            .join("01-Learn/01-intent.md");
+        std::fs::create_dir_all(intent_path.parent().unwrap()).expect("intent dir");
+        let body = (1..=20)
+            .map(|line| format!("intent line {line:02}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        std::fs::write(&intent_path, format!("# Intent\n\n{body}\n")).expect("intent");
+        let item = leaf_item_at(root.path(), Bucket::Leaves, slug, complete_leaf_status());
+        let inventory = inventory_with_root(root.path(), vec![item]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+        app.set_review_body_height(7);
+        assert_eq!(app.handle_key(KeyInput::Char('d')), Outcome::Continue);
+        assert_eq!(app.review_state().unwrap().scroll_offset, 3);
+
+        assert_eq!(app.handle_key(KeyInput::HalfPageDown), Outcome::Continue);
+        assert_eq!(app.review_state().unwrap().scroll_offset, 6);
+
+        assert_eq!(app.handle_key(KeyInput::Char('u')), Outcome::Continue);
+        assert_eq!(app.review_state().unwrap().scroll_offset, 3);
+
+        assert_eq!(app.handle_key(KeyInput::HalfPageUp), Outcome::Continue);
         assert_eq!(app.review_state().unwrap().scroll_offset, 0);
     }
 
@@ -1481,7 +1600,8 @@ mod tests {
             app.handle_key(KeyInput::Char('y')),
             Outcome::CopyRow {
                 slug: "alpha".to_string(),
-                text: "leaf\tactive\tlearn\tintent\talpha\tok".to_string(),
+                text: "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
+                    .to_string(),
             }
         );
         assert_eq!(app.mode(), Mode::List);
@@ -1545,9 +1665,8 @@ mod tests {
             app.handle_key(KeyInput::Char('y')),
             Outcome::CopyRows {
                 count: 2,
-                text:
-                    "leaf\tactive\tlearn\tintent\talpha\tok\nleaf\tactive\tlearn\tintent\tgamma\tok"
-                        .to_string(),
+                text: "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |\n| leaf | learn | intent | gamma | ok |"
+                    .to_string(),
             }
         );
         assert_eq!(app.mode(), Mode::List);
@@ -1562,7 +1681,8 @@ mod tests {
             app.handle_key(KeyInput::Char('y')),
             Outcome::CopyRow {
                 slug: "alpha".to_string(),
-                text: "leaf\tactive\tlearn\tintent\talpha\tok".to_string(),
+                text: "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
+                    .to_string(),
             }
         );
     }
@@ -1643,9 +1763,8 @@ mod tests {
             app.handle_key(KeyInput::Char('y')),
             Outcome::CopyRows {
                 count: 2,
-                text:
-                    "leaf\tactive\tlearn\tintent\talpha\tok\nleaf\tactive\tlearn\tintent\tbeta\tok"
-                        .to_string(),
+                text: "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |\n| leaf | learn | intent | beta | ok |"
+                    .to_string(),
             }
         );
         assert_eq!(app.mode(), Mode::List);
@@ -1852,9 +1971,8 @@ mod tests {
             app.handle_key(KeyInput::Char('y')),
             Outcome::CopyRows {
                 count: 2,
-                text:
-                    "leaf\tactive\tlearn\tintent\talpha\tok\nleaf\tactive\tlearn\tintent\tbeta\tok"
-                        .to_string(),
+                text: "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |\n| leaf | learn | intent | beta | ok |"
+                    .to_string(),
             }
         );
     }

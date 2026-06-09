@@ -265,17 +265,18 @@ fn list_writes_deterministic_text_output_for_captured_stdout() {
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "BUCKET  STATE   PHASE      GATE           STATUS   SLUG",
+            "BUCKET  PHASE      GATE           STATUS   SLUG",
         ))
         .stdout(predicate::str::contains(
-            "seed    seed    Learn      -              partial  draft",
+            "seed    Learn      -              partial  draft",
         ))
         .stdout(predicate::str::contains(
-            "leaf    active  Architect  ⑦ Task Graph   ok       active",
+            "leaf    Architect  ⑦ Task Graph   ok       active",
         ))
         .stdout(predicate::str::contains(
-            "pressed -       -          -              ok       summary",
+            "pressed -          -              ok       summary",
         ))
+        .stdout(predicate::str::contains("STATE").not())
         .stdout(predicate::str::contains("empty: fallen"));
 }
 

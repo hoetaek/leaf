@@ -257,11 +257,7 @@ fn append_source(
         let markdown_files = markdown_files_in(&folder_path, folder)?;
         if markdown_files.is_empty() {
             let relative_path = format!("{root_relative_path}/{folder}/");
-            sections.push(ReviewSection {
-                relative_path: relative_path.clone(),
-                start_line: lines.len(),
-            });
-            lines.push(ReviewLine::Separator(relative_path.clone()));
+            append_section_separator(relative_path.clone(), sections, lines);
             lines.push(ReviewLine::Message(format!(
                 "NO MARKDOWN SOURCES {relative_path}"
             )));
@@ -283,11 +279,7 @@ fn append_source(
     }
 
     let relative_path = format!("{root_relative_path}/{}", spec.file);
-    sections.push(ReviewSection {
-        relative_path: relative_path.clone(),
-        start_line: lines.len(),
-    });
-    lines.push(ReviewLine::Separator(relative_path.clone()));
+    append_section_separator(relative_path.clone(), sections, lines);
     lines.push(ReviewLine::MissingSource { relative_path });
     Ok(())
 }
@@ -300,12 +292,24 @@ fn append_file_section(
     lines: &mut Vec<ReviewLine>,
 ) {
     let relative_path = format!("{root_relative_path}/{source_relative_path}");
+    append_section_separator(relative_path, sections, lines);
+    append_markdown_lines(lines, &content);
+}
+
+fn append_section_separator(
+    relative_path: String,
+    sections: &mut Vec<ReviewSection>,
+    lines: &mut Vec<ReviewLine>,
+) {
+    if !lines.is_empty() {
+        lines.push(ReviewLine::Message(String::new()));
+        lines.push(ReviewLine::Message(String::new()));
+    }
     sections.push(ReviewSection {
         relative_path: relative_path.clone(),
         start_line: lines.len(),
     });
     lines.push(ReviewLine::Separator(relative_path));
-    append_markdown_lines(lines, &content);
 }
 
 #[derive(Debug)]
@@ -493,6 +497,34 @@ mod tests {
             ]
         );
         assert!(visible_text(&document).contains("Wireframe"));
+    }
+
+    #[test]
+    fn review_build_adds_two_blank_lines_before_file_boundaries_after_first() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_file(
+            &root,
+            slug,
+            "00-status.md",
+            "# Status\n\n- current gate: ① Intent\n",
+        );
+        write_file(&root, slug, "01-Learn/01-intent.md", "# Intent\n\nGoal\n");
+
+        let document = build(&source(&root, slug)).expect("review document");
+
+        assert!(matches!(
+            document.lines.first(),
+            Some(ReviewLine::Separator(path)) if path == ".leaf/02-leaves/demo/00-status.md"
+        ));
+        let intent_start = document.sections[1].start_line;
+        assert!(matches!(
+            &document.lines[intent_start],
+            ReviewLine::Separator(path)
+                if path == ".leaf/02-leaves/demo/01-Learn/01-intent.md"
+        ));
+        assert_eq!(document.lines[intent_start - 1].visible_text(), "");
+        assert_eq!(document.lines[intent_start - 2].visible_text(), "");
     }
 
     #[test]
