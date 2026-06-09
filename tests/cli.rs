@@ -655,6 +655,34 @@ fn promote_moves_seed_to_active_leaf_and_updates_status() {
 }
 
 #[test]
+fn promoted_leaf_passes_doctor_without_warnings() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["promote", "research-memo"])
+        .assert()
+        .success();
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("summary  errors 0  warnings 0"))
+        .stdout(predicate::str::contains(
+            "result   ready: leaf list should display cleanly",
+        ))
+        .stdout(predicate::str::contains("status_missing_fields").not());
+}
+
+#[test]
 fn promote_rejects_missing_seed() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
