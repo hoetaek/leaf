@@ -44,7 +44,9 @@ ten gates and are shared by both skills.
   Context) runs first in the `leaf-idea` skill on a seed; `leaf promote <slug>`
   moves that seed to an active leaf and is the boundary into this skill. If the
   work has not been through Learn — no seed exists, or ① and ② have not passed —
-  route to `leaf-idea` first rather than starting gate work here. If an active
+  **invoke the `leaf-idea` skill with the Skill tool** to run Learn first rather
+  than starting gate work here; being entered without Learn is the signal to hand
+  off to `leaf-idea`, not to improvise the missing gates. If an active
   leaf already exists, resume it. Do not create loose `01-Learn/` …
   `04-Feedback/` folders at the repo root.
 - **Inherit Learn; do not redo it.** A promoted leaf arrives with ① Intent locked
@@ -52,13 +54,16 @@ ten gates and are shared by both skills.
   one-sentence intent and its why, the sourced facts and flagged assumptions, the
   references gathered, and what the user can already choose between (the input ③
   Criteria consumes). Trust that work and reopen Learn only on a return.
-- **Conduct and voice are shared — follow `leaf-soul`.** How you report
+- **Conduct and voice are shared — invoke the `leaf-soul` skill.** How you report
   (overview-first, a Verify / Decide list up top), show rendered HTML work (open it
   in Chrome DevTools and screenshot each state — never make the user hunt), hand
   off reviewables (`USER REVIEW NEEDED:` / `ASSUMPTION:`), separate fact from
   guess, and which language you write are defined once for the whole LEAF family in
-  `../leaf-soul/SKILL.md`. Read it and follow it; the rules here are the gate
-  *method* specific to this skill.
+  the `leaf-soul` skill. Invoke the `leaf-soul` skill with the Skill tool at the
+  start and follow it — do not just read its file; the rules here are the gate
+  *method* specific to this skill. Whenever the work needs another LEAF skill —
+  `leaf-idea` for Learn, `leaf-press` to make it citable, `leaf-fall` to retire
+  it — invoke that skill with the Skill tool rather than only referencing its file.
 - **The scaffold is the foundation — so the work stands firm.** Learn, Example,
   and Architect lay that foundation; execution builds only once it is solid, not
   on guesses. A promoted leaf already carries the CLI scaffold — `00-status.md`

@@ -45,7 +45,11 @@ leaves, or one unstable frame that needs a question before it can be split.
 ## Reference map
 
 Conduct and the gate contracts are shared across the LEAF family, not duplicated
-here. Read them as siblings:
+here. **Invoke the `leaf-soul` skill with the Skill tool** at the start and follow
+it — it is shared conduct to run, not just a file to skim. When the work needs
+another LEAF skill — `leaf promote` into `leaf-work` at ③, `leaf-press`, or
+`leaf-fall` — invoke that skill rather than only reading its file. Read the
+gate-contract references below as siblings:
 
 | Read | When |
 |---|---|
