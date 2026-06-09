@@ -45,7 +45,7 @@ impl ListColumn {
     pub(crate) fn tui_width(self) -> ColumnWidth {
         match self {
             ListColumn::Bucket => ColumnWidth::Fixed(8),
-            ListColumn::Phase => ColumnWidth::Fixed(14),
+            ListColumn::Phase => ColumnWidth::Fixed(10),
             ListColumn::Gate => ColumnWidth::Fixed(18),
             ListColumn::Slug => ColumnWidth::Min(18),
             ListColumn::Status => ColumnWidth::Fixed(8),
@@ -215,6 +215,11 @@ mod tests {
         let headers: Vec<_> = LIST_COLUMNS.iter().map(|column| column.header()).collect();
 
         assert_eq!(headers, ["BUCKET", "PHASE", "GATE", "SLUG", "STATUS"]);
+    }
+
+    #[test]
+    fn phase_column_uses_compact_tui_width() {
+        assert_eq!(ListColumn::Phase.tui_width(), ColumnWidth::Fixed(10));
     }
 
     #[test]

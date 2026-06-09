@@ -141,16 +141,12 @@ fn maybe_auto_refresh_review(
 fn mouse_input(area: Rect, app: &AppState, mouse: MouseEvent) -> Option<MouseInput> {
     match mouse.kind {
         MouseEventKind::Down(MouseButton::Left) => {
-            crate::tui::render::table_mouse_target(area, app, mouse.column, mouse.row).map(
-                |(visible_index, selection_column)| MouseInput::Down {
-                    visible_index,
-                    toggle: selection_column,
-                },
-            )
+            crate::tui::render::table_mouse_target(area, app, mouse.column, mouse.row)
+                .map(|visible_index| MouseInput::Down { visible_index })
         }
         MouseEventKind::Drag(MouseButton::Left) => {
             crate::tui::render::table_mouse_target(area, app, mouse.column, mouse.row)
-                .map(|(visible_index, _)| MouseInput::Drag { visible_index })
+                .map(|visible_index| MouseInput::Drag { visible_index })
         }
         MouseEventKind::Up(MouseButton::Left) => Some(MouseInput::Up),
         _ => None,
@@ -692,7 +688,7 @@ mod tests {
                 test_item(root.path(), Bucket::Leaves, "gamma"),
             ],
         ));
-        // Rect(0,0,80,10): table data rows start at y=3; SEL column spans x=1..=3.
+        // Rect(0,0,80,10): table data rows start at y=3.
         let area = Rect::new(0, 0, 80, 10);
 
         assert_eq!(
@@ -701,10 +697,7 @@ mod tests {
                 &app,
                 mouse(MouseEventKind::Down(MouseButton::Left), 20, 3)
             ),
-            Some(MouseInput::Down {
-                visible_index: 0,
-                toggle: false,
-            })
+            Some(MouseInput::Down { visible_index: 0 })
         );
         assert_eq!(
             mouse_input(
@@ -712,10 +705,7 @@ mod tests {
                 &app,
                 mouse(MouseEventKind::Down(MouseButton::Left), 2, 4)
             ),
-            Some(MouseInput::Down {
-                visible_index: 1,
-                toggle: true,
-            })
+            Some(MouseInput::Down { visible_index: 1 })
         );
         assert_eq!(
             mouse_input(

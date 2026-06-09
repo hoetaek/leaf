@@ -10,7 +10,6 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
 
 const PREVIEW_MIN_HEIGHT: u16 = 14;
-const SELECTION_COLUMN_WIDTH: u16 = 3;
 
 pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
     let area = frame.area();
@@ -147,9 +146,7 @@ fn draw_table(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         .enumerate()
         .skip(offset)
         .take(row_capacity)
-        .map(|(index, row)| {
-            table_row(row, app.visible_row_is_marked(index)).style(row_style(app, index))
-        });
+        .map(|(index, row)| table_row(row, row_is_active(app, index)).style(row_style(app, index)));
 
     let table = Table::new(rows, table_constraints())
         .header(Row::new(table_header()).style(chrome_style()))
@@ -211,51 +208,54 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             app.status_line()
         ),
         Mode::List => format!(
-            "j/k up/down  h/l bucket  y copy  P promote  Space select  v range  a all  / filter  p preview  r refresh  q quit  mouse select  {}",
+            "j/k up/down  h/l bucket  y copy  P promote  Space select  v range  a all  / filter  p preview  r refresh  q quit  mouse drag  {}",
             app.status_line()
         ),
     };
     frame.render_widget(Paragraph::new(Line::styled(status, dim_style())), area);
 }
 
-fn table_row(row: &ListRow, marked: bool) -> Row<'_> {
-    let marker = if marked { "*" } else { " " };
-    let mut cells = vec![Cell::from(marker).style(strong_style())];
-    cells.extend(
+fn table_row(row: &ListRow, active: bool) -> Row<'_> {
+    Row::new(
         LIST_COLUMNS
             .iter()
             .copied()
-            .map(|column| table_cell(column, row)),
-    );
-    Row::new(cells)
+            .map(|column| table_cell(column, row, active))
+            .collect::<Vec<_>>(),
+    )
 }
 
 fn table_header() -> Vec<Cell<'static>> {
-    let mut cells = vec![Cell::from("SEL")];
-    cells.extend(
-        LIST_COLUMNS
-            .iter()
-            .map(|column| Cell::from(column.header())),
-    );
-    cells
+    LIST_COLUMNS
+        .iter()
+        .map(|column| Cell::from(column.header()))
+        .collect()
 }
 
 fn table_constraints() -> Vec<Constraint> {
-    let mut constraints = vec![Constraint::Length(SELECTION_COLUMN_WIDTH)];
-    constraints.extend(LIST_COLUMNS.iter().map(|column| match column.tui_width() {
-        ColumnWidth::Fixed(width) => Constraint::Length(width),
-        ColumnWidth::Min(width) => Constraint::Min(width),
-    }));
-    constraints
+    LIST_COLUMNS
+        .iter()
+        .map(|column| match column.tui_width() {
+            ColumnWidth::Fixed(width) => Constraint::Length(width),
+            ColumnWidth::Min(width) => Constraint::Min(width),
+        })
+        .collect()
 }
 
-fn table_cell(column: ListColumn, row: &ListRow) -> Cell<'static> {
+fn table_cell(column: ListColumn, row: &ListRow, active: bool) -> Cell<'static> {
     let cell = Cell::from(column.value(row));
+    if active {
+        return cell;
+    }
     match column {
         ListColumn::Bucket => cell.style(bucket_style(row.bucket())),
         ListColumn::Status => cell.style(parse_state_style(row.parse_state())),
         ListColumn::Phase | ListColumn::Gate | ListColumn::Slug => cell,
     }
+}
+
+fn row_is_active(app: &AppState, index: usize) -> bool {
+    app.selected_index() == index || app.visible_row_is_marked(index)
 }
 
 /// Computes the table chunk for a full terminal `Rect`, mirroring the layout
@@ -272,16 +272,16 @@ fn table_chunk(area: Rect, app: &AppState) -> Rect {
 
 /// Maps a terminal `(column, row)` click onto the visible row it covers.
 ///
-/// Returns `Some((visible_index, is_sel_column))` when the coordinate lands on a
-/// data row inside the table, or `None` for the header, borders, status line, or
-/// any coordinate outside the rendered rows. Data rows start at `table.y + 2`
-/// (top border + header); the `SEL` column spans `table.x + 1..=table.x + 3`.
+/// Returns `Some(visible_index)` when the coordinate lands on a data row inside
+/// the table, or `None` for the header, borders, status line, or any coordinate
+/// outside the rendered rows. Data rows start at `table.y + 2` (top border +
+/// header).
 pub(crate) fn table_mouse_target(
     area: Rect,
     app: &AppState,
     column: u16,
     row: u16,
-) -> Option<(usize, bool)> {
+) -> Option<usize> {
     let table = table_chunk(area, app);
     if table.height == 0 || table.width < 2 {
         return None;
@@ -309,10 +309,7 @@ pub(crate) fn table_mouse_target(
         return None;
     }
 
-    // The `SEL` column spans `table.x + 1..=table.x + 3`; the lower bound is
-    // already guaranteed by the `inner_left` check above.
-    let is_sel_column = column <= table.x + 3;
-    Some((visible_index, is_sel_column))
+    Some(visible_index)
 }
 
 fn table_row_capacity(area: Rect) -> usize {
@@ -526,6 +523,32 @@ mod tests {
         })
     }
 
+    fn text_has_style(
+        buffer: &Buffer,
+        width: u16,
+        height: u16,
+        text: &str,
+        fg: Color,
+        bg: Color,
+    ) -> bool {
+        (0..height).any(|y| {
+            (0..width).any(|x| {
+                let mut cursor = x;
+                for ch in text.chars() {
+                    if cursor >= width {
+                        return false;
+                    }
+                    let cell = &buffer[(cursor, y)];
+                    if cell.symbol() != ch.to_string() || cell.fg != fg || cell.bg != bg {
+                        return false;
+                    }
+                    cursor = cursor.saturating_add(cell_width(ch));
+                }
+                true
+            })
+        })
+    }
+
     fn cell_width(ch: char) -> u16 {
         if ch.is_ascii() { 1 } else { 2 }
     }
@@ -700,7 +723,7 @@ mod tests {
     }
 
     #[test]
-    fn normal_status_renders_mouse_select_hint() {
+    fn normal_status_renders_mouse_drag_hint() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
             Bucket::Leaves,
@@ -716,7 +739,7 @@ mod tests {
 
         let text = buffer_text(140, 12, &app);
 
-        assert!(text.contains("mouse select"));
+        assert!(text.contains("mouse drag"));
     }
 
     #[test]
@@ -743,7 +766,7 @@ mod tests {
     }
 
     #[test]
-    fn marked_rows_render_a_selection_marker_and_selected_status() {
+    fn marked_rows_use_row_highlight_without_selection_column() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
             Bucket::Leaves,
@@ -759,14 +782,49 @@ mod tests {
 
         let before = buffer_text(110, 14, &app);
         assert!(!before.contains('*'));
-        assert!(before.contains("SEL"));
+        assert!(!before.contains("SEL"));
 
         app.handle_key(KeyInput::Char(' '));
         let after = buffer_text(120, 14, &app);
-        assert!(after.contains('*'));
+        assert!(!after.contains('*'));
         assert!(after.contains("1 selected"));
         assert!(after.contains("Space toggle"));
         assert!(after.contains("Esc clear"));
+    }
+
+    #[test]
+    fn selected_row_semantic_cells_keep_readable_selected_style() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            "alpha",
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("intent"),
+            ),
+        )]);
+        let app = AppState::from_inventory(&inventory);
+
+        let buffer = render_buffer(100, 12, &app);
+
+        assert!(text_has_style(
+            &buffer,
+            100,
+            12,
+            "leaf",
+            Color::White,
+            Color::DarkGray
+        ));
+        assert!(text_has_style(
+            &buffer,
+            100,
+            12,
+            "ok",
+            Color::White,
+            Color::DarkGray
+        ));
     }
 
     #[test]
@@ -813,7 +871,7 @@ mod tests {
     }
 
     #[test]
-    fn table_mouse_target_maps_data_rows_and_sel_column() {
+    fn table_mouse_target_maps_data_rows_without_selection_column() {
         let fixture = RenderFixture::new();
         let app = AppState::from_inventory(&fixture.inventory_with_items(vec![
             fixture.plain_leaf("alpha"),
@@ -822,14 +880,14 @@ mod tests {
         ]));
 
         // Terminal Rect(0,0,80,10): header y=0, table y=1 height=8, status y=9.
-        // Data rows begin at table.y + 2 = 3. SEL column spans x=1..=3.
+        // Data rows begin at table.y + 2 = 3.
         let area = Rect::new(0, 0, 80, 10);
 
-        assert_eq!(table_mouse_target(area, &app, 20, 3), Some((0, false)));
-        assert_eq!(table_mouse_target(area, &app, 2, 4), Some((1, true)));
-        assert_eq!(table_mouse_target(area, &app, 1, 5), Some((2, true)));
-        assert_eq!(table_mouse_target(area, &app, 3, 5), Some((2, true)));
-        assert_eq!(table_mouse_target(area, &app, 4, 5), Some((2, false)));
+        assert_eq!(table_mouse_target(area, &app, 20, 3), Some(0));
+        assert_eq!(table_mouse_target(area, &app, 2, 4), Some(1));
+        assert_eq!(table_mouse_target(area, &app, 1, 5), Some(2));
+        assert_eq!(table_mouse_target(area, &app, 3, 5), Some(2));
+        assert_eq!(table_mouse_target(area, &app, 4, 5), Some(2));
     }
 
     #[test]
@@ -846,8 +904,8 @@ mod tests {
 
         // table height 8 -> capacity 5 -> offset = 9 - 4 = 5.
         let area = Rect::new(0, 0, 80, 10);
-        assert_eq!(table_mouse_target(area, &app, 20, 3), Some((5, false)));
-        assert_eq!(table_mouse_target(area, &app, 20, 7), Some((9, false)));
+        assert_eq!(table_mouse_target(area, &app, 20, 3), Some(5));
+        assert_eq!(table_mouse_target(area, &app, 20, 7), Some(9));
     }
 
     #[test]

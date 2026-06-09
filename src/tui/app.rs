@@ -55,7 +55,7 @@ pub(crate) enum KeyInput {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum MouseInput {
-    Down { visible_index: usize, toggle: bool },
+    Down { visible_index: usize },
     Drag { visible_index: usize },
     Up,
 }
@@ -306,19 +306,11 @@ impl AppState {
             return Outcome::Continue;
         }
         match input {
-            MouseInput::Down {
-                visible_index,
-                toggle,
-            } => {
+            MouseInput::Down { visible_index } => {
                 if !self.select_visible_index(visible_index) {
                     return Outcome::Continue;
                 }
-                if toggle {
-                    self.mouse_anchor = None;
-                    self.toggle_current_row_selection();
-                } else {
-                    self.mouse_anchor = Some(self.selected_index);
-                }
+                self.mouse_anchor = Some(self.selected_index);
             }
             MouseInput::Drag { visible_index } => {
                 let Some(anchor) = self.mouse_anchor else {
@@ -1861,10 +1853,7 @@ mod tests {
         let mut app = AppState::from_inventory(&inventory);
 
         assert_eq!(
-            app.handle_mouse(MouseInput::Down {
-                visible_index: 1,
-                toggle: false,
-            }),
+            app.handle_mouse(MouseInput::Down { visible_index: 1 }),
             Outcome::Continue
         );
 
@@ -1874,27 +1863,21 @@ mod tests {
     }
 
     #[test]
-    fn tui_app_mouse_sel_click_toggles_row_selection() {
+    fn tui_app_repeated_mouse_row_click_keeps_row_unmarked() {
         let inventory = inventory_with_slugs(&["alpha", "beta"]);
         let mut app = AppState::from_inventory(&inventory);
 
         assert_eq!(
-            app.handle_mouse(MouseInput::Down {
-                visible_index: 1,
-                toggle: true,
-            }),
+            app.handle_mouse(MouseInput::Down { visible_index: 1 }),
             Outcome::Continue
         );
         assert_eq!(app.selected_index(), 1);
-        assert_eq!(app.selected_row_count(), 1);
-        assert!(app.visible_row_is_marked(1));
+        assert_eq!(app.selected_row_count(), 0);
         assert!(!app.visible_row_is_marked(0));
+        assert!(!app.visible_row_is_marked(1));
 
         assert_eq!(
-            app.handle_mouse(MouseInput::Down {
-                visible_index: 1,
-                toggle: true,
-            }),
+            app.handle_mouse(MouseInput::Down { visible_index: 1 }),
             Outcome::Continue
         );
         assert_eq!(app.selected_row_count(), 0);
@@ -1905,10 +1888,7 @@ mod tests {
         let inventory = inventory_with_slugs(&["alpha", "beta", "gamma", "delta"]);
         let mut app = AppState::from_inventory(&inventory);
 
-        app.handle_mouse(MouseInput::Down {
-            visible_index: 0,
-            toggle: false,
-        });
+        app.handle_mouse(MouseInput::Down { visible_index: 0 });
         app.handle_mouse(MouseInput::Drag { visible_index: 1 });
         assert_eq!(
             app.handle_mouse(MouseInput::Drag { visible_index: 2 }),
@@ -1931,10 +1911,7 @@ mod tests {
         let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
         let mut app = AppState::from_inventory(&inventory);
 
-        app.handle_mouse(MouseInput::Down {
-            visible_index: 2,
-            toggle: false,
-        });
+        app.handle_mouse(MouseInput::Down { visible_index: 2 });
         app.handle_mouse(MouseInput::Drag { visible_index: 0 });
 
         assert_eq!(app.selected_index(), 0);
@@ -1949,10 +1926,7 @@ mod tests {
         let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
         let mut app = AppState::from_inventory(&inventory);
 
-        app.handle_mouse(MouseInput::Down {
-            visible_index: 0,
-            toggle: false,
-        });
+        app.handle_mouse(MouseInput::Down { visible_index: 0 });
         app.handle_mouse(MouseInput::Drag { visible_index: 1 });
         app.handle_mouse(MouseInput::Up);
 
@@ -1972,22 +1946,10 @@ mod tests {
         let mut app = AppState::from_inventory(&inventory);
 
         assert_eq!(
-            app.handle_mouse(MouseInput::Down {
-                visible_index: 9,
-                toggle: false,
-            }),
+            app.handle_mouse(MouseInput::Down { visible_index: 9 }),
             Outcome::Continue
         );
         assert_eq!(app.selected_index(), 0);
-        assert_eq!(app.selected_row_count(), 0);
-
-        assert_eq!(
-            app.handle_mouse(MouseInput::Down {
-                visible_index: 9,
-                toggle: true,
-            }),
-            Outcome::Continue
-        );
         assert_eq!(app.selected_row_count(), 0);
     }
 
@@ -2002,10 +1964,7 @@ mod tests {
         let mut filter_app = AppState::from_inventory(&inventory);
         filter_app.handle_key(KeyInput::Char('/'));
         assert_eq!(
-            filter_app.handle_mouse(MouseInput::Down {
-                visible_index: 0,
-                toggle: true,
-            }),
+            filter_app.handle_mouse(MouseInput::Down { visible_index: 0 }),
             Outcome::Continue
         );
         assert_eq!(filter_app.mode(), Mode::FilterInput);
@@ -2015,10 +1974,7 @@ mod tests {
         confirm_app.handle_key(KeyInput::Char('P'));
         assert_eq!(confirm_app.mode(), Mode::ConfirmPromote);
         assert_eq!(
-            confirm_app.handle_mouse(MouseInput::Down {
-                visible_index: 0,
-                toggle: true,
-            }),
+            confirm_app.handle_mouse(MouseInput::Down { visible_index: 0 }),
             Outcome::Continue
         );
         assert_eq!(confirm_app.mode(), Mode::ConfirmPromote);
