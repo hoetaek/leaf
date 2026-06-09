@@ -4,12 +4,22 @@ use crate::preview::{PreviewLine, PreviewSpan};
 use crate::review::{ReviewDocument, ReviewLine};
 use crate::tui::app::{AppState, BucketFilter, ListRow, Mode};
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
 
 const PREVIEW_MIN_HEIGHT: u16 = 14;
+const RIGHT_PREVIEW_RATIO: f32 = 0.45;
+const BOTTOM_PREVIEW_RATIO: f32 = 0.40;
+const MIN_TABLE_WIDTH_FOR_RIGHT_PREVIEW: u16 = 80;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PreviewPlacement {
+    Hidden,
+    Right,
+    Bottom,
+}
 
 pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
     let area = frame.area();
@@ -18,24 +28,37 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
         return;
     }
 
-    let show_preview = app.preview_open() && area.height >= PREVIEW_MIN_HEIGHT;
-    let mut constraints = vec![Constraint::Length(1), Constraint::Min(1)];
-    if show_preview {
-        constraints.push(Constraint::Length(preview_height(area)));
-    }
-    constraints.push(Constraint::Length(1));
+    let chunks = Layout::vertical([
+        Constraint::Length(1),
+        Constraint::Min(1),
+        Constraint::Length(1),
+    ])
+    .split(area);
+    draw_header(frame, chunks[0], app);
 
-    let chunks = Layout::vertical(constraints).split(area);
-    let mut index = 0;
-    draw_header(frame, chunks[index], app);
-    index += 1;
-    draw_table(frame, chunks[index], app);
-    index += 1;
-    if show_preview {
-        draw_preview(frame, chunks[index], app);
-        index += 1;
+    match preview_placement(area, app) {
+        PreviewPlacement::Hidden => draw_table(frame, chunks[1], app),
+        PreviewPlacement::Bottom => {
+            let body_chunks = Layout::vertical([
+                Constraint::Min(1),
+                Constraint::Length(bottom_preview_height(chunks[1])),
+            ])
+            .split(chunks[1]);
+            draw_table(frame, body_chunks[0], app);
+            draw_preview(frame, body_chunks[1], app);
+        }
+        PreviewPlacement::Right => {
+            let preview_width = right_preview_width(area);
+            let body_chunks = Layout::horizontal([
+                Constraint::Min(MIN_TABLE_WIDTH_FOR_RIGHT_PREVIEW),
+                Constraint::Length(preview_width),
+            ])
+            .split(chunks[1]);
+            draw_table(frame, body_chunks[0], app);
+            draw_preview(frame, body_chunks[1], app);
+        }
     }
-    draw_status(frame, chunks[index], app);
+    draw_status(frame, chunks[2], app);
 }
 
 fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
@@ -261,13 +284,32 @@ fn row_is_active(app: &AppState, index: usize) -> bool {
 /// Computes the table chunk for a full terminal `Rect`, mirroring the layout
 /// `draw` uses so mouse hit-testing maps onto the same rows `draw_table` renders.
 fn table_chunk(area: Rect, app: &AppState) -> Rect {
-    let show_preview = app.preview_open() && area.height >= PREVIEW_MIN_HEIGHT;
-    let mut constraints = vec![Constraint::Length(1), Constraint::Min(1)];
-    if show_preview {
-        constraints.push(Constraint::Length(preview_height(area)));
+    let chunks = Layout::vertical([
+        Constraint::Length(1),
+        Constraint::Min(1),
+        Constraint::Length(1),
+    ])
+    .split(area);
+    let body = chunks[1];
+    match preview_placement(area, app) {
+        PreviewPlacement::Hidden => body,
+        PreviewPlacement::Bottom => Layout::vertical([
+            Constraint::Min(1),
+            Constraint::Length(bottom_preview_height(body)),
+        ])
+        .split(body)[0],
+        PreviewPlacement::Right => {
+            let preview_width = right_preview_width(area);
+            Layout::new(
+                Direction::Horizontal,
+                [
+                    Constraint::Min(MIN_TABLE_WIDTH_FOR_RIGHT_PREVIEW),
+                    Constraint::Length(preview_width),
+                ],
+            )
+            .split(body)[0]
+        }
     }
-    constraints.push(Constraint::Length(1));
-    Layout::vertical(constraints).split(area)[1]
 }
 
 /// Maps a terminal `(column, row)` click onto the visible row it covers.
@@ -339,8 +381,27 @@ fn row_style(app: &AppState, index: usize) -> Style {
     }
 }
 
-fn preview_height(area: Rect) -> u16 {
-    (area.height.saturating_sub(2) / 2).clamp(6, 18)
+fn preview_placement(area: Rect, app: &AppState) -> PreviewPlacement {
+    if !app.preview_open() || area.height < PREVIEW_MIN_HEIGHT {
+        return PreviewPlacement::Hidden;
+    }
+    let preview_width = right_preview_width(area);
+    let table_width = area.width.saturating_sub(preview_width);
+    if table_width < MIN_TABLE_WIDTH_FOR_RIGHT_PREVIEW {
+        PreviewPlacement::Bottom
+    } else {
+        PreviewPlacement::Right
+    }
+}
+
+fn right_preview_width(area: Rect) -> u16 {
+    ((area.width as f32) * RIGHT_PREVIEW_RATIO).floor() as u16
+}
+
+fn bottom_preview_height(area: Rect) -> u16 {
+    ((area.height as f32) * BOTTOM_PREVIEW_RATIO)
+        .floor()
+        .clamp(6.0, 18.0) as u16
 }
 
 fn preview_line(line: &PreviewLine) -> Line<'static> {
@@ -523,6 +584,21 @@ mod tests {
         })
     }
 
+    fn text_position(buffer: &Buffer, width: u16, height: u16, text: &str) -> Option<(u16, u16)> {
+        (0..height).find_map(|y| {
+            (0..width).find_map(|x| {
+                let mut cursor = x;
+                for ch in text.chars() {
+                    if cursor >= width || buffer[(cursor, y)].symbol() != ch.to_string() {
+                        return None;
+                    }
+                    cursor = cursor.saturating_add(cell_width(ch));
+                }
+                Some((x, y))
+            })
+        })
+    }
+
     fn text_has_style(
         buffer: &Buffer,
         width: u16,
@@ -586,6 +662,64 @@ mod tests {
     }
 
     #[test]
+    fn wide_terminal_places_preview_on_the_right() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            "wide-preview",
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("intent"),
+            ),
+        )]);
+        let app = AppState::from_inventory(&inventory);
+
+        let buffer = render_buffer(160, 24, &app);
+        let preview_position = text_position(&buffer, 160, 24, ".leaf/02-leaves/wide-preview")
+            .expect("preview path should render");
+
+        assert!(
+            preview_position.0 >= 88,
+            "right preview should start after the table, got {preview_position:?}"
+        );
+        assert!(
+            preview_position.1 < 6,
+            "right preview should align near the top content, got {preview_position:?}"
+        );
+    }
+
+    #[test]
+    fn medium_terminal_falls_back_to_bottom_preview() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            "bottom-preview",
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("intent"),
+            ),
+        )]);
+        let app = AppState::from_inventory(&inventory);
+
+        let buffer = render_buffer(120, 24, &app);
+        let preview_position = text_position(&buffer, 120, 24, ".leaf/02-leaves/bottom-preview")
+            .expect("preview path should render");
+
+        assert!(
+            preview_position.0 < 40,
+            "bottom preview should use the full width from the left, got {preview_position:?}"
+        );
+        assert!(
+            preview_position.1 >= 12,
+            "bottom preview should sit below the table, got {preview_position:?}"
+        );
+    }
+
+    #[test]
     fn small_terminal_hides_preview_without_hiding_rows() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
@@ -607,10 +741,10 @@ mod tests {
     }
 
     #[test]
-    fn large_terminal_allocates_more_space_to_preview() {
-        let area = Rect::new(0, 0, 120, 32);
+    fn tall_bottom_layout_allocates_bounded_preview_height() {
+        let area = Rect::new(0, 0, 120, 30);
 
-        assert_eq!(preview_height(area), 15);
+        assert_eq!(bottom_preview_height(area), 12);
     }
 
     #[test]
@@ -906,6 +1040,20 @@ mod tests {
         let area = Rect::new(0, 0, 80, 10);
         assert_eq!(table_mouse_target(area, &app, 20, 3), Some(5));
         assert_eq!(table_mouse_target(area, &app, 20, 7), Some(9));
+    }
+
+    #[test]
+    fn table_mouse_target_ignores_right_preview_area() {
+        let fixture = RenderFixture::new();
+        let app = AppState::from_inventory(&fixture.inventory_with_items(vec![
+            fixture.plain_leaf("alpha"),
+            fixture.plain_leaf("beta"),
+            fixture.plain_leaf("gamma"),
+        ]));
+        let area = Rect::new(0, 0, 160, 24);
+
+        assert_eq!(table_mouse_target(area, &app, 20, 3), Some(0));
+        assert_eq!(table_mouse_target(area, &app, 110, 3), None);
     }
 
     #[test]
