@@ -90,3 +90,8 @@ labeled — under `02-Example/04-wireframe/`, each titled with the axis and valu
 represents, so the user can open the gallery and compare them by eye. Render only
 the states that could break the answer, and name the axis and range behind each;
 an exhaustive state matrix is ⑤'s concern, not ④'s.
+
+Then **open the gallery for the user** via Chrome DevTools (or a browser MCP):
+load each saved view, screenshot it, and present the shots with a one-line check
+per state. Do not hand back bare `file://` paths and ask the user to open them —
+show the renders, and point at what to verify in each.

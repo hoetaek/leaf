@@ -44,11 +44,12 @@ leaves, or one unstable frame that needs a question before it can be split.
 
 ## Reference map
 
-The gate contracts are shared with `leaf-work`, not duplicated here. Read them as
-siblings under `../leaf-work/references/`:
+Conduct and the gate contracts are shared across the LEAF family, not duplicated
+here. Read them as siblings:
 
 | Read | When |
 |---|---|
+| `../leaf-soul/SKILL.md` | the shared conduct/voice: how to report, show rendered work, hand off reviewables, separate fact from guess, and which language to write — follow it |
 | `../leaf-work/references/gates.md` (① Intent, ② Unknowns & Context) | the authoritative pass/fail test for the gate you are in — act by it |
 | `../leaf-work/references/gate-authoring.md` | drafting, grilling, or revising the intent or unknowns artifact |
 | `../leaf-work/references/clarity-ledger.md` | as a lens in ① / ② — glance at its five rows to aim the next question or learning gap |
@@ -158,10 +159,15 @@ into your own context files there — one folder or file per source — and keep
 in a form you can see and judge by eye, not reduced to a one-line note. For UI or
 web work, capture the rendered reference page as a self-contained `.html` file
 (and a screenshot); for documents, keep the source excerpt or PDF; for data or
-code, the snippet. Open them in the user's preferred viewer and judge together —
-what to copy, adapt, avoid, or reject. References are study material for judgment,
-not a design to copy wholesale; the locked instance comes later at ④, not from a
-pasted reference.
+code, the snippet. Open them *for* the user and judge together what to copy,
+adapt, avoid, or reject — show, do not just link (see `../leaf-soul/SKILL.md`:
+Show the work). Deliberately gather both poles: **models** worth emulating or benchmarking against
+(what "great" looks like for this work) and **anti-models** — the cautionary cases
+that failed or took the shortcut that sinks this kind of work — and label each, so
+judgment has something to copy *and* a concrete example of what to steer clear of.
+A failure mode you can point at is often sharper than a success you admire.
+References are study material for judgment, not a design to copy wholesale; the
+locked instance comes later at ④, not from a pasted reference.
 
 **Then extract the essentials out.** `02-references/` holds the raw gathered
 context — the inside; `02-unknowns.md` holds the distilled facts the later gates
@@ -177,11 +183,8 @@ to choose between and on what basis.
 
 ## Review Handoff
 
-For assumptions, user-only knowledge, or blanks the user should fill, mark the
-exact item with `USER REVIEW NEEDED:` or `ASSUMPTION:` and open the file in the
-user's preferred editor when known (`cmux markdown`, `$VISUAL` / `$EDITOR`,
-`code`, `vim` / `nvim`, Obsidian, Notepad, etc.). If no preference is known or
-opening is unavailable, ask once or give the path and sections to review.
+Hand off reviewables per `../leaf-soul/SKILL.md` (mark `USER REVIEW NEEDED:` /
+`ASSUMPTION:`, open in the user's editor, show HTML in a browser).
 
 Use these status labels in `00-status.md`:
 
@@ -215,12 +218,16 @@ after explicit user approval and continue from `.leaf/02-leaves/<slug>/` in
 
 ## Response Shape
 
+Report per `../leaf-soul/SKILL.md` — overview-first, a **Verify / Decide** list up
+top, plain words, gathered material organized and shown rather than dumped.
+
 Report briefly:
 
+- a one-line overview and the **Verify / Decide** points up top
 - seed path
 - status label
 - evidence checked
 - what was captured or changed
-- file or sections opened for review, if any
+- file or sections opened for review, if any (HTML shown, not just linked)
 - recommendation and why, including split/group/ask-first reasoning when relevant
 - next action, if the user resumes later

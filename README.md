@@ -161,6 +161,7 @@ This repository ships Agent Skills:
 | [`leaf-work`](skills/leaf-work/SKILL.md) | Carrying a promoted leaf from ③ Example to a shipped result |
 | [`leaf-press`](skills/leaf-press/SKILL.md) | Creating citable Markdown digests from LEAF work |
 | [`leaf-fall`](skills/leaf-fall/SKILL.md) | Closing active leaves into the fallen archive |
+| [`leaf-soul`](skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard the other LEAF skills read (not invoked directly) |
 
 Install one skill when you only want one workflow:
 
@@ -168,8 +169,9 @@ Install one skill when you only want one workflow:
 npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-work
 ```
 
-`leaf-idea` reads the shared gate references that ship with `leaf-work`
-(`../leaf-work/references/`), so install those two together.
+`leaf-idea` reads the shared conduct in `leaf-soul` and the gate references that
+ship with `leaf-work` (`../leaf-soul/SKILL.md`, `../leaf-work/references/`), so
+install the LEAF skills together as a family.
 
 ## Status
 

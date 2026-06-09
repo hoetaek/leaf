@@ -1,0 +1,7 @@
+interface:
+  display_name: "LEAF Soul"
+  short_description: "Shared conduct and voice for the LEAF skill family"
+  default_prompt: "Reference module: the shared LEAF conduct, voice, and reporting standard read by leaf-idea and leaf-work. Not invoked directly."
+
+policy:
+  allow_implicit_invocation: false

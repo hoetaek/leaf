@@ -393,6 +393,12 @@ value behind each rendered state, and trace it to a ③ criterion or a declared
 contract axis; a state you cannot render from the contract is a gap in the
 contract, not just a missing screen.
 
+**Open the renders for the user — do not just save them.** Once the views exist,
+open them in a browser via Chrome DevTools (or a browser MCP), step through each
+state yourself, and screenshot it, so the user reviews by looking — not by opening
+files or clicking through the UI to reach a state. Pair each view with the one
+thing to check there. Verification is a glance, not a chore.
+
 Return to ④ when ⑧ drafting reveals the structure does not match the workflow;
 ⑤ design rules keep colliding with the layout or validated case; a ⑨ reviewer
 says "I cannot find X"; ⑤ has to invent a schema/type/shape; or swapping a

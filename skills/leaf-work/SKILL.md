@@ -50,18 +50,13 @@ ten gates and are shared by both skills.
   one-sentence intent and its why, the sourced facts and flagged assumptions, the
   references gathered, and what the user can already choose between (the input ③
   Criteria consumes). Trust that work and reopen Learn only on a return.
-- **Write in the user's preferred language.** Default user-facing replies and
-  durable `.leaf/` artifacts to the language the user appears to prefer from
-  their request and project context. If the user writes Korean or the work is
-  for Korean readers, write Korean. Preserve fixed source language where needed
-  for code identifiers, quoted text, citations, titles, or audience-specific
-  deliverables.
-- **Handoff reviewable assumptions in the user's editor.** Mark assumptions,
-  placeholders, or reviewer questions with `USER REVIEW NEEDED:` or
-  `ASSUMPTION:`, then open the artifact in the user's preferred editor when
-  known (`cmux markdown`, `$VISUAL` / `$EDITOR`, `code`, `vim` / `nvim`,
-  Obsidian, Notepad, etc.). If no preference is known or opening is unavailable,
-  ask once or report the path and sections to review.
+- **Conduct and voice are shared — follow `leaf-soul`.** How you report
+  (overview-first, a Verify / Decide list up top), show rendered HTML work (open it
+  in Chrome DevTools and screenshot each state — never make the user hunt), hand
+  off reviewables (`USER REVIEW NEEDED:` / `ASSUMPTION:`), separate fact from
+  guess, and which language you write are defined once for the whole LEAF family in
+  `../leaf-soul/SKILL.md`. Read it and follow it; the rules here are the gate
+  *method* specific to this skill.
 - **The scaffold is the foundation — so the work stands firm.** Learn, Example,
   and Architect lay that foundation; execution builds only once it is solid, not
   on guesses. A promoted leaf already carries the CLI scaffold — `00-status.md`
@@ -128,8 +123,9 @@ ten gates and are shared by both skills.
 
 ## Response shape
 
-When using this skill, report — starting with the opening preview once ① has a
-one-sentence intent, then the working state.
+Report per `leaf-soul` (overview-first, a **Verify / Decide** list up top, plain
+words). When using this skill, report — starting with the opening preview once ①
+has a one-sentence intent, then the working state.
 
 **Opening preview** — phrase the four phases as the capability each builds *for
 this specific intent*, not generic labels:
@@ -172,6 +168,7 @@ diagram.
 
 | Read | When |
 |---|---|
+| `../leaf-soul/SKILL.md` | the shared conduct/voice: how to report, show rendered work, hand off reviewables, separate fact from guess, and which language to write |
 | `references/gates.md` | when judging gate readiness, creating/revising a gate artifact, handling a return, or needing examples |
 | `references/gate-authoring.md` | when drafting, grilling, revising, or presenting a gate artifact for review or approval |
 | `references/engine.md` | you are inside ③–⑤ and need the full contract / variation point / generator mechanics + diagram |
