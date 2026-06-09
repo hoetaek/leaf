@@ -410,11 +410,10 @@ impl AppState {
             KeyInput::Char('g') => self.scroll_review_top(),
             KeyInput::Char('G') => self.scroll_review_bottom(),
             KeyInput::Char('r') => self.refresh_review(),
-            KeyInput::Esc => {
+            KeyInput::Esc | KeyInput::Char('q') => {
                 self.review_state = None;
                 self.mode = Mode::List;
             }
-            KeyInput::Char('q') => return Outcome::Quit,
             _ => {}
         }
         Outcome::Continue
@@ -1557,6 +1556,27 @@ mod tests {
 
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
         assert_eq!(app.handle_key(KeyInput::Esc), Outcome::Continue);
+
+        assert_eq!(app.mode(), Mode::List);
+        assert_eq!(app.selected_row().map(ListRow::slug), Some(slug));
+    }
+
+    #[test]
+    fn tui_app_review_q_returns_to_list_with_selection_preserved() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_preview_status(
+            root.path(),
+            Bucket::Leaves,
+            slug,
+            "- current gate: ① Intent\n",
+        );
+        let item = leaf_item_at(root.path(), Bucket::Leaves, slug, complete_leaf_status());
+        let inventory = inventory_with_root(root.path(), vec![item]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+        assert_eq!(app.handle_key(KeyInput::Char('q')), Outcome::Continue);
 
         assert_eq!(app.mode(), Mode::List);
         assert_eq!(app.selected_row().map(ListRow::slug), Some(slug));

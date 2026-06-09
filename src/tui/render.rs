@@ -92,7 +92,7 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
 
     frame.render_widget(
         Paragraph::new(Line::styled(
-            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Esc back  q quit",
+            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Esc/q back",
             dim_style(),
         )),
         chunks[4],
@@ -212,8 +212,7 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             app.status_line()
         ),
         Mode::Review => {
-            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Esc back  q quit"
-                .to_string()
+            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Esc/q back".to_string()
         }
         Mode::List if selected_count > 0 => format!(
             "{selected_count} selected  Space toggle  v range  a all  y copy  Esc clear  q quit  {}",
@@ -941,6 +940,8 @@ mod tests {
         let text = buffer_text(140, 18, &app);
 
         assert!(text.contains("r refresh"));
+        assert!(text.contains("Esc/q back"));
+        assert!(!text.contains("q quit"));
         assert!(!text.contains("auto-watch"));
     }
 
