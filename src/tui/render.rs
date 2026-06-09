@@ -946,6 +946,38 @@ mod tests {
         assert!(text.contains("short body"));
     }
 
+    #[test]
+    fn review_mode_small_terminal_can_scroll_to_final_line_past_ten_line_page() {
+        let fixture = RenderFixture::new();
+        let slug = "demo";
+        let status_path = fixture
+            .root
+            .path()
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug)
+            .join("00-status.md");
+        std::fs::create_dir_all(status_path.parent().unwrap()).expect("leaf dir");
+        let body = (1..=16)
+            .map(|line| format!("status line {line:02}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        std::fs::write(&status_path, format!("# Status\n\n{body}\n")).expect("status");
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            slug,
+            status(ParseState::Ok, Some("active"), Some("Learn"), Some("-")),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        assert_eq!(app.handle_key(KeyInput::Char('G')), Outcome::Continue);
+
+        let text = buffer_text(80, 9, &app);
+
+        assert!(text.contains("status line 16"));
+    }
+
     struct RenderFixture {
         root: assert_fs::TempDir,
     }
