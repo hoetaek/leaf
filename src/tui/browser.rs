@@ -688,14 +688,14 @@ mod tests {
                 test_item(root.path(), Bucket::Leaves, "gamma"),
             ],
         ));
-        // Rect(0,0,80,10): table data rows start at y=3.
+        // Rect(0,0,80,10): table data rows start at y=4.
         let area = Rect::new(0, 0, 80, 10);
 
         assert_eq!(
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Left), 20, 3)
+                mouse(MouseEventKind::Down(MouseButton::Left), 20, 4)
             ),
             Some(MouseInput::Down { visible_index: 0 })
         );
@@ -703,7 +703,7 @@ mod tests {
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Left), 2, 4)
+                mouse(MouseEventKind::Down(MouseButton::Left), 2, 5)
             ),
             Some(MouseInput::Down { visible_index: 1 })
         );
@@ -711,7 +711,7 @@ mod tests {
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Drag(MouseButton::Left), 20, 5)
+                mouse(MouseEventKind::Drag(MouseButton::Left), 20, 6)
             ),
             Some(MouseInput::Drag { visible_index: 2 })
         );
@@ -739,20 +739,20 @@ mod tests {
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Right), 20, 3)
+                mouse(MouseEventKind::Down(MouseButton::Right), 20, 4)
             ),
             None
         );
         assert_eq!(
-            mouse_input(area, &app, mouse(MouseEventKind::ScrollDown, 20, 3)),
+            mouse_input(area, &app, mouse(MouseEventKind::ScrollDown, 20, 4)),
             None
         );
         assert_eq!(
-            mouse_input(area, &app, mouse(MouseEventKind::ScrollUp, 20, 3)),
+            mouse_input(area, &app, mouse(MouseEventKind::ScrollUp, 20, 4)),
             None
         );
         assert_eq!(
-            mouse_input(area, &app, mouse(MouseEventKind::Moved, 20, 3)),
+            mouse_input(area, &app, mouse(MouseEventKind::Moved, 20, 4)),
             None
         );
         // Left down on the header row is not a data row.
@@ -760,7 +760,7 @@ mod tests {
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Left), 20, 2)
+                mouse(MouseEventKind::Down(MouseButton::Left), 20, 3)
             ),
             None
         );

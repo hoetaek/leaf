@@ -4,12 +4,15 @@ use crate::preview::{PreviewLine, PreviewSpan};
 use crate::review::{ReviewDocument, ReviewLine};
 use crate::tui::app::{AppState, BucketFilter, ListRow, Mode};
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
 
 const PREVIEW_MIN_HEIGHT: u16 = 14;
+const LIST_HEADER_HEIGHT: u16 = 2;
+const HEADER_SPLIT_MIN_WIDTH: u16 = 60;
+const HEADER_SUMMARY_WIDTH: u16 = 24;
 const RIGHT_PREVIEW_RATIO: f32 = 0.45;
 const BOTTOM_PREVIEW_RATIO: f32 = 0.40;
 const MIN_TABLE_WIDTH_FOR_RIGHT_PREVIEW: u16 = 80;
@@ -29,7 +32,7 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
     }
 
     let chunks = Layout::vertical([
-        Constraint::Length(1),
+        Constraint::Length(LIST_HEADER_HEIGHT),
         Constraint::Min(1),
         Constraint::Length(1),
     ])
@@ -131,22 +134,69 @@ fn draw_header(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
     } else {
         app.filter().to_string()
     };
-    let mut spans = vec![
-        Span::styled("leaf list", Style::default().add_modifier(Modifier::BOLD)),
-        Span::raw("  bucket "),
-        Span::styled(bucket_filter_label(app.active_bucket()), chrome_style()),
-        Span::raw(format!(
-            "  filter {filter}  rows {visible_count}/{total_count}"
-        )),
-    ];
+    let header_rows = Layout::vertical([Constraint::Length(1), Constraint::Length(1)]).split(area);
+    draw_header_row(
+        frame,
+        header_rows[0],
+        vec![
+            Span::styled("Inventory", strong_style()),
+            Span::raw("  "),
+            Span::styled("leaf list", dim_style()),
+        ],
+        Some(vec![
+            Span::styled(bucket_filter_label(app.active_bucket()), chrome_style()),
+            Span::raw(format!(" {visible_count}/{total_count}")),
+        ]),
+    );
+
     let selected_count = app.selected_row_count();
-    if selected_count > 0 {
-        spans.push(Span::styled(
-            format!("  selected {selected_count}"),
+    let selected = (selected_count > 0).then(|| {
+        vec![Span::styled(
+            format!("selected {selected_count}"),
             strong_style(),
-        ));
+        )]
+    });
+    draw_header_row(
+        frame,
+        header_rows[1],
+        vec![
+            Span::styled("filter ", chrome_style()),
+            Span::styled(filter, dim_style()),
+        ],
+        selected,
+    );
+}
+
+fn draw_header_row(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    left: Vec<Span<'static>>,
+    right: Option<Vec<Span<'static>>>,
+) {
+    if area.height == 0 {
+        return;
     }
-    frame.render_widget(Paragraph::new(Line::from(spans)), area);
+    let Some(right) = right else {
+        frame.render_widget(Paragraph::new(Line::from(left)), area);
+        return;
+    };
+
+    if area.width < HEADER_SPLIT_MIN_WIDTH {
+        let mut spans = left;
+        spans.push(Span::raw("  "));
+        spans.extend(right);
+        frame.render_widget(Paragraph::new(Line::from(spans)), area);
+        return;
+    }
+
+    let summary_width = HEADER_SUMMARY_WIDTH.min(area.width);
+    let chunks =
+        Layout::horizontal([Constraint::Min(1), Constraint::Length(summary_width)]).split(area);
+    frame.render_widget(Paragraph::new(Line::from(left)), chunks[0]);
+    frame.render_widget(
+        Paragraph::new(Line::from(right)).alignment(Alignment::Right),
+        chunks[1],
+    );
 }
 
 fn draw_table(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
@@ -285,7 +335,7 @@ fn row_is_active(app: &AppState, index: usize) -> bool {
 /// `draw` uses so mouse hit-testing maps onto the same rows `draw_table` renders.
 fn table_chunk(area: Rect, app: &AppState) -> Rect {
     let chunks = Layout::vertical([
-        Constraint::Length(1),
+        Constraint::Length(LIST_HEADER_HEIGHT),
         Constraint::Min(1),
         Constraint::Length(1),
     ])
@@ -569,6 +619,12 @@ mod tests {
             .join("\n")
     }
 
+    fn buffer_line(buffer: &Buffer, width: u16, y: u16) -> String {
+        (0..width)
+            .map(|x| buffer[(x, y)].symbol().to_string())
+            .collect::<String>()
+    }
+
     fn line_contains_text(buffer: &Buffer, width: u16, height: u16, text: &str) -> bool {
         (0..height).any(|y| {
             (0..width).any(|x| {
@@ -659,6 +715,69 @@ mod tests {
             "다음 행동을 정리한다."
         ));
         assert!(text.contains("q quit"));
+    }
+
+    #[test]
+    fn list_header_uses_two_line_section_header() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            "section-header",
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("intent"),
+            ),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.handle_key(KeyInput::Right);
+        app.handle_key(KeyInput::Right);
+
+        let buffer = render_buffer(120, 24, &app);
+        let first_line = buffer_line(&buffer, 120, 0);
+        let second_line = buffer_line(&buffer, 120, 1);
+
+        assert!(
+            first_line.contains("Inventory"),
+            "first line: {first_line:?}"
+        );
+        assert!(
+            first_line.contains("leaf list"),
+            "first line: {first_line:?}"
+        );
+        assert!(first_line.contains("leaves"), "first line: {first_line:?}");
+        assert!(first_line.contains("1/1"), "first line: {first_line:?}");
+        assert!(
+            !first_line.contains("bucket "),
+            "first line: {first_line:?}"
+        );
+        assert!(
+            second_line.contains("filter none"),
+            "second line: {second_line:?}"
+        );
+        assert!(
+            !second_line.contains("selected 0"),
+            "second line: {second_line:?}"
+        );
+    }
+
+    #[test]
+    fn list_header_shows_selected_count_only_when_rows_are_marked() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![
+            fixture.plain_leaf("alpha"),
+            fixture.plain_leaf("beta"),
+        ]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        let initial = render_buffer(120, 24, &app);
+        assert!(!buffer_line(&initial, 120, 1).contains("selected"));
+
+        app.handle_key(KeyInput::Char(' '));
+        let selected = render_buffer(120, 24, &app);
+
+        assert!(buffer_line(&selected, 120, 1).contains("selected 1"));
     }
 
     #[test]
@@ -1013,15 +1132,15 @@ mod tests {
             fixture.plain_leaf("gamma"),
         ]));
 
-        // Terminal Rect(0,0,80,10): header y=0, table y=1 height=8, status y=9.
-        // Data rows begin at table.y + 2 = 3.
+        // Terminal Rect(0,0,80,10): header y=0..1, table y=2 height=7, status y=9.
+        // Data rows begin at table.y + 2 = 4.
         let area = Rect::new(0, 0, 80, 10);
 
-        assert_eq!(table_mouse_target(area, &app, 20, 3), Some(0));
-        assert_eq!(table_mouse_target(area, &app, 2, 4), Some(1));
-        assert_eq!(table_mouse_target(area, &app, 1, 5), Some(2));
-        assert_eq!(table_mouse_target(area, &app, 3, 5), Some(2));
-        assert_eq!(table_mouse_target(area, &app, 4, 5), Some(2));
+        assert_eq!(table_mouse_target(area, &app, 20, 4), Some(0));
+        assert_eq!(table_mouse_target(area, &app, 2, 5), Some(1));
+        assert_eq!(table_mouse_target(area, &app, 1, 6), Some(2));
+        assert_eq!(table_mouse_target(area, &app, 3, 6), Some(2));
+        assert_eq!(table_mouse_target(area, &app, 4, 6), Some(2));
     }
 
     #[test]
@@ -1036,9 +1155,9 @@ mod tests {
         }
         assert_eq!(app.selected_index(), 9);
 
-        // table height 8 -> capacity 5 -> offset = 9 - 4 = 5.
+        // table height 7 -> capacity 4 -> offset = 9 - 3 = 6.
         let area = Rect::new(0, 0, 80, 10);
-        assert_eq!(table_mouse_target(area, &app, 20, 3), Some(5));
+        assert_eq!(table_mouse_target(area, &app, 20, 4), Some(6));
         assert_eq!(table_mouse_target(area, &app, 20, 7), Some(9));
     }
 
@@ -1052,8 +1171,8 @@ mod tests {
         ]));
         let area = Rect::new(0, 0, 160, 24);
 
-        assert_eq!(table_mouse_target(area, &app, 20, 3), Some(0));
-        assert_eq!(table_mouse_target(area, &app, 110, 3), None);
+        assert_eq!(table_mouse_target(area, &app, 20, 4), Some(0));
+        assert_eq!(table_mouse_target(area, &app, 110, 4), None);
     }
 
     #[test]
@@ -1065,13 +1184,13 @@ mod tests {
         ]));
         let area = Rect::new(0, 0, 80, 10);
 
-        assert_eq!(table_mouse_target(area, &app, 20, 1), None); // top border
-        assert_eq!(table_mouse_target(area, &app, 20, 2), None); // header
+        assert_eq!(table_mouse_target(area, &app, 20, 2), None); // top border
+        assert_eq!(table_mouse_target(area, &app, 20, 3), None); // header
         assert_eq!(table_mouse_target(area, &app, 20, 8), None); // bottom border
         assert_eq!(table_mouse_target(area, &app, 20, 9), None); // status line
-        assert_eq!(table_mouse_target(area, &app, 20, 5), None); // beyond last row
-        assert_eq!(table_mouse_target(area, &app, 0, 3), None); // left border
-        assert_eq!(table_mouse_target(area, &app, 79, 3), None); // right border
+        assert_eq!(table_mouse_target(area, &app, 20, 6), None); // beyond last row
+        assert_eq!(table_mouse_target(area, &app, 0, 4), None); // left border
+        assert_eq!(table_mouse_target(area, &app, 79, 4), None); // right border
     }
 
     #[test]
