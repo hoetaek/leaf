@@ -6,6 +6,8 @@ use std::path::{Path, PathBuf};
 struct SourceSpec {
     file: &'static str,
     folders: &'static [&'static str],
+    phase: &'static str,
+    gate: &'static str,
     required_through_current_gate: bool,
 }
 
@@ -13,56 +15,78 @@ const CANONICAL_SOURCES: [SourceSpec; 11] = [
     SourceSpec {
         file: "00-status.md",
         folders: &[],
+        phase: "Status",
+        gate: "Status",
         required_through_current_gate: true,
     },
     SourceSpec {
         file: "01-Learn/01-intent.md",
         folders: &[],
+        phase: "Learn",
+        gate: "① Intent",
         required_through_current_gate: true,
     },
     SourceSpec {
         file: "01-Learn/02-unknowns.md",
         folders: &[],
+        phase: "Learn",
+        gate: "② Unknowns",
         required_through_current_gate: true,
     },
     SourceSpec {
         file: "02-Example/03-criteria.md",
         folders: &[],
+        phase: "Example",
+        gate: "③ Criteria",
         required_through_current_gate: true,
     },
     SourceSpec {
         file: "02-Example/04-wireframe.md",
         folders: &["02-Example/04-wireframe"],
+        phase: "Example",
+        gate: "④ Wireframe",
         required_through_current_gate: true,
     },
     SourceSpec {
         file: "03-Architect/05-design.md",
         folders: &[],
+        phase: "Architect",
+        gate: "⑤ Design",
         required_through_current_gate: true,
     },
     SourceSpec {
         file: "03-Architect/06-critic.md",
         folders: &[],
+        phase: "Architect",
+        gate: "⑥ Critic",
         required_through_current_gate: false,
     },
     SourceSpec {
         file: "03-Architect/07-tasks.md",
         folders: &[],
+        phase: "Architect",
+        gate: "⑦ Tasks",
         required_through_current_gate: true,
     },
     SourceSpec {
         file: "03-Architect/08-execution.md",
         folders: &[],
+        phase: "Architect",
+        gate: "⑧ Execution",
         required_through_current_gate: true,
     },
     SourceSpec {
         file: "04-Feedback/09-review.md",
         folders: &["04-Feedback/09-reviews"],
+        phase: "Feedback",
+        gate: "⑨ Review",
         required_through_current_gate: true,
     },
     SourceSpec {
         file: "04-Feedback/10-retrospect.md",
         folders: &["04-Feedback/10-retrospective"],
+        phase: "Feedback",
+        gate: "⑩ Retrospect",
         required_through_current_gate: true,
     },
 ];
@@ -103,7 +127,11 @@ pub(crate) struct ReviewSection {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ReviewLine {
-    Separator(String),
+    Separator {
+        relative_path: String,
+        phase: String,
+        gate: String,
+    },
     MissingSource {
         relative_path: String,
     },
@@ -116,7 +144,7 @@ impl ReviewLine {
     #[allow(dead_code)]
     pub(crate) fn visible_text(&self) -> String {
         match self {
-            ReviewLine::Separator(path) => path.clone(),
+            ReviewLine::Separator { relative_path, .. } => relative_path.clone(),
             ReviewLine::MissingSource { relative_path } => {
                 format!("MISSING SOURCE {relative_path}")
             }
@@ -257,7 +285,13 @@ fn append_source(
         let markdown_files = markdown_files_in(&folder_path, folder)?;
         if markdown_files.is_empty() {
             let relative_path = format!("{root_relative_path}/{folder}/");
-            append_section_separator(relative_path.clone(), sections, lines);
+            append_section_separator(
+                relative_path.clone(),
+                spec.phase,
+                spec.gate,
+                sections,
+                lines,
+            );
             lines.push(ReviewLine::Message(format!(
                 "NO MARKDOWN SOURCES {relative_path}"
             )));
@@ -279,7 +313,13 @@ fn append_source(
     }
 
     let relative_path = format!("{root_relative_path}/{}", spec.file);
-    append_section_separator(relative_path.clone(), sections, lines);
+    append_section_separator(
+        relative_path.clone(),
+        spec.phase,
+        spec.gate,
+        sections,
+        lines,
+    );
     lines.push(ReviewLine::MissingSource { relative_path });
     Ok(())
 }
@@ -292,12 +332,18 @@ fn append_file_section(
     lines: &mut Vec<ReviewLine>,
 ) {
     let relative_path = format!("{root_relative_path}/{source_relative_path}");
-    append_section_separator(relative_path, sections, lines);
+    if let Some(spec) = source_spec_for_relative_path(source_relative_path) {
+        append_section_separator(relative_path, spec.phase, spec.gate, sections, lines);
+    } else {
+        append_section_separator(relative_path, "Source", "Source", sections, lines);
+    }
     append_markdown_lines(lines, &content);
 }
 
 fn append_section_separator(
     relative_path: String,
+    phase: &str,
+    gate: &str,
     sections: &mut Vec<ReviewSection>,
     lines: &mut Vec<ReviewLine>,
 ) {
@@ -309,7 +355,21 @@ fn append_section_separator(
         relative_path: relative_path.clone(),
         start_line: lines.len(),
     });
-    lines.push(ReviewLine::Separator(relative_path));
+    lines.push(ReviewLine::Separator {
+        relative_path,
+        phase: phase.to_string(),
+        gate: gate.to_string(),
+    });
+}
+
+fn source_spec_for_relative_path(relative_path: &str) -> Option<&'static SourceSpec> {
+    CANONICAL_SOURCES.iter().find(|spec| {
+        relative_path == spec.file
+            || spec
+                .folders
+                .iter()
+                .any(|folder| relative_path.starts_with(&format!("{folder}/")))
+    })
 }
 
 #[derive(Debug)]
@@ -397,6 +457,13 @@ fn preview_visible_text(line: &crate::preview::PreviewLine) -> String {
         }
         crate::preview::PreviewLine::Styled(spans) => {
             spans.iter().map(preview_span_text_one).collect()
+        }
+        crate::preview::PreviewLine::SourceBoundary {
+            phase,
+            gate,
+            source,
+        } => {
+            format!("{phase} / {gate} {source}")
         }
     }
 }
@@ -515,13 +582,14 @@ mod tests {
 
         assert!(matches!(
             document.lines.first(),
-            Some(ReviewLine::Separator(path)) if path == ".leaf/02-leaves/demo/00-status.md"
+            Some(ReviewLine::Separator { relative_path, .. })
+                if relative_path == ".leaf/02-leaves/demo/00-status.md"
         ));
         let intent_start = document.sections[1].start_line;
         assert!(matches!(
             &document.lines[intent_start],
-            ReviewLine::Separator(path)
-                if path == ".leaf/02-leaves/demo/01-Learn/01-intent.md"
+            ReviewLine::Separator { relative_path, .. }
+                if relative_path == ".leaf/02-leaves/demo/01-Learn/01-intent.md"
         ));
         assert_eq!(document.lines[intent_start - 1].visible_text(), "");
         assert_eq!(document.lines[intent_start - 2].visible_text(), "");

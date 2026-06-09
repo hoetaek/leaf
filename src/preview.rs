@@ -3,7 +3,7 @@ use anyhow::Result;
 use std::fs;
 use std::path::Path;
 
-const MAX_LEAF_PREVIEW_LINES: usize = 18;
+const MAX_LEAF_PREVIEW_LINES: usize = 32;
 const STATUS_PREVIEW_LINES: usize = 8;
 const SECONDARY_PREVIEW_LINES: usize = 4;
 const DIGEST_SUMMARY_LINES: usize = 8;
@@ -27,6 +27,11 @@ pub(crate) enum PreviewLine {
     },
     Code(String),
     Styled(Vec<PreviewSpan>),
+    SourceBoundary {
+        phase: String,
+        gate: String,
+        source: String,
+    },
     Plain(String),
 }
 
@@ -47,9 +52,30 @@ pub(crate) fn build_from_source(slug: &str, source: &PreviewSource) -> Result<Pr
         } => {
             let mut lines = Vec::new();
             append_primary_file(&mut lines, status_path, STATUS_PREVIEW_LINES);
-            append_secondary_file(&mut lines, intent_path, SECONDARY_PREVIEW_LINES);
-            append_secondary_file(&mut lines, unknowns_path, SECONDARY_PREVIEW_LINES);
-            append_secondary_file(&mut lines, criteria_path, SECONDARY_PREVIEW_LINES);
+            append_gate_file(
+                &mut lines,
+                intent_path,
+                "Learn",
+                "① Intent",
+                "01-Learn/01-intent.md",
+                SECONDARY_PREVIEW_LINES,
+            );
+            append_gate_file(
+                &mut lines,
+                unknowns_path,
+                "Learn",
+                "② Unknowns",
+                "01-Learn/02-unknowns.md",
+                SECONDARY_PREVIEW_LINES,
+            );
+            append_gate_file(
+                &mut lines,
+                criteria_path,
+                "Example",
+                "③ Criteria",
+                "02-Example/03-criteria.md",
+                SECONDARY_PREVIEW_LINES,
+            );
             lines.truncate(MAX_LEAF_PREVIEW_LINES);
 
             Ok(Preview {
@@ -127,8 +153,24 @@ fn append_primary_file(lines: &mut Vec<PreviewLine>, path: &Path, limit: usize) 
     }
 }
 
-fn append_secondary_file(lines: &mut Vec<PreviewLine>, path: &Path, limit: usize) {
+fn append_gate_file(
+    lines: &mut Vec<PreviewLine>,
+    path: &Path,
+    phase: &str,
+    gate: &str,
+    source: &str,
+    limit: usize,
+) {
     if let Ok(content) = fs::read_to_string(path) {
+        if !lines.is_empty() {
+            lines.push(PreviewLine::Plain(String::new()));
+            lines.push(PreviewLine::Plain(String::new()));
+        }
+        lines.push(PreviewLine::SourceBoundary {
+            phase: phase.to_string(),
+            gate: gate.to_string(),
+            source: source.to_string(),
+        });
         lines.extend(marked_lines(useful_lines(&content, limit)));
     }
 }
@@ -363,6 +405,13 @@ mod tests {
                 format!("{marker} {}", span_text(spans))
             }
             PreviewLine::Styled(spans) => spans.iter().map(preview_span_text).collect(),
+            PreviewLine::SourceBoundary {
+                phase,
+                gate,
+                source,
+            } => {
+                format!("{phase} / {gate} {source}")
+            }
         }
     }
 
@@ -565,6 +614,48 @@ mod tests {
         assert!(
             status_index < intent_index,
             "status should come before intent: {text:?}"
+        );
+    }
+
+    #[test]
+    fn preview_build_leaf_work_separates_gate_snippets_with_phase_boundaries() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        root.child(".leaf/02-leaves/preview/00-status.md")
+            .write_str("# Leaf Status\n\n- current phase: Example\n- current gate: ③ Criteria\n")
+            .expect("status");
+        root.child(".leaf/02-leaves/preview/01-Learn/01-intent.md")
+            .write_str("# Intent\n\n의도\n")
+            .expect("intent");
+        root.child(".leaf/02-leaves/preview/01-Learn/02-unknowns.md")
+            .write_str("# Unknowns\n\n맥락\n")
+            .expect("unknowns");
+        root.child(".leaf/02-leaves/preview/02-Example/03-criteria.md")
+            .write_str("# Criteria\n\n기준\n")
+            .expect("criteria");
+
+        let inventory = inventory::load(root.path()).expect("inventory");
+        let item = inventory.buckets[1]
+            .items
+            .iter()
+            .find(|item| item.bucket == Bucket::Leaves && item.slug == "preview")
+            .expect("item");
+
+        let preview = build_from_source(&item.slug, &item.preview).expect("preview");
+        let text = preview_text(&preview);
+        let intent_boundary = text
+            .iter()
+            .position(|line| line.contains("Learn / ① Intent"))
+            .expect("intent boundary");
+        let criteria_boundary = text
+            .iter()
+            .position(|line| line.contains("Example / ③ Criteria"))
+            .expect("criteria boundary");
+
+        assert_eq!(text[intent_boundary - 1], "");
+        assert_eq!(text[intent_boundary - 2], "");
+        assert!(
+            intent_boundary < criteria_boundary,
+            "Learn gate should render before Example gate: {text:?}"
         );
     }
 

@@ -2092,6 +2092,11 @@ mod tests {
                         | crate::preview::PreviewSpan::Code(text) => text.as_str(),
                     })
                     .collect(),
+                PreviewLine::SourceBoundary {
+                    phase,
+                    gate,
+                    source,
+                } => format!("{phase} / {gate} {source}"),
             })
             .collect::<Vec<_>>()
             .join("\n")

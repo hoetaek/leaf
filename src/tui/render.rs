@@ -474,6 +474,11 @@ fn preview_line(line: &PreviewLine) -> Line<'static> {
         PreviewLine::Styled(spans) => {
             Line::from(spans.iter().map(preview_span).collect::<Vec<_>>())
         }
+        PreviewLine::SourceBoundary {
+            phase,
+            gate,
+            source,
+        } => source_boundary_line(None, phase, gate, source),
         PreviewLine::Plain(text) => Line::from(text.clone()),
     }
 }
@@ -488,10 +493,11 @@ fn preview_span(span: &PreviewSpan) -> Span<'static> {
 
 fn review_line(line: &ReviewLine) -> Line<'static> {
     match line {
-        ReviewLine::Separator(path) => Line::from(vec![
-            Span::styled("FILE ", strong_style().fg(Color::Yellow)),
-            Span::styled(path.clone(), strong_style()),
-        ]),
+        ReviewLine::Separator {
+            relative_path,
+            phase,
+            gate,
+        } => source_boundary_line(Some("FILE"), phase, gate, relative_path),
         ReviewLine::MissingSource { relative_path } => Line::from(vec![
             Span::styled("MISSING SOURCE", Style::default().fg(Color::Red)),
             Span::raw(" "),
@@ -500,6 +506,41 @@ fn review_line(line: &ReviewLine) -> Line<'static> {
         ReviewLine::Markdown(line) => preview_line(line),
         ReviewLine::Message(text) => Line::from(text.clone()),
     }
+}
+
+fn source_boundary_line(
+    prefix: Option<&str>,
+    phase: &str,
+    gate: &str,
+    source: &str,
+) -> Line<'static> {
+    let mut spans = Vec::new();
+    if let Some(prefix) = prefix {
+        spans.push(Span::styled(
+            format!("{prefix} "),
+            strong_style().fg(Color::Yellow),
+        ));
+    }
+    spans.extend([
+        Span::styled(phase.to_string(), phase_style(phase)),
+        Span::styled(" / ".to_string(), chrome_style()),
+        Span::styled(gate.to_string(), strong_style()),
+        Span::raw("  "),
+        Span::styled(source.to_string(), dim_style()),
+    ]);
+    Line::from(spans)
+}
+
+fn phase_style(phase: &str) -> Style {
+    let color = match phase {
+        "Learn" => Color::Cyan,
+        "Example" => Color::Green,
+        "Architect" => Color::Magenta,
+        "Feedback" => Color::Yellow,
+        "Status" => Color::Gray,
+        _ => Color::White,
+    };
+    Style::default().fg(color).add_modifier(Modifier::BOLD)
 }
 
 fn current_source_index(document: &ReviewDocument, scroll_offset: usize) -> usize {
@@ -956,10 +997,37 @@ mod tests {
     }
 
     #[test]
+    fn preview_line_renders_source_boundary_with_phase_color() {
+        let line = preview_line(&PreviewLine::SourceBoundary {
+            phase: "Example".to_string(),
+            gate: "③ Criteria".to_string(),
+            source: "02-Example/03-criteria.md".to_string(),
+        });
+        let rendered = line
+            .spans
+            .iter()
+            .map(|span| span.content.as_ref())
+            .collect::<String>();
+
+        assert!(rendered.contains("Example"));
+        assert!(rendered.contains("③ Criteria"));
+        assert!(rendered.contains("02-Example/03-criteria.md"));
+        let phase_span = line
+            .spans
+            .iter()
+            .find(|span| span.content.as_ref() == "Example")
+            .expect("phase span");
+        assert_eq!(phase_span.style.fg, Some(Color::Green));
+        assert!(phase_span.style.add_modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
     fn review_separator_renders_as_prominent_file_boundary() {
-        let line = review_line(&ReviewLine::Separator(
-            ".leaf/02-leaves/demo/01-Learn/01-intent.md".to_string(),
-        ));
+        let line = review_line(&ReviewLine::Separator {
+            relative_path: ".leaf/02-leaves/demo/01-Learn/01-intent.md".to_string(),
+            phase: "Learn".to_string(),
+            gate: "① Intent".to_string(),
+        });
         let rendered = line
             .spans
             .iter()
@@ -967,7 +1035,15 @@ mod tests {
             .collect::<String>();
 
         assert!(rendered.starts_with("FILE "));
+        assert!(rendered.contains("Learn"));
+        assert!(rendered.contains("① Intent"));
         assert!(rendered.contains(".leaf/02-leaves/demo/01-Learn/01-intent.md"));
+        let phase_span = line
+            .spans
+            .iter()
+            .find(|span| span.content.as_ref() == "Learn")
+            .expect("phase span");
+        assert_eq!(phase_span.style.fg, Some(Color::Cyan));
         assert!(
             line.spans
                 .iter()
