@@ -376,15 +376,24 @@ fn preview_visible_text(line: &crate::preview::PreviewLine) -> String {
             let marker = if *checked { "[x]" } else { "[ ]" };
             format!("{marker} {text}")
         }
-        crate::preview::PreviewLine::ListItem { marker, text } => format!("{marker} {text}"),
-        crate::preview::PreviewLine::Styled(spans) => spans
-            .iter()
-            .map(|span| match span {
-                crate::preview::PreviewSpan::Plain(text)
-                | crate::preview::PreviewSpan::Bold(text)
-                | crate::preview::PreviewSpan::Code(text) => text.as_str(),
-            })
-            .collect(),
+        crate::preview::PreviewLine::ListItem { marker, spans } => {
+            format!("{marker} {}", preview_span_text(spans))
+        }
+        crate::preview::PreviewLine::Styled(spans) => {
+            spans.iter().map(preview_span_text_one).collect()
+        }
+    }
+}
+
+fn preview_span_text(spans: &[crate::preview::PreviewSpan]) -> String {
+    spans.iter().map(preview_span_text_one).collect()
+}
+
+fn preview_span_text_one(span: &crate::preview::PreviewSpan) -> &str {
+    match span {
+        crate::preview::PreviewSpan::Plain(text)
+        | crate::preview::PreviewSpan::Bold(text)
+        | crate::preview::PreviewSpan::Code(text) => text,
     }
 }
 

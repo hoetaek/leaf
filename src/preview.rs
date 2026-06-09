@@ -17,8 +17,14 @@ pub(crate) struct Preview {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum PreviewLine {
     Heading(String),
-    Checkbox { checked: bool, text: String },
-    ListItem { marker: String, text: String },
+    Checkbox {
+        checked: bool,
+        text: String,
+    },
+    ListItem {
+        marker: String,
+        spans: Vec<PreviewSpan>,
+    },
     Code(String),
     Styled(Vec<PreviewSpan>),
     Plain(String),
@@ -79,7 +85,7 @@ pub(crate) fn markup_line(line: &str, in_code_block: &mut bool) -> PreviewLine {
     if let Some((marker, text)) = list_item_text(line) {
         return PreviewLine::ListItem {
             marker: marker.to_string(),
-            text: text.to_string(),
+            spans: inline_or_plain_spans(text),
         };
     }
 
@@ -308,6 +314,10 @@ fn inline_spans(line: &str) -> Option<Vec<PreviewSpan>> {
     if found_markup { Some(spans) } else { None }
 }
 
+fn inline_or_plain_spans(text: &str) -> Vec<PreviewSpan> {
+    inline_spans(text).unwrap_or_else(|| vec![PreviewSpan::Plain(text.to_string())])
+}
+
 #[derive(Clone, Copy)]
 enum InlineMarker {
     Bold,
@@ -349,15 +359,20 @@ mod tests {
                 text.clone()
             }
             PreviewLine::Checkbox { text, .. } => text.clone(),
-            PreviewLine::ListItem { marker, text } => format!("{marker} {text}"),
-            PreviewLine::Styled(spans) => spans
-                .iter()
-                .map(|span| match span {
-                    PreviewSpan::Plain(text)
-                    | PreviewSpan::Bold(text)
-                    | PreviewSpan::Code(text) => text.as_str(),
-                })
-                .collect(),
+            PreviewLine::ListItem { marker, spans } => {
+                format!("{marker} {}", span_text(spans))
+            }
+            PreviewLine::Styled(spans) => spans.iter().map(preview_span_text).collect(),
+        }
+    }
+
+    fn span_text(spans: &[PreviewSpan]) -> String {
+        spans.iter().map(preview_span_text).collect()
+    }
+
+    fn preview_span_text(span: &PreviewSpan) -> &str {
+        match span {
+            PreviewSpan::Plain(text) | PreviewSpan::Bold(text) | PreviewSpan::Code(text) => text,
         }
     }
 
@@ -408,9 +423,9 @@ mod tests {
         let line = markup_line("- first item", &mut in_code_block);
 
         match line {
-            PreviewLine::ListItem { marker, text } => {
+            PreviewLine::ListItem { marker, spans } => {
                 assert_eq!(marker, "•");
-                assert_eq!(text, "first item");
+                assert_eq!(span_text(&spans), "first item");
             }
             other => panic!("expected list item, got {other:?}"),
         }
@@ -423,11 +438,29 @@ mod tests {
         let line = markup_line("12. numbered item", &mut in_code_block);
 
         match line {
-            PreviewLine::ListItem { marker, text } => {
+            PreviewLine::ListItem { marker, spans } => {
                 assert_eq!(marker, "12.");
-                assert_eq!(text, "numbered item");
+                assert_eq!(span_text(&spans), "numbered item");
             }
             other => panic!("expected numbered list item, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn preview_markup_list_item_preserves_inline_bold_and_code() {
+        let mut in_code_block = false;
+
+        let line = markup_line("- **Driver:** use `leaf`", &mut in_code_block);
+
+        match line {
+            PreviewLine::ListItem { marker, spans } => {
+                assert_eq!(marker, "•");
+                assert!(matches!(&spans[0], PreviewSpan::Bold(text) if text == "Driver:"));
+                assert!(matches!(&spans[1], PreviewSpan::Plain(text) if text == " use "));
+                assert!(matches!(&spans[2], PreviewSpan::Code(text) if text == "leaf"));
+                assert_eq!(spans.len(), 3);
+            }
+            other => panic!("expected styled list item, got {other:?}"),
         }
     }
 

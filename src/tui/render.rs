@@ -343,23 +343,24 @@ fn preview_line(line: &PreviewLine) -> Line<'static> {
                 Span::raw(text.clone()),
             ])
         }
-        PreviewLine::ListItem { marker, text } => Line::from(vec![
-            Span::styled(marker.clone(), chrome_style()),
-            Span::raw(" "),
-            Span::raw(text.clone()),
-        ]),
+        PreviewLine::ListItem { marker, spans } => {
+            let mut rendered = vec![Span::styled(marker.clone(), chrome_style()), Span::raw(" ")];
+            rendered.extend(spans.iter().map(preview_span));
+            Line::from(rendered)
+        }
         PreviewLine::Code(text) => Line::styled(text.clone(), code_style()),
-        PreviewLine::Styled(spans) => Line::from(
-            spans
-                .iter()
-                .map(|span| match span {
-                    PreviewSpan::Plain(text) => Span::raw(text.clone()),
-                    PreviewSpan::Bold(text) => Span::styled(text.clone(), strong_style()),
-                    PreviewSpan::Code(text) => Span::styled(text.clone(), code_style()),
-                })
-                .collect::<Vec<_>>(),
-        ),
+        PreviewLine::Styled(spans) => {
+            Line::from(spans.iter().map(preview_span).collect::<Vec<_>>())
+        }
         PreviewLine::Plain(text) => Line::from(text.clone()),
+    }
+}
+
+fn preview_span(span: &PreviewSpan) -> Span<'static> {
+    match span {
+        PreviewSpan::Plain(text) => Span::raw(text.clone()),
+        PreviewSpan::Bold(text) => Span::styled(text.clone(), strong_style()),
+        PreviewSpan::Code(text) => Span::styled(text.clone(), code_style()),
     }
 }
 
@@ -648,7 +649,7 @@ mod tests {
     fn preview_line_renders_list_item_marker_and_text() {
         let line = preview_line(&PreviewLine::ListItem {
             marker: "•".to_string(),
-            text: "source item".to_string(),
+            spans: vec![PreviewSpan::Plain("source item".to_string())],
         });
 
         let rendered = line

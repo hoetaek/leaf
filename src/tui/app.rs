@@ -1978,7 +1978,9 @@ mod tests {
                     text.clone()
                 }
                 PreviewLine::Checkbox { text, .. } => text.clone(),
-                PreviewLine::ListItem { marker, text } => format!("{marker} {text}"),
+                PreviewLine::ListItem { marker, spans } => {
+                    format!("{marker} {}", preview_span_text(spans))
+                }
                 PreviewLine::Styled(spans) => spans
                     .iter()
                     .map(|span| match span {
@@ -1990,6 +1992,17 @@ mod tests {
             })
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    fn preview_span_text(spans: &[crate::preview::PreviewSpan]) -> String {
+        spans
+            .iter()
+            .map(|span| match span {
+                crate::preview::PreviewSpan::Plain(text)
+                | crate::preview::PreviewSpan::Bold(text)
+                | crate::preview::PreviewSpan::Code(text) => text.as_str(),
+            })
+            .collect()
     }
 
     fn pressed_item(slug: &str, status: StatusSummary) -> InventoryItem {
