@@ -6,52 +6,64 @@ use std::path::{Path, PathBuf};
 struct SourceSpec {
     file: &'static str,
     folders: &'static [&'static str],
+    required_through_current_gate: bool,
 }
 
 const CANONICAL_SOURCES: [SourceSpec; 11] = [
     SourceSpec {
         file: "00-status.md",
         folders: &[],
+        required_through_current_gate: true,
     },
     SourceSpec {
         file: "01-Learn/01-intent.md",
         folders: &[],
+        required_through_current_gate: true,
     },
     SourceSpec {
         file: "01-Learn/02-unknowns.md",
         folders: &[],
+        required_through_current_gate: true,
     },
     SourceSpec {
         file: "02-Example/03-criteria.md",
         folders: &[],
+        required_through_current_gate: true,
     },
     SourceSpec {
         file: "02-Example/04-wireframe.md",
         folders: &["02-Example/04-wireframe"],
+        required_through_current_gate: true,
     },
     SourceSpec {
         file: "03-Architect/05-design.md",
         folders: &[],
+        required_through_current_gate: true,
     },
     SourceSpec {
         file: "03-Architect/06-critic.md",
         folders: &[],
+        required_through_current_gate: false,
     },
     SourceSpec {
         file: "03-Architect/07-tasks.md",
         folders: &[],
+        required_through_current_gate: true,
     },
     SourceSpec {
         file: "03-Architect/08-execution.md",
         folders: &[],
+        required_through_current_gate: true,
     },
     SourceSpec {
         file: "04-Feedback/09-review.md",
         folders: &["04-Feedback/09-reviews"],
+        required_through_current_gate: true,
     },
     SourceSpec {
         file: "04-Feedback/10-retrospect.md",
         folders: &["04-Feedback/10-retrospective"],
+        required_through_current_gate: true,
     },
 ];
 
@@ -140,7 +152,7 @@ fn build_leaf_work(root_path: PathBuf, root_relative_path: String) -> Result<Rev
         let include = if index == 0 {
             true
         } else if let Some(gate) = current_gate {
-            index <= gate || source_exists(&root_path, spec)
+            source_exists(&root_path, spec) || (index <= gate && spec.required_through_current_gate)
         } else {
             source_exists(&root_path, spec)
         };
@@ -577,6 +589,35 @@ mod tests {
         assert!(text.contains("MISSING SOURCE"));
         assert!(text.contains(".leaf/02-leaves/demo/03-Architect/05-design.md"));
         assert!(!text.contains(".leaf/02-leaves/demo/03-Architect/06-critic.md"));
+    }
+
+    #[test]
+    fn review_build_does_not_require_lazy_critic_file_when_missing() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_file(
+            &root,
+            slug,
+            "00-status.md",
+            "# Leaf Status\n\n- current gate: ⑦ Tasks\n",
+        );
+        write_file(&root, slug, "01-Learn/01-intent.md", "# Intent\n");
+        write_file(&root, slug, "01-Learn/02-unknowns.md", "# Unknowns\n");
+        write_file(&root, slug, "02-Example/03-criteria.md", "# Criteria\n");
+        write_file(&root, slug, "02-Example/04-wireframe.md", "# Wireframe\n");
+        write_file(
+            &root,
+            slug,
+            "03-Architect/05-design.md",
+            "# Design\n\nCritic quick pass: APPROVE.\n",
+        );
+
+        let document = build(&source(&root, slug)).expect("review document");
+        let text = visible_text(&document);
+
+        assert!(!text.contains(".leaf/02-leaves/demo/03-Architect/06-critic.md"));
+        assert!(text.contains(".leaf/02-leaves/demo/03-Architect/07-tasks.md"));
+        assert!(text.contains("MISSING SOURCE"));
     }
 
     #[test]

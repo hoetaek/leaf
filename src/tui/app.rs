@@ -99,7 +99,7 @@ const BUCKET_FILTERS: [BucketFilter; 5] = [
     BucketFilter::Bucket(Bucket::Fallen),
     BucketFilter::Bucket(Bucket::Pressed),
 ];
-const REVIEW_PAGE_SIZE: usize = 10;
+const DEFAULT_REVIEW_BODY_HEIGHT: usize = 10;
 
 impl ListRow {
     fn from_item(inventory: &Inventory, item: &InventoryItem) -> Self {
@@ -209,7 +209,7 @@ impl AppState {
             range_anchor: None,
             mouse_anchor: None,
             preview_cache: RefCell::new(HashMap::new()),
-            review_body_height: Cell::new(REVIEW_PAGE_SIZE),
+            review_body_height: Cell::new(DEFAULT_REVIEW_BODY_HEIGHT),
             review_state: None,
         };
         state.refresh_visibility_state();
@@ -412,8 +412,8 @@ impl AppState {
         match input {
             KeyInput::Down | KeyInput::Char('j') => self.scroll_review_down(1),
             KeyInput::Up | KeyInput::Char('k') => self.scroll_review_up(1),
-            KeyInput::PageDown => self.scroll_review_down(REVIEW_PAGE_SIZE),
-            KeyInput::PageUp => self.scroll_review_up(REVIEW_PAGE_SIZE),
+            KeyInput::PageDown => self.scroll_review_down(self.review_page_step()),
+            KeyInput::PageUp => self.scroll_review_up(self.review_page_step()),
             KeyInput::Char('g') => self.scroll_review_top(),
             KeyInput::Char('G') => self.scroll_review_bottom(),
             KeyInput::Char('r') => self.refresh_review(),
@@ -477,6 +477,10 @@ impl AppState {
                 }
             }
         }
+    }
+
+    fn review_page_step(&self) -> usize {
+        self.review_body_height.get().max(1)
     }
 
     fn scroll_review_down(&mut self, amount: usize) {
@@ -1380,6 +1384,42 @@ mod tests {
                 .visible_text()
                 .contains("new text")
         );
+    }
+
+    #[test]
+    fn tui_app_review_page_keys_use_rendered_body_height() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_preview_status(
+            root.path(),
+            Bucket::Leaves,
+            slug,
+            "- current gate: ① Intent\n",
+        );
+        let intent_path = root
+            .path()
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug)
+            .join("01-Learn/01-intent.md");
+        std::fs::create_dir_all(intent_path.parent().unwrap()).expect("intent dir");
+        let body = (1..=20)
+            .map(|line| format!("intent line {line:02}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        std::fs::write(&intent_path, format!("# Intent\n\n{body}\n")).expect("intent");
+        let item = leaf_item_at(root.path(), Bucket::Leaves, slug, complete_leaf_status());
+        let inventory = inventory_with_root(root.path(), vec![item]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+        app.set_review_body_height(4);
+        assert_eq!(app.handle_key(KeyInput::PageDown), Outcome::Continue);
+
+        assert_eq!(app.review_state().unwrap().scroll_offset, 4);
+
+        assert_eq!(app.handle_key(KeyInput::PageUp), Outcome::Continue);
+        assert_eq!(app.review_state().unwrap().scroll_offset, 0);
     }
 
     #[test]
