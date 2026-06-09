@@ -46,9 +46,10 @@ leaf init
 leaf new my-first-idea
 ```
 
-Ask your agent to use `leaf-work` for substantial vague work, or `leaf-idea` to
-capture an idea before it becomes committed work. When Learn is complete, move
-the work into active leaf storage:
+Ask your agent to use `leaf-idea` to capture an idea and run the Learn phase on a
+seed (lock ① Intent, resolve ② Unknowns & Context); use `leaf-work` to carry a
+promoted leaf from ③ Example through to a shipped result. When Learn is complete,
+move the work into active leaf storage:
 
 ```bash
 leaf promote my-first-idea
@@ -156,8 +157,8 @@ This repository ships Agent Skills:
 
 | Skill | Use it for |
 |---|---|
-| [`leaf-work`](skills/leaf-work/SKILL.md) | Turning a vague idea into structured LEAF work |
-| [`leaf-idea`](skills/leaf-idea/SKILL.md) | Capturing, parking, comparing, or lightly triaging rough ideas |
+| [`leaf-idea`](skills/leaf-idea/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a seed |
+| [`leaf-work`](skills/leaf-work/SKILL.md) | Carrying a promoted leaf from ③ Example to a shipped result |
 | [`leaf-press`](skills/leaf-press/SKILL.md) | Creating citable Markdown digests from LEAF work |
 | [`leaf-fall`](skills/leaf-fall/SKILL.md) | Closing active leaves into the fallen archive |
 
@@ -166,6 +167,9 @@ Install one skill when you only want one workflow:
 ```bash
 npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-work
 ```
+
+`leaf-idea` reads the shared gate references that ship with `leaf-work`
+(`../leaf-work/references/`), so install those two together.
 
 ## Status
 

@@ -31,7 +31,7 @@ const FILES: &[(&str, &str)] = &[
     ),
     (
         "01-Learn/02-references/README.md",
-        "# References\n\nStore bulky source material here and summarize useful facts in ../02-unknowns.md.\n",
+        "# References\n\nLearn always builds context here — this is not a lazy, fill-when-stuck folder. Pull both external references (comparable cases, prior art, authoritative sources) and internal ones (your own documents, data, prior decisions) into context files, one folder or file per source, kept in a form you can see. Then summarize only what the work truly needs out into ../02-unknowns.md, with its source.\n",
     ),
     (
         "02-Example/03-criteria.md",

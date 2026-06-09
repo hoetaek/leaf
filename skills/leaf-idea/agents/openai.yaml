@@ -1,7 +1,7 @@
 interface:
   display_name: "LEAF Idea"
-  short_description: "Capture loose ideas before LEAF work"
-  default_prompt: "Use $leaf-idea to capture this rough idea as a .leaf seed and recommend whether to defer, enrich, split, kill, or promote it after Learn."
+  short_description: "Capture ideas and run the LEAF Learn phase on seeds"
+  default_prompt: "Use $leaf-idea to capture this idea as a .leaf seed, triage it (kill/defer/enrich/split), and run Learn — lock ① Intent and resolve ② Unknowns & Context — then recommend whether to promote it to leaf-work."
 
 policy:
   allow_implicit_invocation: true

@@ -1,15 +1,22 @@
 ---
 name: leaf-idea
-description: Use when capturing, parking, comparing, enriching, splitting, or lightly triaging a rough idea before committing to full leaf-work; trigger on idea backlog, "save this idea", "maybe later", brainstorm fragments, early document/product/research topics, bundled ideas that may need separate seeds, or requests to decide whether an idea should die, defer, enrich, split, or become structured LEAF work.
+description: Use when capturing, triaging, or running the LEAF Learn phase (① Intent and ② Unknowns & Context) on a seed before committing to full leaf-work; trigger on idea backlog, "save this idea", "maybe later", brainstorm fragments, early document/product/research topics, locking intent, surfacing unknowns, reference/benchmark exploration, bundled ideas that may need separate seeds, or requests to decide whether an idea should die, defer, enrich, split, learn, or become structured LEAF work.
 ---
 
 # LEAF Idea
 
-Use this skill for an idea-only pass before full `leaf-work`. The goal is to
-preserve enough context that the idea can be resumed later without pretending it
-is ready for criteria, wireframe, design, tasks, or execution.
+This skill owns the **Learn phase** of LEAF — gates ① Intent and ② Unknowns &
+Context — on seeds in `.leaf/01-seeds/<slug>/`. It carries a rough idea to the
+point where you can judge what the work needs: capture it, lock the intent, learn
+the unknowns, reach readiness, then hand off to `leaf-work` at ③.
 
-An idea is exploration. It is allowed to die.
+The entry is triage, and an idea is allowed to die there. Capture is cheap; before
+spending Learn on an idea, decide whether it is worth it — kill, defer, enrich,
+split, or run Learn. Triage is the gate; Learn is the body once the idea earns it.
+
+`leaf-work` takes over at ③ Example, after `leaf promote <slug>`. Do not pretend a
+seed is ready for criteria, wireframe, design, tasks, or execution — that is the
+other skill's job, and it begins only once Learn passes here.
 
 A seed is one possible future leaf, not an inbox. Before capturing or promoting,
 decide whether the rough input is one work item, several independent future
@@ -22,16 +29,31 @@ leaves, or one unstable frame that needs a question before it can be split.
   seed carry multiple independent outcomes that could become sibling leaves.
 - Create or resume a seed with the `leaf` CLI. Run `leaf init` first when
   `.leaf/` is absent, then `leaf new <slug>` unless the seed already exists.
-- Work only in `00-status.md`, `01-Learn/01-intent.md`, and
-  `01-Learn/02-unknowns.md` unless the user explicitly promotes to
-  `leaf-work`.
-- Do not fill Gate 3 Criteria, Gate 4 Wireframe, Gate 5 Design, or tasks from
-  this skill. Mention the next gate only as a recommendation.
-- If the user wants a real artifact, plan, draft, task graph, benchmark, or
-  execution path now, switch to `leaf-work`.
+- Work in `00-status.md` and the `01-Learn/` phase — `01-Learn/01-intent.md` (①),
+  `01-Learn/02-unknowns.md` (②), and its sidecars `01-Learn/02-references/` and
+  `01-Learn/02-experiments/`. Do not write into `02-Example/` or later phases.
+- Do not fill ③ Criteria, ④ Wireframe, ⑤ Design, or tasks from this skill.
+  Mention the next gate only as a recommendation; `leaf promote <slug>` hands the
+  seed to `leaf-work` for ③ onward.
+- If the user wants a real artifact, plan, draft, task graph, or execution path
+  now, switch to `leaf-work`. (Reference and benchmark *exploration* to learn the
+  unknowns is ②'s job here; building from them is `leaf-work`.)
 - `leaf promote <slug>` is the boundary from seed to active leaf. Do not run it
   merely because an idea was captured; run it only when the user explicitly
   commits the work and the next LEAF move is after Learn.
+
+## Reference map
+
+The gate contracts are shared with `leaf-work`, not duplicated here. Read them as
+siblings under `../leaf-work/references/`:
+
+| Read | When |
+|---|---|
+| `../leaf-work/references/gates.md` (① Intent, ② Unknowns & Context) | the authoritative pass/fail test for the gate you are in — act by it |
+| `../leaf-work/references/gate-authoring.md` | drafting, grilling, or revising the intent or unknowns artifact |
+| `../leaf-work/references/clarity-ledger.md` | as a lens in ① / ② — glance at its five rows to aim the next question or learning gap |
+| `../leaf-work/references/experiment-log.md` | a ② unknown needs an independent, cheap probe to settle ("is this true?") |
+| `../leaf-work/references/layout.md` | naming, file-vs-folder-by-count, and the `00-status.md` template |
 
 ## First Read
 
@@ -71,18 +93,87 @@ the explicit reason it is one grouped outcome.
 
 ## Capture
 
-Record a compact idea snapshot:
+Record a compact idea snapshot first — enough to triage, not yet the full Learn
+pass:
 
 - raw user wording, preserving phrasing that may matter later
 - current hunch: what this might become, stated as tentative
 - why it surfaced: problem, obligation, curiosity, discomfort, or unknown
 - possible output forms, if visible
 - related seeds, leaves, docs, files, or prior decisions checked
-- assumptions, risks, non-goals, and open questions
 
-Write raw wording and current hunch in `01-Learn/01-intent.md`. Write unknowns,
-known context, evidence checked, and open questions in `01-Learn/02-unknowns.md`.
-Keep entries short; this is not a full Learn pass.
+Write raw wording and current hunch in `01-Learn/01-intent.md`; write context
+checked and open questions in `01-Learn/02-unknowns.md`. If triage says `kill` or
+`defer`, stop here. If the idea earns Learn, deepen it through ① and ② below.
+
+## Gate ① Intent
+
+Lock why the work is needed and, derived from that, what is actually wanted. Read
+`../leaf-work/references/gates.md` ① for the full contract; the moves below are
+what this gate adds in practice.
+
+**Surface your guessed facts and ask before locking.** Stating an intent forces
+assumptions — about the purpose, the audience, the output form, the deadline,
+what the user already has. Do not bury them in a confident sentence. List the
+facts you are *guessing* rather than know, mark each `ASSUMPTION:`, and ask the
+user to confirm or correct them before locking the one-sentence intent. A wrong
+guess locked here unravels every later gate; a guess the user confirms becomes a
+fact the work can stand on.
+
+Then record: raw wording preserved; the why followed to where it lands (a problem
+definition, an external obligation with the deeper why asked, curiosity locked as
+exploratory, or a felt sense deferred to ②); the current one-sentence intent
+stated separately from the raw wording, with any gap from the surface request
+noted; a stable core noun. The work is still allowed to die or change shape.
+
+## Gate ② Unknowns & Context
+
+Learn what the work needs until you can say what to choose between and on what
+basis — that point is what ③ Criteria consumes. Read
+`../leaf-work/references/gates.md` ② for the full contract, and use
+`../leaf-work/references/clarity-ledger.md` as a lens to aim learning at the
+weakest dimension.
+
+Categorize unknowns by kind (domain concepts / standards & conventions /
+selection criteria) and by source — **external** (comparable cases, prior art,
+benchmarks, authoritative sources, recent domain changes) and **internal** (what
+the user or team already holds).
+
+**Drive the external facts: find what to search, then ask the user.** Standards,
+conventions, and comparables live outside and shift over time — do not guess
+them. Before searching, name the specific external facts this work depends on and
+turn them into concrete search targets (e.g. "the accepted structure of a
+공적서", "how comparable reports open", "the current rubric wording"). Show the
+user that list and ask: which should I look up, which do you already know the
+answer to, and what would you search that I have not named? Let the user confirm
+or reprioritize the targets and supply the internal facts only they hold, before
+you spend effort searching.
+
+**Build your own context files — this is not lazy gathering.**
+`01-Learn/02-references/` is not an on-demand scratchpad you touch only when
+stuck; in Learn you always populate it. Pull both the **external** references
+(comparable cases, prior art, benchmarks, authoritative sources) and the
+**internal** ones (the user's or team's own documents, data, prior decisions)
+into your own context files there — one folder or file per source — and keep each
+in a form you can see and judge by eye, not reduced to a one-line note. For UI or
+web work, capture the rendered reference page as a self-contained `.html` file
+(and a screenshot); for documents, keep the source excerpt or PDF; for data or
+code, the snippet. Open them in the user's preferred viewer and judge together —
+what to copy, adapt, avoid, or reject. References are study material for judgment,
+not a design to copy wholesale; the locked instance comes later at ④, not from a
+pasted reference.
+
+**Then extract the essentials out.** `02-references/` holds the raw gathered
+context — the inside; `02-unknowns.md` holds the distilled facts the later gates
+read — the outside. From the context files, summarize only what the work truly
+needs (the established fact, the verdict, the convention to follow) back out into
+`02-unknowns.md`, with its source. When an unknown needs an independent probe to
+settle, use the experiment machine (`../leaf-work/references/experiment-log.md`)
+and keep the process in `01-Learn/02-experiments/{name}.md`.
+
+Close the gate when blocking unknowns have sourced answers or flagged
+assumptions, the fact/assumption boundary is visible, and the user can state what
+to choose between and on what basis.
 
 ## Review Handoff
 
@@ -96,8 +187,8 @@ Use these status labels in `00-status.md`:
 
 - `captured`: raw idea saved with minimal context
 - `enriched`: meaningful context, references, or alternatives were added
-- `ready-for-leaf-work`: enough context exists to start full gate work without
-  rediscovering the basics
+- `ready-for-leaf-work`: ① Intent and ② Unknowns & Context have passed; ③
+  Criteria can start in `leaf-work` after `leaf promote <slug>`
 - `deferred`: intentionally parked with a resume condition
 - `killed`: intentionally not worth pursuing now
 
@@ -114,12 +205,13 @@ End every pass with one recommendation:
 | `defer` | the idea is real but not worth attention until a named condition changes |
 | `enrich` | one or two cheap facts/examples would decide whether it has weight |
 | `split` | several independent future leaves are bundled together and need separate seeds |
-| `promote to leaf-work` | the user wants structured work and Gate 1 can start |
+| `promote to leaf-work` | ① and ② have passed and the user commits to Example onward |
 
-When recommending promotion, name the first missing `leaf-work` gate and the
-one question or artifact that should start it. If Learn is already complete and
-the next phase is Example, run `leaf promote <slug>` after explicit user
-approval and continue from `.leaf/02-leaves/<slug>/`.
+Promotion is the Learn→Example boundary. Recommend it only when ① Intent and ②
+Unknowns & Context have passed here; name what ③ Criteria should consume — what
+the user can now choose between and on what basis. Run `leaf promote <slug>`
+after explicit user approval and continue from `.leaf/02-leaves/<slug>/` in
+`leaf-work`.
 
 ## Response Shape
 
