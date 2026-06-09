@@ -1,4 +1,5 @@
 use crate::inventory::{Bucket, ParseState};
+use crate::list_columns::{ColumnWidth, LIST_COLUMNS, ListColumn};
 use crate::preview::{PreviewLine, PreviewSpan};
 use crate::review::{ReviewDocument, ReviewLine};
 use crate::tui::app::{AppState, BucketFilter, ListRow, Mode};
@@ -9,6 +10,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
 
 const PREVIEW_MIN_HEIGHT: u16 = 14;
+const SELECTION_COLUMN_WIDTH: u16 = 3;
 
 pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
     let area = frame.area();
@@ -149,20 +151,10 @@ fn draw_table(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             table_row(row, app.visible_row_is_marked(index)).style(row_style(app, index))
         });
 
-    let table = Table::new(
-        rows,
-        [
-            Constraint::Length(3),
-            Constraint::Length(8),
-            Constraint::Length(14),
-            Constraint::Length(18),
-            Constraint::Min(18),
-            Constraint::Length(8),
-        ],
-    )
-    .header(Row::new(["SEL", "BUCKET", "PHASE", "GATE", "SLUG", "STATUS"]).style(chrome_style()))
-    .column_spacing(1)
-    .block(chrome_block().title("Inventory"));
+    let table = Table::new(rows, table_constraints())
+        .header(Row::new(table_header()).style(chrome_style()))
+        .column_spacing(1)
+        .block(chrome_block().title("Inventory"));
     frame.render_widget(table, area);
 }
 
@@ -228,15 +220,42 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
 
 fn table_row(row: &ListRow, marked: bool) -> Row<'_> {
     let marker = if marked { "*" } else { " " };
-    Row::new(vec![
-        Cell::from(marker).style(strong_style()),
-        Cell::from(row.bucket_label().to_string()).style(bucket_style(row.bucket())),
-        Cell::from(row.phase().to_string()),
-        Cell::from(row.gate().to_string()),
-        Cell::from(row.slug().to_string()),
-        Cell::from(parse_state_label(row.parse_state()).to_string())
-            .style(parse_state_style(row.parse_state())),
-    ])
+    let mut cells = vec![Cell::from(marker).style(strong_style())];
+    cells.extend(
+        LIST_COLUMNS
+            .iter()
+            .copied()
+            .map(|column| table_cell(column, row)),
+    );
+    Row::new(cells)
+}
+
+fn table_header() -> Vec<Cell<'static>> {
+    let mut cells = vec![Cell::from("SEL")];
+    cells.extend(
+        LIST_COLUMNS
+            .iter()
+            .map(|column| Cell::from(column.header())),
+    );
+    cells
+}
+
+fn table_constraints() -> Vec<Constraint> {
+    let mut constraints = vec![Constraint::Length(SELECTION_COLUMN_WIDTH)];
+    constraints.extend(LIST_COLUMNS.iter().map(|column| match column.tui_width() {
+        ColumnWidth::Fixed(width) => Constraint::Length(width),
+        ColumnWidth::Min(width) => Constraint::Min(width),
+    }));
+    constraints
+}
+
+fn table_cell(column: ListColumn, row: &ListRow) -> Cell<'static> {
+    let cell = Cell::from(column.value(row));
+    match column {
+        ListColumn::Bucket => cell.style(bucket_style(row.bucket())),
+        ListColumn::Status => cell.style(parse_state_style(row.parse_state())),
+        ListColumn::Phase | ListColumn::Gate | ListColumn::Slug => cell,
+    }
 }
 
 /// Computes the table chunk for a full terminal `Rect`, mirroring the layout
@@ -423,14 +442,6 @@ fn bucket_filter_label(filter: BucketFilter) -> &'static str {
         BucketFilter::Bucket(Bucket::Leaves) => "leaves",
         BucketFilter::Bucket(Bucket::Fallen) => "fallen",
         BucketFilter::Bucket(Bucket::Pressed) => "pressed",
-    }
-}
-
-fn parse_state_label(state: ParseState) -> &'static str {
-    match state {
-        ParseState::Ok => "ok",
-        ParseState::Partial => "partial",
-        ParseState::Error => "error",
     }
 }
 

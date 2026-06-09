@@ -1,4 +1,7 @@
 use crate::inventory::{Bucket, Inventory, InventoryItem, ParseState, PreviewSource};
+use crate::list_columns::{
+    LIST_COLUMNS, ListColumnRow, bucket_label_plural, bucket_label_singular, markdown_table,
+};
 use crate::preview::{self, Preview, PreviewLine};
 use crate::review::{self, ReviewDocument, ReviewSource};
 use std::cell::{Cell, RefCell};
@@ -128,20 +131,8 @@ impl ListRow {
         self.bucket
     }
 
-    pub(crate) fn bucket_label(&self) -> &str {
-        &self.bucket_label
-    }
-
     pub(crate) fn slug(&self) -> &str {
         &self.slug
-    }
-
-    pub(crate) fn phase(&self) -> &str {
-        &self.phase
-    }
-
-    pub(crate) fn gate(&self) -> &str {
-        &self.gate
     }
 
     pub(crate) fn parse_state(&self) -> ParseState {
@@ -162,6 +153,28 @@ impl ListRow {
 
     pub(crate) fn review_source(&self) -> Option<&ReviewSource> {
         self.review_source.as_ref()
+    }
+}
+
+impl ListColumnRow for ListRow {
+    fn bucket_label(&self) -> &str {
+        &self.bucket_label
+    }
+
+    fn phase(&self) -> &str {
+        &self.phase
+    }
+
+    fn gate(&self) -> &str {
+        &self.gate
+    }
+
+    fn slug(&self) -> &str {
+        &self.slug
+    }
+
+    fn parse_state(&self) -> ParseState {
+        self.parse_state
     }
 }
 
@@ -909,25 +922,7 @@ fn searchable_text(
 }
 
 fn markdown_copy_table(rows: &[&ListRow]) -> String {
-    let mut lines = vec![
-        "| BUCKET | PHASE | GATE | SLUG | STATUS |".to_string(),
-        "| --- | --- | --- | --- | --- |".to_string(),
-    ];
-    lines.extend(rows.iter().map(|row| {
-        format!(
-            "| {} | {} | {} | {} | {} |",
-            markdown_table_cell(row.bucket_label()),
-            markdown_table_cell(row.phase()),
-            markdown_table_cell(row.gate()),
-            markdown_table_cell(row.slug()),
-            markdown_table_cell(parse_state_label(row.parse_state())),
-        )
-    }));
-    lines.join("\n")
-}
-
-fn markdown_table_cell(value: &str) -> String {
-    value.replace(['\r', '\n'], " ").replace('|', "\\|")
+    markdown_table(&LIST_COLUMNS, rows)
 }
 
 fn relative_leaf_path(inventory: &Inventory, path: &Path) -> String {
@@ -955,32 +950,6 @@ fn normalize_path(path: &Path) -> String {
 
 fn display_optional(value: &Option<String>, fallback: &str) -> String {
     value.as_deref().unwrap_or(fallback).to_string()
-}
-
-fn bucket_label_singular(bucket: Bucket) -> &'static str {
-    match bucket {
-        Bucket::Seeds => "seed",
-        Bucket::Leaves => "leaf",
-        Bucket::Fallen => "fallen",
-        Bucket::Pressed => "pressed",
-    }
-}
-
-fn bucket_label_plural(bucket: Bucket) -> &'static str {
-    match bucket {
-        Bucket::Seeds => "seeds",
-        Bucket::Leaves => "leaves",
-        Bucket::Fallen => "fallen",
-        Bucket::Pressed => "pressed",
-    }
-}
-
-fn parse_state_label(state: ParseState) -> &'static str {
-    match state {
-        ParseState::Ok => "ok",
-        ParseState::Partial => "partial",
-        ParseState::Error => "error",
-    }
 }
 
 fn row_word(count: usize) -> &'static str {

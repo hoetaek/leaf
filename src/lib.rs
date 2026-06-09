@@ -4,6 +4,7 @@ mod doctor_output;
 mod git;
 mod inventory;
 mod lifecycle;
+mod list_columns;
 mod list_output;
 mod preview;
 mod review;
