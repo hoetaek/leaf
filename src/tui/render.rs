@@ -517,11 +517,11 @@ fn review_scroll_percent(
     scroll_offset: usize,
 ) -> usize {
     let max_scroll = max_review_scroll_for_body(document, body_height);
-    if max_scroll == 0 {
-        0
-    } else {
-        scroll_offset.min(max_scroll) * 100 / max_scroll
-    }
+    scroll_offset
+        .min(max_scroll)
+        .saturating_mul(100)
+        .checked_div(max_scroll)
+        .unwrap_or(0)
 }
 
 fn clamped_review_scroll_offset(
