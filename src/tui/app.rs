@@ -1,5 +1,6 @@
 use crate::inventory::{Bucket, Inventory, InventoryItem, ItemKind, ParseState, PreviewSource};
 use crate::preview::{self, Preview, PreviewLine};
+use crate::review::{self, ReviewDocument, ReviewSource};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -16,6 +17,7 @@ pub(crate) struct ListRow {
     relative_path: String,
     searchable_text: String,
     preview_source: PreviewSource,
+    review_source: Option<ReviewSource>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,6 +32,7 @@ pub(crate) enum Mode {
     RangeSelect,
     FilterInput,
     ConfirmPromote,
+    Review,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,6 +41,9 @@ pub(crate) enum KeyInput {
     Down,
     Left,
     Right,
+    Enter,
+    PageUp,
+    PageDown,
     Esc,
     Backspace,
     Char(char),
@@ -74,6 +80,15 @@ pub(crate) struct AppState {
     range_anchor: Option<usize>,
     mouse_anchor: Option<usize>,
     preview_cache: RefCell<HashMap<String, Preview>>,
+    review_state: Option<ReviewState>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ReviewState {
+    pub(crate) source: ReviewSource,
+    pub(crate) document: ReviewDocument,
+    pub(crate) scroll_offset: usize,
+    pub(crate) status_message: String,
 }
 
 const BUCKET_FILTERS: [BucketFilter; 5] = [
@@ -83,6 +98,7 @@ const BUCKET_FILTERS: [BucketFilter; 5] = [
     BucketFilter::Bucket(Bucket::Fallen),
     BucketFilter::Bucket(Bucket::Pressed),
 ];
+const REVIEW_PAGE_SIZE: usize = 10;
 
 impl ListRow {
     fn from_item(inventory: &Inventory, item: &InventoryItem) -> Self {
@@ -105,6 +121,7 @@ impl ListRow {
             relative_path,
             searchable_text,
             preview_source: item.preview.clone(),
+            review_source: item.review.clone(),
         }
     }
 
@@ -148,6 +165,10 @@ impl ListRow {
         &self.preview_source
     }
 
+    pub(crate) fn review_source(&self) -> Option<&ReviewSource> {
+        self.review_source.as_ref()
+    }
+
     pub(crate) fn copy_line(&self) -> String {
         format!(
             "{}\t{}\t{}\t{}\t{}\t{}",
@@ -187,6 +208,7 @@ impl AppState {
             range_anchor: None,
             mouse_anchor: None,
             preview_cache: RefCell::new(HashMap::new()),
+            review_state: None,
         };
         state.refresh_visibility_state();
         state
@@ -235,6 +257,10 @@ impl AppState {
         &self.status_line
     }
 
+    pub(crate) fn review_state(&self) -> Option<&ReviewState> {
+        self.review_state.as_ref()
+    }
+
     pub(crate) fn selected_preview(&self) -> Option<Preview> {
         let row = self.selected_row()?;
         if let Some(preview) = self
@@ -267,11 +293,15 @@ impl AppState {
             Mode::RangeSelect => self.handle_range_key(input),
             Mode::FilterInput => self.handle_filter_key(input),
             Mode::ConfirmPromote => self.handle_confirm_promote_key(input),
+            Mode::Review => self.handle_review_key(input),
         }
     }
 
     pub(crate) fn handle_mouse(&mut self, input: MouseInput) -> Outcome {
-        if matches!(self.mode, Mode::FilterInput | Mode::ConfirmPromote) {
+        if matches!(
+            self.mode,
+            Mode::FilterInput | Mode::ConfirmPromote | Mode::Review
+        ) {
             return Outcome::Continue;
         }
         match input {
@@ -344,9 +374,10 @@ impl AppState {
             KeyInput::Char('y') => return self.copy_marked_or_current_row(),
             KeyInput::Char('P') => self.begin_promote(),
             KeyInput::Char('r') => return Outcome::Refresh,
+            KeyInput::Enter => self.open_review(),
             KeyInput::Char('q') => return Outcome::Quit,
             KeyInput::Esc => return self.clear_selection_or_quit(),
-            KeyInput::Backspace | KeyInput::Char(_) => {}
+            KeyInput::Backspace | KeyInput::PageUp | KeyInput::PageDown | KeyInput::Char(_) => {}
         }
         Outcome::Continue
     }
@@ -369,6 +400,99 @@ impl AppState {
             _ => {}
         }
         Outcome::Continue
+    }
+
+    fn handle_review_key(&mut self, input: KeyInput) -> Outcome {
+        match input {
+            KeyInput::Down | KeyInput::Char('j') => self.scroll_review_down(1),
+            KeyInput::Up | KeyInput::Char('k') => self.scroll_review_up(1),
+            KeyInput::PageDown => self.scroll_review_down(REVIEW_PAGE_SIZE),
+            KeyInput::PageUp => self.scroll_review_up(REVIEW_PAGE_SIZE),
+            KeyInput::Char('g') => self.scroll_review_top(),
+            KeyInput::Char('G') => self.scroll_review_bottom(),
+            KeyInput::Char('r') => self.refresh_review(),
+            KeyInput::Esc => {
+                self.review_state = None;
+                self.mode = Mode::List;
+            }
+            KeyInput::Char('q') => return Outcome::Quit,
+            _ => {}
+        }
+        Outcome::Continue
+    }
+
+    fn open_review(&mut self) {
+        let Some(source) = self
+            .selected_row()
+            .and_then(|row| row.review_source())
+            .cloned()
+        else {
+            self.status_line = "review is only available for leaf work rows".to_string();
+            return;
+        };
+
+        match review::build(&source) {
+            Ok(document) => {
+                self.review_state = Some(ReviewState {
+                    source,
+                    document,
+                    scroll_offset: 0,
+                    status_message: String::new(),
+                });
+                self.mode = Mode::Review;
+            }
+            Err(err) => {
+                self.status_line = format!("review failed: {err}");
+            }
+        }
+    }
+
+    fn refresh_review(&mut self) {
+        let Some(state) = &self.review_state else {
+            return;
+        };
+        let source = state.source.clone();
+        match review::build(&source) {
+            Ok(document) => {
+                let scroll_offset = state.scroll_offset.min(max_review_scroll(&document));
+                self.review_state = Some(ReviewState {
+                    source,
+                    document,
+                    scroll_offset,
+                    status_message: "refreshed from source".to_string(),
+                });
+            }
+            Err(err) => {
+                if let Some(state) = &mut self.review_state {
+                    state.status_message = format!("refresh failed: {err}");
+                }
+            }
+        }
+    }
+
+    fn scroll_review_down(&mut self, amount: usize) {
+        if let Some(state) = &mut self.review_state {
+            let max_scroll = max_review_scroll(&state.document);
+            state.scroll_offset = state.scroll_offset.saturating_add(amount).min(max_scroll);
+        }
+    }
+
+    fn scroll_review_up(&mut self, amount: usize) {
+        if let Some(state) = &mut self.review_state {
+            state.scroll_offset = state.scroll_offset.saturating_sub(amount);
+        }
+    }
+
+    fn scroll_review_top(&mut self) {
+        if let Some(state) = &mut self.review_state {
+            state.scroll_offset = 0;
+        }
+    }
+
+    fn scroll_review_bottom(&mut self) {
+        if let Some(state) = &mut self.review_state {
+            state.scroll_offset = max_review_scroll(&state.document);
+        }
     }
 
     fn copy_marked_or_current_row(&mut self) -> Outcome {
@@ -565,7 +689,13 @@ impl AppState {
                 self.filter.push(ch);
                 self.refresh_visibility_state();
             }
-            KeyInput::Up | KeyInput::Down | KeyInput::Left | KeyInput::Right => {}
+            KeyInput::Up
+            | KeyInput::Down
+            | KeyInput::Left
+            | KeyInput::Right
+            | KeyInput::Enter
+            | KeyInput::PageUp
+            | KeyInput::PageDown => {}
         }
         Outcome::Continue
     }
@@ -682,6 +812,7 @@ impl AppState {
         self.selected_keys.clear();
         self.range_anchor = None;
         self.mouse_anchor = None;
+        self.review_state = None;
         self.mode = Mode::List;
         self.refresh_visibility_state();
     }
@@ -796,6 +927,10 @@ fn parse_state_label(state: ParseState) -> &'static str {
 
 fn row_word(count: usize) -> &'static str {
     if count == 1 { "row" } else { "rows" }
+}
+
+fn max_review_scroll(document: &ReviewDocument) -> usize {
+    document.lines.len().saturating_sub(1)
 }
 
 #[cfg(test)]
@@ -1138,6 +1273,120 @@ mod tests {
         assert_eq!(app.handle_key(KeyInput::Char('r')), Outcome::Continue);
         assert_eq!(app.mode(), Mode::FilterInput);
         assert_eq!(app.filter(), "r");
+    }
+
+    #[test]
+    fn tui_app_enter_opens_review_mode_for_leaf_work_row() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_preview_status(
+            root.path(),
+            Bucket::Leaves,
+            slug,
+            "- current gate: ① Intent\n",
+        );
+        std::fs::create_dir_all(
+            root.path()
+                .join(".leaf")
+                .join(Bucket::Leaves.dir_name())
+                .join(slug)
+                .join("01-Learn"),
+        )
+        .expect("learn dir");
+        std::fs::write(
+            root.path()
+                .join(".leaf")
+                .join(Bucket::Leaves.dir_name())
+                .join(slug)
+                .join("01-Learn/01-intent.md"),
+            "# Intent\n\n- read this\n",
+        )
+        .expect("intent");
+        let item = leaf_item_at(root.path(), Bucket::Leaves, slug, complete_leaf_status());
+        let inventory = inventory_with_root(root.path(), vec![item]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        assert_eq!(app.mode(), Mode::Review);
+        let review = app.review_state().expect("review state");
+        assert_eq!(review.document.root_relative_path, ".leaf/02-leaves/demo");
+        assert!(review.document.visible_text().contains("00-status.md"));
+    }
+
+    #[test]
+    fn tui_app_enter_on_pressed_digest_row_reports_not_reviewable() {
+        let inventory = inventory_with_items(vec![pressed_item("digest", complete_leaf_status())]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        assert_eq!(app.mode(), Mode::List);
+        assert!(app.status_line().contains("review is only available"));
+    }
+
+    #[test]
+    fn tui_app_review_refresh_rebuilds_document_from_disk() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_preview_status(
+            root.path(),
+            Bucket::Leaves,
+            slug,
+            "- current gate: ① Intent\n",
+        );
+        let intent_path = root
+            .path()
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug)
+            .join("01-Learn/01-intent.md");
+        std::fs::create_dir_all(intent_path.parent().unwrap()).expect("intent dir");
+        std::fs::write(&intent_path, "# Intent\n\nold text\n").expect("old intent");
+        let item = leaf_item_at(root.path(), Bucket::Leaves, slug, complete_leaf_status());
+        let inventory = inventory_with_root(root.path(), vec![item]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+        assert!(
+            app.review_state()
+                .unwrap()
+                .document
+                .visible_text()
+                .contains("old text")
+        );
+
+        std::fs::write(&intent_path, "# Intent\n\nnew text\n").expect("new intent");
+        assert_eq!(app.handle_key(KeyInput::Char('r')), Outcome::Continue);
+
+        assert!(
+            app.review_state()
+                .unwrap()
+                .document
+                .visible_text()
+                .contains("new text")
+        );
+    }
+
+    #[test]
+    fn tui_app_review_back_returns_to_list_with_selection_preserved() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_preview_status(
+            root.path(),
+            Bucket::Leaves,
+            slug,
+            "- current gate: ① Intent\n",
+        );
+        let item = leaf_item_at(root.path(), Bucket::Leaves, slug, complete_leaf_status());
+        let inventory = inventory_with_root(root.path(), vec![item]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+        assert_eq!(app.handle_key(KeyInput::Esc), Outcome::Continue);
+
+        assert_eq!(app.mode(), Mode::List);
+        assert_eq!(app.selected_row().map(ListRow::slug), Some(slug));
     }
 
     #[test]
@@ -1689,6 +1938,10 @@ mod tests {
                 unknowns_path: path.join("01-Learn/02-unknowns.md"),
                 criteria_path: path.join("02-Example/03-criteria.md"),
             },
+            review: Some(crate::review::ReviewSource::LeafWork {
+                root_path: path,
+                root_relative_path: format!(".leaf/{}/{slug}", bucket_dir(bucket)),
+            }),
         }
     }
 
@@ -1711,6 +1964,7 @@ mod tests {
                     text.clone()
                 }
                 PreviewLine::Checkbox { text, .. } => text.clone(),
+                PreviewLine::ListItem { marker, text } => format!("{marker} {text}"),
                 PreviewLine::Styled(spans) => spans
                     .iter()
                     .map(|span| match span {
@@ -1736,6 +1990,7 @@ mod tests {
             path: path.clone(),
             status,
             preview: PreviewSource::PressedDigest { digest_path: path },
+            review: None,
         }
     }
 

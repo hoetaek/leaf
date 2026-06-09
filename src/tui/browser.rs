@@ -192,6 +192,9 @@ fn key_input(key: KeyEvent) -> Option<KeyInput> {
         KeyCode::Down => Some(KeyInput::Down),
         KeyCode::Left => Some(KeyInput::Left),
         KeyCode::Right => Some(KeyInput::Right),
+        KeyCode::Enter => Some(KeyInput::Enter),
+        KeyCode::PageUp => Some(KeyInput::PageUp),
+        KeyCode::PageDown => Some(KeyInput::PageDown),
         KeyCode::Esc => Some(KeyInput::Esc),
         KeyCode::Backspace => Some(KeyInput::Backspace),
         KeyCode::Char(ch) if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT => {
@@ -580,6 +583,10 @@ mod tests {
                 unknowns_path: path.join("01-Learn/02-unknowns.md"),
                 criteria_path: path.join("02-Example/03-criteria.md"),
             },
+            review: Some(crate::review::ReviewSource::LeafWork {
+                root_path: path,
+                root_relative_path: format!(".leaf/{}/{slug}", bucket.dir_name()),
+            }),
         }
     }
 
@@ -722,6 +729,13 @@ mod tests {
             key_input(key(KeyCode::Char('q'))),
             Some(KeyInput::Char('q'))
         );
+    }
+
+    #[test]
+    fn key_input_maps_review_reader_navigation_keys() {
+        assert_eq!(key_input(key(KeyCode::Enter)), Some(KeyInput::Enter));
+        assert_eq!(key_input(key(KeyCode::PageUp)), Some(KeyInput::PageUp));
+        assert_eq!(key_input(key(KeyCode::PageDown)), Some(KeyInput::PageDown));
     }
 
     #[test]

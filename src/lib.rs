@@ -6,6 +6,7 @@ mod inventory;
 mod lifecycle;
 mod list_output;
 mod preview;
+mod review;
 mod scaffold;
 mod slug;
 mod storage;

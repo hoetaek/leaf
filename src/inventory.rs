@@ -37,6 +37,7 @@ pub(crate) struct InventoryItem {
     pub(crate) path: PathBuf,
     pub(crate) status: StatusSummary,
     pub(crate) preview: PreviewSource,
+    pub(crate) review: Option<crate::review::ReviewSource>,
 }
 
 #[derive(Debug)]
@@ -225,14 +226,19 @@ fn load_directory_item(bucket: Bucket, slug: String, path: PathBuf) -> Inventory
         unknowns_path: path.join("01-Learn/02-unknowns.md"),
         criteria_path: path.join("02-Example/03-criteria.md"),
     };
+    let root_relative_path = format!(".leaf/{}/{}", bucket.dir_name(), slug);
 
     InventoryItem {
         bucket,
         slug,
         kind: ItemKind::LeafWork,
-        path,
+        path: path.clone(),
         status,
         preview,
+        review: Some(crate::review::ReviewSource::LeafWork {
+            root_path: path,
+            root_relative_path,
+        }),
     }
 }
 
@@ -253,6 +259,7 @@ fn load_pressed_item(bucket: Bucket, slug: String, path: PathBuf) -> InventoryIt
         path,
         status,
         preview,
+        review: None,
     }
 }
 

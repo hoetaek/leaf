@@ -1,5 +1,6 @@
 use crate::inventory::{Bucket, ParseState};
 use crate::preview::{PreviewLine, PreviewSpan};
+use crate::review::{ReviewDocument, ReviewLine};
 use crate::tui::app::{AppState, BucketFilter, ListRow, Mode};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
@@ -11,6 +12,11 @@ const PREVIEW_MIN_HEIGHT: u16 = 14;
 
 pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
     let area = frame.area();
+    if app.mode() == Mode::Review {
+        draw_review(frame, area, app);
+        return;
+    }
+
     let show_preview = app.preview_open() && area.height >= PREVIEW_MIN_HEIGHT;
     let mut constraints = vec![Constraint::Length(1), Constraint::Min(1)];
     if show_preview {
@@ -29,6 +35,65 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
         index += 1;
     }
     draw_status(frame, chunks[index], app);
+}
+
+fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
+    let Some(review) = app.review_state() else {
+        frame.render_widget(Paragraph::new("No review document loaded."), area);
+        return;
+    };
+
+    let chunks = Layout::vertical([
+        Constraint::Length(1),
+        Constraint::Length(1),
+        Constraint::Length(1),
+        Constraint::Min(1),
+        Constraint::Length(1),
+    ])
+    .split(area);
+
+    let document = &review.document;
+    let header = Line::from(vec![
+        Span::styled("leaf review", Style::default().add_modifier(Modifier::BOLD)),
+        Span::raw("  "),
+        Span::styled(document.title.clone(), strong_style()),
+        Span::raw("  "),
+        Span::styled(document.root_relative_path.clone(), dim_style()),
+    ]);
+    frame.render_widget(Paragraph::new(header), chunks[0]);
+
+    frame.render_widget(
+        Paragraph::new(Line::styled(
+            "READ ONLY - edit originals",
+            strong_style().fg(Color::Yellow),
+        )),
+        chunks[1],
+    );
+
+    let current_source = current_source_index(document, review.scroll_offset);
+    let scroll_percent = review_scroll_percent(document, chunks[3].height, review.scroll_offset);
+    let meta = format!(
+        "source {}/{}  scroll {}%  {}",
+        current_source, document.source_count, scroll_percent, review.status_message
+    );
+    frame.render_widget(Paragraph::new(Line::styled(meta, dim_style())), chunks[2]);
+
+    let body_lines = document
+        .lines
+        .iter()
+        .skip(review.scroll_offset)
+        .take(chunks[3].height as usize)
+        .map(review_line)
+        .collect::<Vec<_>>();
+    frame.render_widget(Paragraph::new(body_lines), chunks[3]);
+
+    frame.render_widget(
+        Paragraph::new(Line::styled(
+            "↑/↓ scroll  PgUp/PgDn  g/G top/bottom  r refresh  Esc back  q quit",
+            dim_style(),
+        )),
+        chunks[4],
+    );
 }
 
 fn draw_header(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
@@ -147,6 +212,9 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             "range {selected_count} selected  j/k extend  v/Esc done  y copy  q quit  {}",
             app.status_line()
         ),
+        Mode::Review => {
+            "↑/↓ scroll  PgUp/PgDn  g/G top/bottom  r refresh  Esc back  q quit".to_string()
+        }
         Mode::List if selected_count > 0 => format!(
             "{selected_count} selected  Space toggle  v range  a all  y copy  Esc clear  q quit  {}",
             app.status_line()
@@ -272,6 +340,11 @@ fn preview_line(line: &PreviewLine) -> Line<'static> {
                 Span::raw(text.clone()),
             ])
         }
+        PreviewLine::ListItem { marker, text } => Line::from(vec![
+            Span::styled(marker.clone(), chrome_style()),
+            Span::raw(" "),
+            Span::raw(text.clone()),
+        ]),
         PreviewLine::Code(text) => Line::styled(text.clone(), code_style()),
         PreviewLine::Styled(spans) => Line::from(
             spans
@@ -284,6 +357,41 @@ fn preview_line(line: &PreviewLine) -> Line<'static> {
                 .collect::<Vec<_>>(),
         ),
         PreviewLine::Plain(text) => Line::from(text.clone()),
+    }
+}
+
+fn review_line(line: &ReviewLine) -> Line<'static> {
+    match line {
+        ReviewLine::Separator(path) => Line::styled(path.clone(), dim_style()),
+        ReviewLine::MissingSource { relative_path } => Line::from(vec![
+            Span::styled("MISSING SOURCE", Style::default().fg(Color::Red)),
+            Span::raw(" "),
+            Span::styled(relative_path.clone(), dim_style()),
+        ]),
+        ReviewLine::Markdown(line) => preview_line(line),
+        ReviewLine::Message(text) => Line::from(text.clone()),
+    }
+}
+
+fn current_source_index(document: &ReviewDocument, scroll_offset: usize) -> usize {
+    document
+        .sections
+        .iter()
+        .rposition(|section| section.start_line <= scroll_offset)
+        .map(|index| index + 1)
+        .unwrap_or(0)
+}
+
+fn review_scroll_percent(
+    document: &ReviewDocument,
+    body_height: u16,
+    scroll_offset: usize,
+) -> usize {
+    let max_scroll = document.lines.len().saturating_sub(body_height as usize);
+    if max_scroll == 0 {
+        0
+    } else {
+        scroll_offset.min(max_scroll) * 100 / max_scroll
     }
 }
 
@@ -352,7 +460,7 @@ mod tests {
         Bucket, BucketInventory, Inventory, InventoryItem, ItemKind, ParseState, PreviewSource,
         StatusSummary,
     };
-    use crate::tui::app::{AppState, KeyInput};
+    use crate::tui::app::{AppState, KeyInput, Outcome};
     use ratatui::{Terminal, backend::TestBackend, buffer::Buffer};
 
     fn render_buffer(width: u16, height: u16, app: &AppState) -> Buffer {
@@ -519,6 +627,23 @@ mod tests {
         let text = buffer_text(100, 12, &app);
 
         assert!(text.contains("y copy"));
+    }
+
+    #[test]
+    fn preview_line_renders_list_item_marker_and_text() {
+        let line = preview_line(&PreviewLine::ListItem {
+            marker: "•".to_string(),
+            text: "source item".to_string(),
+        });
+
+        let rendered = line
+            .spans
+            .iter()
+            .map(|span| span.content.as_ref())
+            .collect::<String>();
+
+        assert!(rendered.contains("•"));
+        assert!(rendered.contains("source item"));
     }
 
     #[test]
@@ -701,6 +826,80 @@ mod tests {
         assert!(text.contains("No leaf items"));
     }
 
+    #[test]
+    fn review_mode_renders_read_only_source_path_and_rendered_markdown() {
+        let fixture = RenderFixture::new();
+        let slug = "demo";
+        let root = fixture.root.path();
+        let status_path = root
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug)
+            .join("00-status.md");
+        std::fs::create_dir_all(status_path.parent().unwrap()).expect("leaf dir");
+        std::fs::write(&status_path, "# Leaf 상태\n\n- current gate: ① Intent\n").expect("status");
+        let intent_path = root
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug)
+            .join("01-Learn/01-intent.md");
+        std::fs::create_dir_all(intent_path.parent().unwrap()).expect("intent dir");
+        std::fs::write(&intent_path, "# Intent\n\n- rendered item\n").expect("intent");
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            slug,
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("① Intent"),
+            ),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        let buffer = render_buffer(120, 18, &app);
+        let text = buffer_to_text(&buffer, 120, 18);
+
+        assert!(text.contains("leaf review"));
+        assert!(text.contains("READ ONLY - edit originals"));
+        assert!(text.contains(".leaf/02-leaves/demo/00-status.md"));
+        assert!(line_contains_text(&buffer, 120, 18, "Leaf 상태"));
+        assert!(text.contains("• rendered item"));
+        assert!(!text.contains("# Intent"));
+    }
+
+    #[test]
+    fn review_mode_small_terminal_renders_without_panicking() {
+        let fixture = RenderFixture::new();
+        let slug = "demo";
+        let status_path = fixture
+            .root
+            .path()
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug)
+            .join("00-status.md");
+        std::fs::create_dir_all(status_path.parent().unwrap()).expect("leaf dir");
+        std::fs::write(&status_path, "# Status\n\n- current gate: ① Intent\n").expect("status");
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            slug,
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("① Intent"),
+            ),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        let text = buffer_text(50, 8, &app);
+
+        assert!(text.contains("READ ONLY"));
+    }
+
     struct RenderFixture {
         root: assert_fs::TempDir,
     }
@@ -772,11 +971,13 @@ mod tests {
                 .join(slug);
             let status_path = path.join("00-status.md");
             std::fs::create_dir_all(status_path.parent().unwrap()).unwrap();
-            std::fs::write(
-                &status_path,
-                "# 상태\n\n- next action: 다음 행동을 정리한다.\n",
-            )
-            .unwrap();
+            if !status_path.exists() {
+                std::fs::write(
+                    &status_path,
+                    "# 상태\n\n- next action: 다음 행동을 정리한다.\n",
+                )
+                .unwrap();
+            }
 
             InventoryItem {
                 bucket,
@@ -790,6 +991,10 @@ mod tests {
                     unknowns_path: path.join("01-Learn/02-unknowns.md"),
                     criteria_path: path.join("02-Example/03-criteria.md"),
                 },
+                review: Some(crate::review::ReviewSource::LeafWork {
+                    root_path: path,
+                    root_relative_path: format!(".leaf/{}/{slug}", bucket_dir(bucket)),
+                }),
             }
         }
     }
