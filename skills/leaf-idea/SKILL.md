@@ -177,9 +177,19 @@ needs (the established fact, the verdict, the convention to follow) back out int
 settle, use the experiment machine (`../leaf-work/references/experiment-log.md`)
 and keep the process in `01-Learn/02-experiments/{name}.md`.
 
-Close the gate when blocking unknowns have sourced answers or flagged
-assumptions, the fact/assumption boundary is visible, and the user can state what
-to choose between and on what basis.
+Before closing Learn, always ask the user this explicitly:
+
+> 정말로 이 일을 판단하고 기준화하기 위해 배우고 알아야 하는 사실을 다
+> 알았나요? 아직 확인해야 할 사실, 참고해야 할 사례, 내부 맥락, 또는
+> 검증하지 않은 가정이 남아 있나요?
+
+Treat this as a hard close check, not a nicety. If the user names any remaining
+fact, reference, internal context, or unverified assumption, keep the seed at
+`enriched`, record the gap in `01-Learn/02-unknowns.md`, and continue Learn
+instead of recommending promotion. Close the gate only when blocking unknowns
+have sourced answers or flagged assumptions, the fact/assumption boundary is
+visible, the user has answered the Learn-close question, and the user can state
+what to choose between and on what basis.
 
 ## Review Handoff
 
@@ -208,13 +218,14 @@ End every pass with one recommendation:
 | `defer` | the idea is real but not worth attention until a named condition changes |
 | `enrich` | one or two cheap facts/examples would decide whether it has weight |
 | `split` | several independent future leaves are bundled together and need separate seeds |
-| `promote to leaf-work` | ① and ② have passed and the user commits to Example onward |
+| `promote to leaf-work` | ① and ② have passed, the Learn-close question was asked and cleared, and the user commits to Example onward |
 
 Promotion is the Learn→Example boundary. Recommend it only when ① Intent and ②
-Unknowns & Context have passed here; name what ③ Criteria should consume — what
-the user can now choose between and on what basis. Run `leaf promote <slug>`
-after explicit user approval and continue from `.leaf/02-leaves/<slug>/` in
-`leaf-work`.
+Unknowns & Context have passed here and the user has explicitly confirmed that
+there are no remaining facts, references, internal context, or assumptions Learn
+must settle first. Name what ③ Criteria should consume — what the user can now
+choose between and on what basis. Run `leaf promote <slug>` after explicit user
+approval and continue from `.leaf/02-leaves/<slug>/` in `leaf-work`.
 
 ## Response Shape
 
