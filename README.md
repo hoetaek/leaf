@@ -99,16 +99,18 @@ The detailed gate model lives in [`skills/leaf-work`](skills/leaf-work/SKILL.md)
 
 ```text
 .leaf/
-├── seeds/
-├── leaves/
-├── fallen/
-└── pressed/
+├── 01-seeds/
+├── 02-leaves/
+├── 03-fallen/
+└── 04-pressed/
 ```
 
-`seeds/` are rough ideas and exploratory Learn-phase starts. `leaves/` are
-committed active LEAF work from Example onward. `fallen/` preserves active
-leaves after they close. `pressed/` stores citable Markdown digests of important
-LEAF work, such as intent, method, what was done, limits, and lessons learned.
+`01-seeds/` are rough ideas and exploratory Learn-phase starts. `02-leaves/`
+are committed active LEAF work from Example onward. `03-fallen/` is the trash
+bucket for active leaves you stop carrying. It keeps local files inspectable, but
+it is not the citation surface. `04-pressed/` stores citable Markdown digests of
+important LEAF work, such as intent, method, what was done, limits, and lessons
+learned.
 
 `leaf init` adds `/.leaf` to `.git/info/exclude` so local collaboration notes do
 not appear in normal `git status` output.
@@ -155,7 +157,7 @@ active leaf storage. It updates `00-status.md` to `state: active` and
 `.leaf/02-leaves/<slug>/` to `.leaf/03-fallen/<slug>/` and writes flexible closure
 fields into `00-status.md`. The reason is free text, so an agent or human can
 use canonical reasons such as `completed`, `abandoned`, `superseded`, `parked`,
-`split`, or `invalidated`, while still preserving project-specific detail.
+`split`, or `invalidated`, while still recording project-specific detail.
 
 ## Agent Skills
 
@@ -166,21 +168,21 @@ This repository ships Agent Skills:
 | [`leaf-idea`](skills/leaf-idea/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a seed |
 | [`leaf-work`](skills/leaf-work/SKILL.md) | Carrying a promoted leaf from ③ Example to a shipped result |
 | [`leaf-press`](skills/leaf-press/SKILL.md) | Creating citable Markdown digests from LEAF work |
-| [`leaf-fall`](skills/leaf-fall/SKILL.md) | Closing active leaves into the fallen archive |
+| [`leaf-fall`](skills/leaf-fall/SKILL.md) | Discarding active leaves into fallen trash |
 | [`leaf-soul`](skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
 Install the LEAF skills together as a family — they are not independent.
-`leaf-idea` reads `leaf-soul` and the gate references under `leaf-work`, and
-`leaf-work` reads `leaf-soul`, all through sibling paths (`../leaf-soul/SKILL.md`,
-`../leaf-work/references/`). The Quick Start command above installs the whole
-family; installing a single skill with `--skill` would leave those cross-skill
-references broken.
+`leaf-idea`, `leaf-work`, `leaf-press`, and `leaf-fall` read `leaf-soul` through
+the sibling path `../leaf-soul/SKILL.md`; `leaf-idea` and `leaf-work` also read
+the gate references under `leaf-work` through `../leaf-work/references/`. The
+Quick Start command above installs the whole family; installing a single skill
+with `--skill` would leave those cross-skill references broken.
 
 ## Status
 
 `leaf` is currently an early Rust CLI. The current slice initializes repo-local
 LEAF storage, scaffolds idea seeds, promotes seeds into active leaves after
-Learn, and archives active leaves when they close.
+Learn, and moves closed active leaves into fallen trash.
 
 The crate is not published to crates.io.
 

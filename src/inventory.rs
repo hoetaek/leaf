@@ -310,7 +310,7 @@ pub(crate) fn parse_status_summary(content: &str, bucket: Bucket) -> StatusSumma
 
     for line in content.lines() {
         // Only the status preamble is canonical. A second-level-or-deeper
-        // heading (`##`, `###`, …) ends it, so archived sections like
+        // heading (`##`, `###`, …) ends it, so later sections like
         // `## Previous Status` in a fallen file cannot override the real
         // state. The single-`#` document title does not match.
         if line.trim_start().starts_with("##") {
@@ -667,9 +667,9 @@ mod tests {
 
     #[test]
     fn inventory_parse_status_summary_ignores_fields_after_section_heading() {
-        // A fallen archive file keeps the canonical `- state: fallen` in its
+        // A fallen file keeps the canonical `- state: fallen` in its
         // preamble, then embeds the prior active status under a `## Previous
-        // Status` section. Only the preamble is canonical; the archived
+        // Status` section. Only the preamble is canonical; the copied
         // `- state: active`/phase/gate lines below the heading must NOT
         // override it.
         let content = "# Leaf Status\n\n\

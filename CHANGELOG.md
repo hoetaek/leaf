@@ -42,7 +42,7 @@ minor version instead of moving to `x.0.0`.
 ### Fixed
 
 - `leaf list` TUI range-selection contract.
-- Status parsing now reads only the status preamble, so fallen-archive sections
+- Status parsing now reads only the status preamble, so fallen sections
   no longer override the parsed state.
 
 ## 0.2.0 - 2026-06-08
@@ -65,9 +65,9 @@ minor version instead of moving to `x.0.0`.
 ## 0.1.2 - 2026-06-07
 
 - Added LEAF agent skills for idea capture, work planning, pressing, and
-  falling archived work.
+  falling discarded work.
 - Added `leaf fall <slug> --reason <reason>` to move active leaves into the
-  fallen archive with closure metadata.
+  fallen trash bucket with closure metadata.
 - Added `.leaf/fallen/` and `.leaf/pressed/` storage buckets during
   initialization.
 - Tightened `leaf-work` approval policy so ⑧ Artifact / Execution requires

@@ -1,12 +1,13 @@
 ---
 name: leaf-fall
-description: Use when closing, archiving, retiring, completing, abandoning, superseding, parking, splitting, or invalidating an active `.leaf/02-leaves/{slug}/` work item into `.leaf/03-fallen/{slug}/`; trigger on `leaf fall`, "close this leaf", "archive this leaf", "mark this leaf done", "stop carrying this leaf", or preserving prior LEAF work without wt or execution coupling.
+description: Use when trashing, discarding, closing, retiring, completing, abandoning, superseding, parking, splitting, or invalidating an active `.leaf/02-leaves/{slug}/` work item into `.leaf/03-fallen/{slug}/`; trigger on `leaf fall`, "trash this leaf", "discard this leaf", "close this leaf", "mark this leaf done", or "stop carrying this leaf".
 ---
 
 # LEAF Fall
 
-Close an active `.leaf/02-leaves/<slug>/` work item into `.leaf/03-fallen/<slug>/`.
-Falling preserves prior work; it is archive, not trash.
+Trash an active `.leaf/02-leaves/<slug>/` work item into `.leaf/03-fallen/<slug>/`.
+Falling removes the leaf from the active carrying set; it is trash, not a
+citation or long-term reference surface.
 
 ## Boundary
 
@@ -19,6 +20,15 @@ Falling preserves prior work; it is archive, not trash.
   until review/sync and enough retrospective closure are recorded.
 - Do not mix seed states with fallen leaves. `killed` or `deferred` belongs to
   `.leaf/01-seeds/<slug>/`; `fallen` belongs to committed `.leaf/02-leaves/<slug>/`.
+
+## Reference map
+
+Conduct and reporting are shared across the LEAF family, not duplicated here.
+Read this sibling before acting:
+
+| Read | When |
+|---|---|
+| `../leaf-soul/SKILL.md` | always: shared conduct/voice, overview-first reporting, fact-vs-guess separation, review handoff, and preferred language — follow it for closure notes and reports |
 
 ## First Read
 
@@ -70,11 +80,12 @@ retrospective artifacts intact.
 
 ## Report
 
-Report:
+Report per `../leaf-soul/SKILL.md` — overview-first, plain words, verified facts
+separate from assumptions. Include:
 
 - fallen path: `.leaf/03-fallen/<slug>/`
 - source path that no longer exists: `.leaf/02-leaves/<slug>/`
 - fall reason
 - closure fields filled or intentionally left blank
-- preserved context files
+- files left inspectable in fallen trash
 - confirmation that no `.wt/` or execution artifacts were created
