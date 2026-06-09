@@ -1,15 +1,17 @@
 ---
 name: leaf-work
 description: |
-  Use when turning a vague idea into structured knowledge work or writing —
-  documents, essays, articles, memos, research papers, proposals, reports,
-  specs, study notes, presentations, prototypes, or any non-code or mixed
-  deliverable in a repo-local `.leaf/` workspace. Use when the request is vague,
-  high-stakes, long-form, collaborative, research-heavy, or likely to sprawl,
-  and when a rough intent must become an executable plan. Trigger on "어떤 순서",
-  "글쓰기 프로세스",
-  "문서 작성 순서", "논문 작성", "발표 자료", "초안 구조", "자료 조사",
-  "레퍼런스 벤치마킹", "아이디어 발산", "작업을 어떻게 쪼갤지".
+  Use to carry a promoted leaf from ③ Example through to a shipped result —
+  prove one cheap instance against criteria, design the generator, run the critic,
+  slice the task graph, draft and execute, and review — for documents, essays,
+  articles, memos, research papers, proposals, reports, specs, study notes,
+  presentations, prototypes, or any non-code or mixed deliverable in a repo-local
+  `.leaf/` workspace. Enter after Learn, via `leaf promote`, once intent and
+  unknowns are settled. Trigger on "수용 기준 / criteria", "와이어프레임",
+  "설계 / 구조", "task graph", "작업을 어떻게 쪼갤지", "초안 작성",
+  "리뷰 / 검토 절차". For vague, early, or idea-stage work — capturing an idea,
+  locking intent, surfacing unknowns, 자료 조사, 레퍼런스 벤치마킹, 아이디어 발산 —
+  use `leaf-idea` first.
 ---
 
 # LEAF Work

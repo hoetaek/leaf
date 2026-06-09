@@ -1,6 +1,6 @@
 ---
 name: leaf-idea
-description: Use when capturing, triaging, or running the LEAF Learn phase (① Intent and ② Unknowns & Context) on a seed before committing to full leaf-work; trigger on idea backlog, "save this idea", "maybe later", brainstorm fragments, early document/product/research topics, locking intent, surfacing unknowns, reference/benchmark exploration, bundled ideas that may need separate seeds, or requests to decide whether an idea should die, defer, enrich, split, learn, or become structured LEAF work.
+description: Use when capturing, triaging, or running the LEAF Learn phase (① Intent and ② Unknowns & Context) on a seed — the entry point for a new piece of work before it is promoted to leaf-work; trigger on idea backlog, "save this idea", "maybe later", brainstorm fragments, early document/product/research topics, locking intent, surfacing unknowns, reference/benchmark exploration (자료 조사, 레퍼런스 벤치마킹, 아이디어 발산), starting a substantial writing or knowledge task (글쓰기 프로세스, 문서 작성 순서, 논문 작성, 발표 자료, 초안 구조, "어떤 순서"), bundled ideas that may need separate seeds, or requests to decide whether an idea should die, defer, enrich, split, learn, or become structured LEAF work.
 ---
 
 # LEAF Idea

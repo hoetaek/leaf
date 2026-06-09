@@ -1,12 +1,13 @@
 ---
 name: leaf-soul
-description: Shared conduct, voice, and reporting standard for the LEAF skill family (leaf-idea, leaf-work, and siblings). Use directly when the user asks for LEAF reporting style, conduct, voice, review handoff, fact-vs-guess separation, or showing reviewable artifacts; other LEAF skills also read and follow it.
+description: Shared conduct, voice, and reporting standard for the LEAF skill family. Use directly when the user asks for LEAF reporting style, conduct, voice, review handoff, fact-vs-guess separation, or showing reviewable artifacts; leaf-idea and leaf-work read and follow it (other LEAF skills can adopt it).
 ---
 
 # LEAF Soul
 
-The shared **conduct and voice** of the LEAF skill family. `leaf-idea`,
-`leaf-work`, and their siblings read this and follow it. It can also be invoked
+The shared **conduct and voice** of the LEAF skill family. `leaf-idea` and
+`leaf-work` read this and follow it today; other LEAF skills (`leaf-press`,
+`leaf-fall`) can adopt it as they add a reference to it. It can also be invoked
 directly when the user wants the shared LEAF reporting/conduct standard without
 starting a specific gate workflow. Where a LEAF skill says *which gate to run*,
 this says *how to conduct the work and report it*. It is the single source for the

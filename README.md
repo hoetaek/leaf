@@ -169,15 +169,12 @@ This repository ships Agent Skills:
 | [`leaf-fall`](skills/leaf-fall/SKILL.md) | Closing active leaves into the fallen archive |
 | [`leaf-soul`](skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
-Install one skill when you only want one workflow:
-
-```bash
-npx skills@latest add https://github.com/hoetaek/leaf --skill leaf-work
-```
-
-`leaf-idea` reads the shared conduct in `leaf-soul` and the gate references that
-ship with `leaf-work` (`../leaf-soul/SKILL.md`, `../leaf-work/references/`), so
-install the LEAF skills together as a family.
+Install the LEAF skills together as a family — they are not independent.
+`leaf-idea` reads `leaf-soul` and the gate references under `leaf-work`, and
+`leaf-work` reads `leaf-soul`, all through sibling paths (`../leaf-soul/SKILL.md`,
+`../leaf-work/references/`). The Quick Start command above installs the whole
+family; installing a single skill with `--skill` would leave those cross-skill
+references broken.
 
 ## Status
 
