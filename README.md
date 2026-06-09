@@ -30,6 +30,12 @@ For a global skills install:
 npx skills@latest add https://github.com/hoetaek/leaf -g
 ```
 
+For a global Claude Code skills install:
+
+```bash
+npx skills@latest add https://github.com/hoetaek/leaf -g -a claude-code
+```
+
 Install the `leaf` CLI that gives those skills a repo-local body. Homebrew is
 the recommended install path:
 
@@ -161,7 +167,7 @@ This repository ships Agent Skills:
 | [`leaf-work`](skills/leaf-work/SKILL.md) | Carrying a promoted leaf from ③ Example to a shipped result |
 | [`leaf-press`](skills/leaf-press/SKILL.md) | Creating citable Markdown digests from LEAF work |
 | [`leaf-fall`](skills/leaf-fall/SKILL.md) | Closing active leaves into the fallen archive |
-| [`leaf-soul`](skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard the other LEAF skills read (not invoked directly) |
+| [`leaf-soul`](skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
 Install one skill when you only want one workflow:
 

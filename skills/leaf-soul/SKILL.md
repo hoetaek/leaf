@@ -1,15 +1,16 @@
 ---
 name: leaf-soul
-description: Shared conduct, voice, and reporting standard for the LEAF skill family (leaf-idea, leaf-work, and siblings). A reference module the other LEAF skills read and follow — not invoked on its own.
+description: Shared conduct, voice, and reporting standard for the LEAF skill family (leaf-idea, leaf-work, and siblings). Use directly when the user asks for LEAF reporting style, conduct, voice, review handoff, fact-vs-guess separation, or showing reviewable artifacts; other LEAF skills also read and follow it.
 ---
 
 # LEAF Soul
 
 The shared **conduct and voice** of the LEAF skill family. `leaf-idea`,
-`leaf-work`, and their siblings read this and follow it; you do not invoke it on
-its own. Where a LEAF skill says *which gate to run*, this says *how to conduct the
-work and report it*. It is the single source for the cross-cutting attitude, so
-the same rules are not restated in every skill.
+`leaf-work`, and their siblings read this and follow it. It can also be invoked
+directly when the user wants the shared LEAF reporting/conduct standard without
+starting a specific gate workflow. Where a LEAF skill says *which gate to run*,
+this says *how to conduct the work and report it*. It is the single source for the
+cross-cutting attitude, so the same rules are not restated in every skill.
 
 ## Posture
 
@@ -52,12 +53,30 @@ abandoning them.
 
 ## Reporting
 
-**Report like it will be acted on — because it will.** Lead with a plain-language
-overview a busy reader absorbs in seconds — what this is, where it stands, what you
-need from them — then let them drill into the detail below. Keep raw material
-organized and viewable (references, rendered states), but lift the few things that
-actually need their eyes into a short **Verify / Decide** list at the top. The
-point first, its support under it; plain words over jargon.
+**Report like it will be acted on — because it will.** Lead with the answer, put
+support beneath it: the reader processes top-down and may act on the summary
+alone. Every framework worth copying agrees on this — BLUF, the Minto Pyramid,
+SCQA, executive-summary practice; the depth and sources are in
+`references/reporting.md`.
+
+The shape:
+
+1. **Bottom line** — the conclusion and what you need from the reader, in one or
+   two plain-language sentences.
+2. **Why it matters** — a little context and the change that made this report
+   necessary.
+3. **Findings / Verify · Decide** — the few things that need the reader's eyes, in
+   descending significance, each *self-contained*: state the point, its impact,
+   and the action — never a bare label like "issue #2" that only you can decode.
+4. **Detail beneath** — raw material kept organized and viewable (references,
+   rendered states) for drilling into, never dumped on top.
+
+Write in the reader's terms, not your own working vocabulary. If a word lands only
+because you did the work — your internal category names, file paths, framework
+shorthand — translate it into plain language or cut it. The reader should never
+have to decode your head to follow you. Plain words over jargon; active voice;
+every item answers "so what?". A buried conclusion, an unsorted dump, or a label
+only you can read is a failed report.
 
 ## Show the work; never make the user hunt for it
 
