@@ -1,5 +1,5 @@
 use crate::inventory::{Bucket, Inventory};
-use crate::tui::app::{AppState, KeyInput, MouseInput, Outcome};
+use crate::tui::app::{AppState, KeyInput, Mode, MouseInput, Outcome};
 use crate::tui::render::draw;
 use crate::tui::session::TerminalSession;
 use anyhow::{Context, Result};
@@ -12,7 +12,7 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Rect;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// Side-effect seam for the leaf list TUI so promotion, reload, and clipboard
 /// copy can be faked in tests without entering a real terminal or clipboard.
@@ -21,6 +21,9 @@ trait TuiAdapter {
     fn load_inventory(&self) -> Result<Inventory>;
     fn copy_to_clipboard(&self, text: &str) -> Result<()>;
 }
+
+const EVENT_POLL_INTERVAL: Duration = Duration::from_millis(100);
+const REVIEW_AUTO_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 
 struct RealTuiAdapter {
     repo_root: PathBuf,
@@ -69,12 +72,15 @@ fn event_loop<A: TuiAdapter>(
     app: &mut AppState,
     adapter: &A,
 ) -> Result<()> {
+    let mut last_review_auto_refresh = Instant::now();
     loop {
+        maybe_auto_refresh_review(app, &mut last_review_auto_refresh, Instant::now());
+
         terminal
             .draw(|frame| draw(frame, app))
             .context("draw leaf list TUI")?;
 
-        if !event::poll(Duration::from_millis(100)).context("poll leaf list TUI event")? {
+        if !event::poll(EVENT_POLL_INTERVAL).context("poll leaf list TUI event")? {
             continue;
         }
 
@@ -116,19 +122,31 @@ fn event_loop<A: TuiAdapter>(
     Ok(())
 }
 
+fn maybe_auto_refresh_review(
+    app: &mut AppState,
+    last_review_auto_refresh: &mut Instant,
+    now: Instant,
+) -> bool {
+    if app.mode() != Mode::Review {
+        return false;
+    }
+    if now.saturating_duration_since(*last_review_auto_refresh) < REVIEW_AUTO_REFRESH_INTERVAL {
+        return false;
+    }
+
+    *last_review_auto_refresh = now;
+    app.refresh_review_if_changed()
+}
+
 fn mouse_input(area: Rect, app: &AppState, mouse: MouseEvent) -> Option<MouseInput> {
     match mouse.kind {
         MouseEventKind::Down(MouseButton::Left) => {
-            crate::tui::render::table_mouse_target(area, app, mouse.column, mouse.row).map(
-                |(visible_index, selection_column)| MouseInput::Down {
-                    visible_index,
-                    toggle: selection_column,
-                },
-            )
+            crate::tui::render::table_mouse_target(area, app, mouse.column, mouse.row)
+                .map(|visible_index| MouseInput::Down { visible_index })
         }
         MouseEventKind::Drag(MouseButton::Left) => {
             crate::tui::render::table_mouse_target(area, app, mouse.column, mouse.row)
-                .map(|(visible_index, _)| MouseInput::Drag { visible_index })
+                .map(|visible_index| MouseInput::Drag { visible_index })
         }
         MouseEventKind::Up(MouseButton::Left) => Some(MouseInput::Up),
         _ => None,
@@ -192,6 +210,15 @@ fn key_input(key: KeyEvent) -> Option<KeyInput> {
         KeyCode::Down => Some(KeyInput::Down),
         KeyCode::Left => Some(KeyInput::Left),
         KeyCode::Right => Some(KeyInput::Right),
+        KeyCode::Enter => Some(KeyInput::Enter),
+        KeyCode::PageUp => Some(KeyInput::PageUp),
+        KeyCode::PageDown => Some(KeyInput::PageDown),
+        KeyCode::Char('d') | KeyCode::Char('D') if key.modifiers == KeyModifiers::CONTROL => {
+            Some(KeyInput::HalfPageDown)
+        }
+        KeyCode::Char('u') | KeyCode::Char('U') if key.modifiers == KeyModifiers::CONTROL => {
+            Some(KeyInput::HalfPageUp)
+        }
         KeyCode::Esc => Some(KeyInput::Esc),
         KeyCode::Backspace => Some(KeyInput::Backspace),
         KeyCode::Char(ch) if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT => {
@@ -397,14 +424,18 @@ mod tests {
             &adapter,
             Outcome::CopyRow {
                 slug: "alpha".to_string(),
-                text: "leaf\tactive\tlearn\tintent\talpha\tok".to_string(),
+                text: "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
+                    .to_string(),
             },
         )
         .expect("copy outcome");
 
         assert_eq!(
             adapter.copied_texts(),
-            vec!["leaf\tactive\tlearn\tintent\talpha\tok"]
+            vec![
+                "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
+                    .to_string()
+            ]
         );
         assert!(app.status_line().contains("copied row alpha"));
     }
@@ -421,9 +452,8 @@ mod tests {
             &adapter,
             Outcome::CopyRows {
                 count: 2,
-                text:
-                    "leaf\tactive\tlearn\tintent\talpha\tok\nleaf\tactive\tlearn\tintent\tgamma\tok"
-                        .to_string(),
+                text: "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |\n| leaf | learn | intent | gamma | ok |"
+                    .to_string(),
             },
         )
         .expect("copy rows outcome");
@@ -431,7 +461,7 @@ mod tests {
         assert_eq!(
             adapter.copied_texts(),
             vec![
-                "leaf\tactive\tlearn\tintent\talpha\tok\nleaf\tactive\tlearn\tintent\tgamma\tok"
+                "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |\n| leaf | learn | intent | gamma | ok |"
                     .to_string()
             ]
         );
@@ -450,14 +480,18 @@ mod tests {
             &adapter,
             Outcome::CopyRows {
                 count: 1,
-                text: "leaf\tactive\tlearn\tintent\talpha\tok".to_string(),
+                text: "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
+                    .to_string(),
             },
         )
         .expect("copy one selected row outcome");
 
         assert_eq!(
             adapter.copied_texts(),
-            vec!["leaf\tactive\tlearn\tintent\talpha\tok"]
+            vec![
+                "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
+                    .to_string()
+            ]
         );
         assert!(app.status_line().contains("copied 1 row"));
         assert!(!app.status_line().contains("copied 1 rows"));
@@ -476,7 +510,8 @@ mod tests {
             &adapter,
             Outcome::CopyRow {
                 slug: "alpha".to_string(),
-                text: "leaf\tactive\tlearn\tintent\talpha\tok".to_string(),
+                text: "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
+                    .to_string(),
             },
         )
         .expect("failure is reported in app status, not returned");
@@ -518,6 +553,61 @@ mod tests {
         assert_eq!(app.active_bucket(), BucketFilter::Bucket(Bucket::Leaves));
         assert_eq!(app.selected_row().map(ListRow::slug), Some("demo"));
         assert!(app.status_line().contains("promoted seed demo"));
+    }
+
+    #[test]
+    fn auto_refresh_review_polls_open_review_documents_after_interval() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        let leaf_path = root
+            .path()
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug);
+        let intent_path = leaf_path.join("01-Learn/01-intent.md");
+        fs::create_dir_all(intent_path.parent().unwrap()).expect("intent dir");
+        fs::write(
+            leaf_path.join("00-status.md"),
+            "# Status\n\n- current gate: ① Intent\n",
+        )
+        .expect("status");
+        fs::write(&intent_path, "# Intent\n\nold text\n").expect("old intent");
+        let inventory = test_inventory(
+            root.path(),
+            vec![test_item(root.path(), Bucket::Leaves, slug)],
+        );
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        let start = std::time::Instant::now();
+        let mut last_refresh = start;
+        fs::write(&intent_path, "# Intent\n\nnew text\n").expect("new intent");
+
+        assert!(!maybe_auto_refresh_review(
+            &mut app,
+            &mut last_refresh,
+            start + REVIEW_AUTO_REFRESH_INTERVAL - Duration::from_millis(1),
+        ));
+        assert!(
+            app.review_state()
+                .unwrap()
+                .document
+                .visible_text()
+                .contains("old text")
+        );
+
+        assert!(maybe_auto_refresh_review(
+            &mut app,
+            &mut last_refresh,
+            start + REVIEW_AUTO_REFRESH_INTERVAL,
+        ));
+        assert!(
+            app.review_state()
+                .unwrap()
+                .document
+                .visible_text()
+                .contains("new text")
+        );
     }
 
     fn test_inventory(root: &Path, items: Vec<InventoryItem>) -> Inventory {
@@ -580,6 +670,10 @@ mod tests {
                 unknowns_path: path.join("01-Learn/02-unknowns.md"),
                 criteria_path: path.join("02-Example/03-criteria.md"),
             },
+            review: Some(crate::review::ReviewSource::LeafWork {
+                root_path: path,
+                root_relative_path: format!(".leaf/{}/{slug}", bucket.dir_name()),
+            }),
         }
     }
 
@@ -594,36 +688,30 @@ mod tests {
                 test_item(root.path(), Bucket::Leaves, "gamma"),
             ],
         ));
-        // Rect(0,0,80,10): table data rows start at y=3; SEL column spans x=1..=3.
+        // Rect(0,0,80,10): table data rows start at y=4.
         let area = Rect::new(0, 0, 80, 10);
 
         assert_eq!(
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Left), 20, 3)
+                mouse(MouseEventKind::Down(MouseButton::Left), 20, 4)
             ),
-            Some(MouseInput::Down {
-                visible_index: 0,
-                toggle: false,
-            })
+            Some(MouseInput::Down { visible_index: 0 })
         );
         assert_eq!(
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Left), 2, 4)
+                mouse(MouseEventKind::Down(MouseButton::Left), 2, 5)
             ),
-            Some(MouseInput::Down {
-                visible_index: 1,
-                toggle: true,
-            })
+            Some(MouseInput::Down { visible_index: 1 })
         );
         assert_eq!(
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Drag(MouseButton::Left), 20, 5)
+                mouse(MouseEventKind::Drag(MouseButton::Left), 20, 6)
             ),
             Some(MouseInput::Drag { visible_index: 2 })
         );
@@ -651,20 +739,20 @@ mod tests {
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Right), 20, 3)
+                mouse(MouseEventKind::Down(MouseButton::Right), 20, 4)
             ),
             None
         );
         assert_eq!(
-            mouse_input(area, &app, mouse(MouseEventKind::ScrollDown, 20, 3)),
+            mouse_input(area, &app, mouse(MouseEventKind::ScrollDown, 20, 4)),
             None
         );
         assert_eq!(
-            mouse_input(area, &app, mouse(MouseEventKind::ScrollUp, 20, 3)),
+            mouse_input(area, &app, mouse(MouseEventKind::ScrollUp, 20, 4)),
             None
         );
         assert_eq!(
-            mouse_input(area, &app, mouse(MouseEventKind::Moved, 20, 3)),
+            mouse_input(area, &app, mouse(MouseEventKind::Moved, 20, 4)),
             None
         );
         // Left down on the header row is not a data row.
@@ -672,7 +760,7 @@ mod tests {
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Left), 20, 2)
+                mouse(MouseEventKind::Down(MouseButton::Left), 20, 3)
             ),
             None
         );
@@ -725,6 +813,21 @@ mod tests {
     }
 
     #[test]
+    fn key_input_maps_review_reader_navigation_keys() {
+        assert_eq!(key_input(key(KeyCode::Enter)), Some(KeyInput::Enter));
+        assert_eq!(key_input(key(KeyCode::PageUp)), Some(KeyInput::PageUp));
+        assert_eq!(key_input(key(KeyCode::PageDown)), Some(KeyInput::PageDown));
+        assert_eq!(
+            key_input(ctrl_key(KeyCode::Char('d'))),
+            Some(KeyInput::HalfPageDown)
+        );
+        assert_eq!(
+            key_input(ctrl_key(KeyCode::Char('u'))),
+            Some(KeyInput::HalfPageUp)
+        );
+    }
+
+    #[test]
     fn ctrl_c_is_not_sent_to_app_state() {
         let key = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
 
@@ -734,5 +837,9 @@ mod tests {
 
     fn key(code: KeyCode) -> KeyEvent {
         KeyEvent::new(code, KeyModifiers::NONE)
+    }
+
+    fn ctrl_key(code: KeyCode) -> KeyEvent {
+        KeyEvent::new(code, KeyModifiers::CONTROL)
     }
 }

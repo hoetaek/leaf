@@ -26,7 +26,7 @@ enum Commands {
         /// Path-safe seed slug.
         slug: String,
     },
-    /// Move an active leaf into the fallen archive.
+    /// Move an active leaf into fallen trash.
     Fall {
         /// Path-safe leaf slug.
         slug: String,

@@ -352,6 +352,9 @@ Gate to continue:
 - Information architecture and workflow survive the walk-through.
 - Mock data is realistic enough to expose edge cases (empty, error, large,
   multi-language) — not just the happy path.
+- For UI/web wireframes, the decisive states/conditions (empty, loading, error,
+  populated, role/permission, locale, large data) are rendered as separate views,
+  not only described — and each holds.
 - Any visual treatment is validated as a concrete case; reusable component,
   token, responsive, and interaction rules are deferred to ⑤.
 - Every placeholder is traced to a declared contract (declarative or ostensive)
@@ -363,19 +366,38 @@ Gate to continue:
   next action, and important states. A wrong inference means the wireframe —
   not the reader — needs revision.
 
-Form by artifact type: interactive → text-first screen sketch then HTML/Figma;
-CLI/config → command transcript + generated TOML/YAML + failure cases; API/data
-→ request/response examples + error cases + state table; text → outline with
-placeholder evidence; proposal → one-page skeleton with stand-in numbers;
-research paper → section skeleton with placeholder findings.
+Form by artifact type: interactive → text-first screen sketch (prose or
+ASCII-art layout), then a rendered HTML view; CLI/config → command transcript +
+generated TOML/YAML + failure cases; API/data → request/response examples + error
+cases + state table; text → outline with placeholder evidence; proposal →
+one-page skeleton with stand-in numbers; research paper → section skeleton with
+placeholder findings.
 
-**Brownfield web changes still start text-first.** After the text-first pass,
-a captured copy of the real rendered page can serve as the artifact-specific
-wireframe instead of redrawing screens. Distinguish **locked context** —
-untouched real markup / current structure, verified reality, not a variation
-point — from **variation points** — the regions the change replaces, filled
-with mock data and declared axes/ranges. See
-`references/brownfield-html-capture.md` for the capture recipe.
+**For UI/web work, render the wireframe after it passes text-first.** Text first
+— a prose or ASCII-art screen sketch, walked through with the operator/reader —
+is the gate; it must pass before any pixels. Once it does, build a rendered HTML
+view the user can open and judge by eye, using the brownfield edit recipe in
+`references/brownfield-html-capture.md`: on a brownfield change, capture the real
+rendered page as **locked context** and inject the change into its **variation
+points** (mock data, declared axes/ranges); greenfield, assemble a self-contained
+HTML mock of the sketched screen. This is still one concrete throwaway instance,
+not the generalized ⑤ design.
+
+**Render the decisive states, not just the happy path.** One screen is many
+screens under different condition values — empty / loading / error / populated,
+short vs overflowing data, first-run vs returning, role or permission variants,
+locale and large-data edges. Render the states that could break the answer as
+separate views — a small gallery in `02-Example/04-wireframe/` — so the user can
+examine the variations side by side and confirm each holds. Name the axis and the
+value behind each rendered state, and trace it to a ③ criterion or a declared
+contract axis; a state you cannot render from the contract is a gap in the
+contract, not just a missing screen.
+
+**Open the renders for the user — do not just save them.** Once the views exist,
+open them in a browser via Chrome DevTools (or a browser MCP), step through each
+state yourself, and screenshot it, so the user reviews by looking — not by opening
+files or clicking through the UI to reach a state. Pair each view with the one
+thing to check there. Verification is a glance, not a chore.
 
 Return to ④ when ⑧ drafting reveals the structure does not match the workflow;
 ⑤ design rules keep colliding with the layout or validated case; a ⑨ reviewer

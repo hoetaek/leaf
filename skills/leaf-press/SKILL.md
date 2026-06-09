@@ -2,31 +2,43 @@
 name: leaf-press
 description: |
   Use when creating a citable pressed Markdown digest at `.leaf/04-pressed/{slug}.md`
-  from an existing LEAF seed, active leaf, or fallen leaf. Trigger on `leaf press`, "press this
-  leaf", "pressed markdown", "make this leaf citable", "인용용으로 눌러줘",
-  "pressed 파일로 정리", "중요 내용만 하나의 마크다운으로", or requests to summarize
-  a LEAF item's intent, method, work done, limits, and lessons into one reusable
-  Markdown file. Do not use for promoting seeds to leaves, moving lifecycle
-  state, executing tasks, or creating wt artifacts.
+  from an existing active leaf and writing a paper-style abstract into the
+  source `00-status.md`. Trigger on `leaf press`, "press this leaf", "pressed
+  markdown", "make this leaf citable", "인용용으로 눌러줘", "pressed 파일로 정리",
+  "중요 내용만 하나의 마크다운으로", or requests to summarize a LEAF item's intent,
+  method, work done, limits, and lessons into one reusable Markdown file. Use a
+  seed or fallen source only when the user explicitly asks for that source. Do
+  not use for promoting seeds to leaves, moving lifecycle state, executing tasks,
+  or creating wt artifacts.
 ---
 
 # LEAF Press
 
-Create a citable Markdown digest from a LEAF item. Pressing does not promote,
-move, or execute the source; it extracts the important context into
+Create a citable Markdown digest from an active LEAF item. Pressing does not
+promote, move, or execute the source; it writes a paper-style abstract into the
+source `00-status.md` and extracts the important context into
 `.leaf/04-pressed/{slug}.md` so later work can quote or cite it.
 
 ## Boundary
 
 - Work only with `.leaf/` content.
 - Do not move `.leaf/01-seeds/`, `.leaf/02-leaves/`, or `.leaf/03-fallen/` directories.
-- Do not change source gate files unless the user separately asks for source
-  edits.
+- On every press, update only the source `00-status.md` with `## Press Abstract`;
+  do not change source gate files unless the user separately asks for source edits.
 - Do not create wt TaskDocuments, workflows, branches, PRs, commits, tickets, or
   execution artifacts.
 - Do not present the pressed file as source truth. It is a digest with source
   links; the original LEAF files remain authoritative.
 - Do not invent certainty. Mark missing, inferred, or unresolved points plainly.
+
+## Reference map
+
+Conduct and reporting are shared across the LEAF family, not duplicated here.
+Read this sibling before writing the digest:
+
+| Read | When |
+|---|---|
+| `../leaf-soul/SKILL.md` | always: shared conduct/voice, overview-first reporting, fact-vs-guess separation, review handoff, and preferred language — follow it for the pressed file and final report |
 
 ## Source Resolution
 
@@ -40,8 +52,10 @@ find .leaf/01-seeds .leaf/02-leaves .leaf/03-fallen .leaf/04-pressed -maxdepth 1
 Resolve the source for `{slug}`:
 
 - Prefer `.leaf/02-leaves/{slug}/` when an active leaf exists.
-- Use `.leaf/03-fallen/{slug}/` when the digest should cite archived prior work.
-- Use `.leaf/01-seeds/{slug}/` when no matching leaf or fallen leaf exists.
+- Use `.leaf/03-fallen/{slug}/` only when the user explicitly asks to press a
+  fallen/trash item.
+- Use `.leaf/01-seeds/{slug}/` only when the user explicitly asks to press a
+  seed.
 - If several sources exist and the user did not specify one, state which source
   you will use and why.
 - If neither exists, stop and list likely available slugs.
@@ -67,6 +81,31 @@ Read only the files needed to produce a faithful digest:
 
 Missing files are acceptable. Note them in the pressed file only when their
 absence affects interpretation.
+
+## Status Abstract
+
+Before writing the pressed file, write or refresh `## Press Abstract` in the
+source `00-status.md`. This is a paper-style abstract for humans scanning the
+leaf, not a lifecycle state change.
+
+Use this shape after the status preamble:
+
+```markdown
+## Press Abstract
+
+- pressed at: <local timestamp>
+- pressed file: .leaf/04-pressed/{slug}.md
+
+<One compact abstract-style paragraph: what the leaf tried to clarify, what
+method it used, what it established or produced, and the main caveat or open
+limit.>
+```
+
+If `## Press Abstract` already exists, replace that section rather than
+appending a duplicate. Keep the existing status preamble and other sections
+intact. If the source is too thin to support a useful abstract, write a short
+abstract that says the source is insufficient and names the missing context.
+Use the same core paragraph as the pressed file's `Citation Summary`.
 
 ## Pressed File Shape
 
@@ -138,11 +177,13 @@ of filling the gaps.
 
 ## After Press
 
-Report:
+Report per `../leaf-soul/SKILL.md` — overview-first, plain words, verified facts
+separate from assumptions. Include:
 
 - output path: `.leaf/04-pressed/{slug}.md`
 - source path used
+- `00-status.md` `## Press Abstract` written or refreshed
 - whether this was a new pressed file or a refresh
 - important missing source files or unresolved questions
-- confirmation that no source lifecycle state, `.wt/`, or execution artifact was
-  changed
+- confirmation that no source lifecycle state transition, `.wt/`, or execution
+  artifact was changed

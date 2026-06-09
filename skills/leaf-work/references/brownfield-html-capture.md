@@ -1,9 +1,12 @@
 # Brownfield HTML Capture for the Wireframe Gate
 
-A fast way to build the **artifact-specific (UI/web) wireframe** at ④ when the
-work is a **brownfield change to an existing web page**: instead of
-hand-drawing screens, capture the real rendered page with a browser, edit only
-the regions that change, and save a self-contained single file.
+A fast way to build the **artifact-specific (UI/web) wireframe** at ④ after the
+text-first pass: produce a rendered HTML view the user can open and judge by eye.
+The sweet spot is a **brownfield change to an existing web page** — capture the
+real rendered page with a browser, edit only the regions that change, and save a
+self-contained single file. The same edit-and-save technique renders a greenfield
+mock of the sketched screen, and renders the decisive **states** of the changed
+regions (see the last section).
 
 ## When to use (and when not)
 
@@ -16,9 +19,11 @@ the regions that change, and save a self-contained single file.
   state only exists after interaction; assets are auth-gated or on cross-origin
   CDNs that block `fetch`. Fall back to: screenshot + DOM outline + a hand
   text-first wireframe.
-- **Not for greenfield.** Copying a reference site's full HTML anchors you to
-  its design. Brownfield is the sweet spot because you must preserve the
-  existing screen anyway.
+- **Greenfield: mock, don't copy.** There is no real page to lock, so assemble
+  your own self-contained HTML mock of the text-first sketch. Do not copy a
+  *reference site's* full HTML — that anchors you to its design (references are
+  studied at ②, not pasted in here). Brownfield is the sweet spot because you
+  must preserve the existing screen anyway.
 
 **Text-first still comes first.** This is an artifact-specific pass, never a
 replacement for the ④ text-first wireframe. Group requirements and walk the
@@ -73,3 +78,20 @@ covered, and which are deferred:
 A page in dev mode may also capture debug overlays (e.g. a debug toolbar);
 offline reload usually drops them because their JS does not load — but strip
 them explicitly if they remain.
+
+## Render the decisive states
+
+One screen is many screens under different condition values. After the baseline
+view renders, clone it once per decisive state and set the variation-point data
+to that state's values: empty / loading / error / populated, short vs overflowing
+data, first-run vs returning, role or permission variants, locale and large-data
+edges. Save each as its own `.html` — or one file with the states stacked and
+labeled — under `02-Example/04-wireframe/`, each titled with the axis and value it
+represents, so the user can open the gallery and compare them by eye. Render only
+the states that could break the answer, and name the axis and range behind each;
+an exhaustive state matrix is ⑤'s concern, not ④'s.
+
+Then **open the gallery for the user** via Chrome DevTools (or a browser MCP):
+load each saved view, screenshot it, and present the shots with a one-line check
+per state. Do not hand back bare `file://` paths and ask the user to open them —
+show the renders, and point at what to verify in each.

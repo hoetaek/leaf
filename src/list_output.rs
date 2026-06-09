@@ -1,6 +1,10 @@
 use crate::inventory::{
     Bucket, Inventory, InventoryItem, ItemKind, ParseState, StatusField, StatusSummary,
 };
+use crate::list_columns::{
+    LIST_COLUMNS, ListColumnRow, bucket_label_plural, bucket_label_singular, parse_state_label,
+    text_table,
+};
 use anyhow::{Context, Result};
 use serde::Serialize;
 use std::io::Write;
@@ -10,7 +14,6 @@ use std::path::{Path, PathBuf};
 struct ListRow {
     bucket_label: String,
     slug: String,
-    state: String,
     phase: String,
     gate: String,
     parse_state: ParseState,
@@ -19,24 +22,7 @@ struct ListRow {
 pub(crate) fn write_text(writer: &mut impl Write, inventory: &Inventory) -> Result<()> {
     let rows = list_rows(inventory);
 
-    writeln!(
-        writer,
-        "{:<7} {:<7} {:<10} {:<14} {:<8} SLUG",
-        "BUCKET", "STATE", "PHASE", "GATE", "STATUS"
-    )?;
-
-    for row in &rows {
-        writeln!(
-            writer,
-            "{:<7} {:<7} {:<10} {:<14} {:<8} {}",
-            row.bucket_label,
-            row.state,
-            row.phase,
-            row.gate,
-            parse_state_label(row.parse_state),
-            row.slug
-        )?;
-    }
+    writeln!(writer, "{}", text_table(&LIST_COLUMNS, &rows))?;
 
     let empty_buckets: Vec<_> = inventory
         .buckets
@@ -72,7 +58,6 @@ impl ListRow {
         ListRow {
             bucket_label: bucket_label_singular(item.bucket).to_string(),
             slug: item.slug.clone(),
-            state: display_state(item),
             phase: display_optional(&item.status.current_phase, "-"),
             gate: display_optional(&item.status.current_gate, "-"),
             parse_state: item.status.parse_state,
@@ -80,11 +65,25 @@ impl ListRow {
     }
 }
 
-fn display_state(item: &InventoryItem) -> String {
-    match (&item.status.state, item.kind) {
-        (Some(state), _) => state.clone(),
-        (None, ItemKind::PressedDigest) => "-".to_string(),
-        (None, ItemKind::LeafWork) => "?".to_string(),
+impl ListColumnRow for ListRow {
+    fn bucket_label(&self) -> &str {
+        &self.bucket_label
+    }
+
+    fn phase(&self) -> &str {
+        &self.phase
+    }
+
+    fn gate(&self) -> &str {
+        &self.gate
+    }
+
+    fn slug(&self) -> &str {
+        &self.slug
+    }
+
+    fn parse_state(&self) -> ParseState {
+        self.parse_state
     }
 }
 
@@ -207,35 +206,9 @@ fn relative_leaf_path(inventory: &Inventory, path: &Path) -> Result<String> {
     Ok(relative.to_string_lossy().replace('\\', "/"))
 }
 
-fn bucket_label_singular(bucket: Bucket) -> &'static str {
-    match bucket {
-        Bucket::Seeds => "seed",
-        Bucket::Leaves => "leaf",
-        Bucket::Fallen => "fallen",
-        Bucket::Pressed => "pressed",
-    }
-}
-
-fn bucket_label_plural(bucket: Bucket) -> &'static str {
-    match bucket {
-        Bucket::Seeds => "seeds",
-        Bucket::Leaves => "leaves",
-        Bucket::Fallen => "fallen",
-        Bucket::Pressed => "pressed",
-    }
-}
-
 fn item_kind_label(kind: ItemKind) -> &'static str {
     match kind {
         ItemKind::LeafWork => "leaf_work",
         ItemKind::PressedDigest => "pressed_digest",
-    }
-}
-
-fn parse_state_label(state: ParseState) -> &'static str {
-    match state {
-        ParseState::Ok => "ok",
-        ParseState::Partial => "partial",
-        ParseState::Error => "error",
     }
 }

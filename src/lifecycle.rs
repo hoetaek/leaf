@@ -120,6 +120,9 @@ fn promoted_status(slug: &str, timestamp: &str, previous_status: Option<&str>) -
         "# Leaf Status\n\n\
          - state: active\n\
          - current phase: Example\n\
+         - current gate: ③ Criteria\n\
+         - first missing gate: ③ Criteria\n\
+         - next action: draft ③ Criteria in 02-Example/03-criteria.md\n\
          - promoted at: {timestamp}\n\
          - promoted from: .leaf/01-seeds/{slug}\n\n\
          ## Promotion Log\n\n\

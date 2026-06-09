@@ -265,17 +265,18 @@ fn list_writes_deterministic_text_output_for_captured_stdout() {
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "BUCKET  STATE   PHASE      GATE           STATUS   SLUG",
+            "BUCKET  PHASE      GATE           SLUG     STATUS",
         ))
         .stdout(predicate::str::contains(
-            "seed    seed    Learn      -              partial  draft",
+            "seed    Learn      -              draft    partial",
         ))
         .stdout(predicate::str::contains(
-            "leaf    active  Architect  ⑦ Task Graph   ok       active",
+            "leaf    Architect  ⑦ Task Graph   active   ok",
         ))
         .stdout(predicate::str::contains(
-            "pressed -       -          -              ok       summary",
+            "pressed -          -              summary  ok",
         ))
+        .stdout(predicate::str::contains("STATE").not())
         .stdout(predicate::str::contains("empty: fallen"));
 }
 
@@ -553,6 +554,29 @@ fn new_creates_seed_skeleton_and_bootstraps_repo() {
 }
 
 #[test]
+fn new_seed_passes_doctor_without_warnings() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("summary  errors 0  warnings 0"))
+        .stdout(predicate::str::contains(
+            "result   ready: leaf list should display cleanly",
+        ))
+        .stdout(predicate::str::contains("status_missing_fields").not());
+}
+
+#[test]
 fn new_rejects_existing_seed_without_overwrite() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
@@ -629,6 +653,34 @@ fn promote_moves_seed_to_active_leaf_and_updates_status() {
     assert!(status.contains("## Promotion Log"));
     assert!(status.contains("## Previous Status"));
     assert!(status.contains("- state: seed"));
+}
+
+#[test]
+fn promoted_leaf_passes_doctor_without_warnings() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["promote", "research-memo"])
+        .assert()
+        .success();
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("summary  errors 0  warnings 0"))
+        .stdout(predicate::str::contains(
+            "result   ready: leaf list should display cleanly",
+        ))
+        .stdout(predicate::str::contains("status_missing_fields").not());
 }
 
 #[test]

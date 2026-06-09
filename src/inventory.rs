@@ -37,6 +37,7 @@ pub(crate) struct InventoryItem {
     pub(crate) path: PathBuf,
     pub(crate) status: StatusSummary,
     pub(crate) preview: PreviewSource,
+    pub(crate) review: Option<crate::review::ReviewSource>,
 }
 
 #[derive(Debug)]
@@ -225,14 +226,19 @@ fn load_directory_item(bucket: Bucket, slug: String, path: PathBuf) -> Inventory
         unknowns_path: path.join("01-Learn/02-unknowns.md"),
         criteria_path: path.join("02-Example/03-criteria.md"),
     };
+    let root_relative_path = format!(".leaf/{}/{}", bucket.dir_name(), slug);
 
     InventoryItem {
         bucket,
         slug,
         kind: ItemKind::LeafWork,
-        path,
+        path: path.clone(),
         status,
         preview,
+        review: Some(crate::review::ReviewSource::LeafWork {
+            root_path: path,
+            root_relative_path,
+        }),
     }
 }
 
@@ -253,6 +259,7 @@ fn load_pressed_item(bucket: Bucket, slug: String, path: PathBuf) -> InventoryIt
         path,
         status,
         preview,
+        review: None,
     }
 }
 
@@ -310,7 +317,7 @@ pub(crate) fn parse_status_summary(content: &str, bucket: Bucket) -> StatusSumma
 
     for line in content.lines() {
         // Only the status preamble is canonical. A second-level-or-deeper
-        // heading (`##`, `###`, …) ends it, so archived sections like
+        // heading (`##`, `###`, …) ends it, so later sections like
         // `## Previous Status` in a fallen file cannot override the real
         // state. The single-`#` document title does not match.
         if line.trim_start().starts_with("##") {
@@ -667,9 +674,9 @@ mod tests {
 
     #[test]
     fn inventory_parse_status_summary_ignores_fields_after_section_heading() {
-        // A fallen archive file keeps the canonical `- state: fallen` in its
+        // A fallen file keeps the canonical `- state: fallen` in its
         // preamble, then embeds the prior active status under a `## Previous
-        // Status` section. Only the preamble is canonical; the archived
+        // Status` section. Only the preamble is canonical; the copied
         // `- state: active`/phase/gate lines below the heading must NOT
         // override it.
         let content = "# Leaf Status\n\n\
