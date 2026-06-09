@@ -441,7 +441,7 @@ mod tests {
     #[test]
     fn preview_build_leaf_work_includes_status_first_and_intent_when_files_exist() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        root.child(".leaf/leaves/preview/00-status.md")
+        root.child(".leaf/02-leaves/preview/00-status.md")
             .write_str(
                 "# Leaf Status\n\n\
                  - state: active\n\
@@ -451,7 +451,7 @@ mod tests {
                  - next action: 다음 행동\n",
             )
             .expect("status");
-        root.child(".leaf/leaves/preview/01-Learn/01-intent.md")
+        root.child(".leaf/02-leaves/preview/01-Learn/01-intent.md")
             .write_str("# Intent\n\n이 의도를 보여줘.\n")
             .expect("intent");
 
@@ -484,10 +484,10 @@ mod tests {
     #[test]
     fn preview_build_pressed_digest_uses_digest_heading_and_summary() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        root.child(".leaf/pressed/research.md")
+        root.child(".leaf/04-pressed/research.md")
             .write_str(
                 "# Research Memo\n\n\
-                 - source: .leaf/leaves/research\n\n\
+                 - source: .leaf/02-leaves/research\n\n\
                  ## Citation Summary\n\n\
                  첫 요약 문장입니다.\n\
                  두 번째 요약 문장입니다.\n\n\

@@ -1,6 +1,6 @@
 [package]
 name = "leaf"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.85"
 publish = false
@@ -26,6 +26,7 @@ include = [
 
 [dependencies]
 anyhow = "1"
+arboard = { version = "3.6.1", default-features = false }
 clap = { version = "4", features = ["derive"] }
 crossterm = "0.29"
 ratatui = "0.29.0"

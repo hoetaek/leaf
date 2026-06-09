@@ -1,7 +1,7 @@
 ---
 name: leaf-press
 description: |
-  Use when creating a citable pressed Markdown digest at `.leaf/pressed/{slug}.md`
+  Use when creating a citable pressed Markdown digest at `.leaf/04-pressed/{slug}.md`
   from an existing LEAF seed, active leaf, or fallen leaf. Trigger on `leaf press`, "press this
   leaf", "pressed markdown", "make this leaf citable", "인용용으로 눌러줘",
   "pressed 파일로 정리", "중요 내용만 하나의 마크다운으로", or requests to summarize
@@ -14,12 +14,12 @@ description: |
 
 Create a citable Markdown digest from a LEAF item. Pressing does not promote,
 move, or execute the source; it extracts the important context into
-`.leaf/pressed/{slug}.md` so later work can quote or cite it.
+`.leaf/04-pressed/{slug}.md` so later work can quote or cite it.
 
 ## Boundary
 
 - Work only with `.leaf/` content.
-- Do not move `.leaf/seeds/`, `.leaf/leaves/`, or `.leaf/fallen/` directories.
+- Do not move `.leaf/01-seeds/`, `.leaf/02-leaves/`, or `.leaf/03-fallen/` directories.
 - Do not change source gate files unless the user separately asks for source
   edits.
 - Do not create wt TaskDocuments, workflows, branches, PRs, commits, tickets, or
@@ -34,20 +34,20 @@ Inspect local truth first:
 
 ```bash
 git status --short --branch
-find .leaf/seeds .leaf/leaves .leaf/fallen .leaf/pressed -maxdepth 1 -mindepth 1 2>/dev/null | sort
+find .leaf/01-seeds .leaf/02-leaves .leaf/03-fallen .leaf/04-pressed -maxdepth 1 -mindepth 1 2>/dev/null | sort
 ```
 
 Resolve the source for `{slug}`:
 
-- Prefer `.leaf/leaves/{slug}/` when an active leaf exists.
-- Use `.leaf/fallen/{slug}/` when the digest should cite archived prior work.
-- Use `.leaf/seeds/{slug}/` when no matching leaf or fallen leaf exists.
+- Prefer `.leaf/02-leaves/{slug}/` when an active leaf exists.
+- Use `.leaf/03-fallen/{slug}/` when the digest should cite archived prior work.
+- Use `.leaf/01-seeds/{slug}/` when no matching leaf or fallen leaf exists.
 - If several sources exist and the user did not specify one, state which source
   you will use and why.
 - If neither exists, stop and list likely available slugs.
 
-Create `.leaf/pressed/` when absent. Write the output to
-`.leaf/pressed/{slug}.md`. If a pressed file already exists, read it before
+Create `.leaf/04-pressed/` when absent. Write the output to
+`.leaf/04-pressed/{slug}.md`. If a pressed file already exists, read it before
 replacing or refreshing it.
 
 ## Read Order
@@ -140,7 +140,7 @@ of filling the gaps.
 
 Report:
 
-- output path: `.leaf/pressed/{slug}.md`
+- output path: `.leaf/04-pressed/{slug}.md`
 - source path used
 - whether this was a new pressed file or a refresh
 - important missing source files or unresolved questions

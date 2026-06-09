@@ -8,6 +8,43 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+## 0.3.0 - 2026-06-09
+
+### Breaking
+
+- `.leaf/` bucket directories now carry lifecycle-order prefixes: `seeds` →
+  `01-seeds`, `leaves` → `02-leaves`, `fallen` → `03-fallen`, `pressed` →
+  `04-pressed`.
+- Existing workspaces migrate automatically and losslessly on the next `leaf`
+  command (`fs::rename`). If both a legacy and a prefixed name exist for the
+  same bucket, migration aborts without moving any files and prints guidance.
+- Downgrading is not supported (older versions do not recognize the prefixed
+  directory names).
+- `leaf list` / JSON / TUI display labels are unchanged: `seeds`, `leaves`,
+  `fallen`, `pressed`.
+
+### Added
+
+- Added `leaf doctor` to run workspace status diagnostics, reporting issues
+  such as unreadable pressed digests.
+- `leaf list` TUI: promote Learn-complete seeds into active leaves directly
+  from the browser.
+- `leaf list` TUI: copy rows to the system clipboard — `y` copies the current
+  row, and multi-select (`space` toggle, `v` range-select, select-all over
+  visible rows) copies every marked row as tab-delimited lines.
+- `leaf list` TUI: mouse selection, and `r` to refresh the inventory.
+- `leaf-work` skill: absorbed the experiment methodology into the Learn phase
+  as a shared `experiment-log` reference — independent, cheap fact-gathering
+  accumulated as a fact ladder, with a `01-Learn/02-experiments/` sidecar.
+- `leaf-idea` skill: split-triage guidance, and refreshed LEAF review/split
+  handoff guidance.
+
+### Fixed
+
+- `leaf list` TUI range-selection contract.
+- Status parsing now reads only the status preamble, so fallen-archive sections
+  no longer override the parsed state.
+
 ## 0.2.0 - 2026-06-08
 
 - Added `leaf list` to project a deterministic inventory of seeds, active

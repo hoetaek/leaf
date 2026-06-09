@@ -195,6 +195,15 @@ world, convention, repo, source material, or audience condition before an answer
 is built: "is this true?" Do not use ② experiments to validate a proposed answer
 shape; that scrutiny belongs to ④.
 
+When a ② unknown needs an experiment to settle — an independent, cheap probe
+that turns a guess into a fact you can't doubt — run it with the shared
+experiment machine (the fact/guess boundary, the fact ladder, and the technique
+repertoire) in `references/experiment-log.md`. Keep the probing process in
+`01-Learn/02-experiments/{name}.md` — the third sibling of `02-references/` — and
+summarize only the established fact back in `02-unknowns.md`. ② is that machine's
+entry point ("is this true?"); ④ reuses it aimed at the answer. Verify outside
+the project's own code — re-running the code under suspicion proves nothing.
+
 Common moves: ask direct clarifying questions; inventory user/team-held
 materials before searching externally; gather references/benchmarks/prior art;
 extract patterns; generate 2–4 candidate frames; compare against taste,
@@ -325,6 +334,15 @@ Validate one concrete case before generalizing. The wireframe must pass ③
 Criteria; refining it can also reveal that a criterion was wrong. When that
 happens, use the purpose inside ③ as the arbiter, revise criteria or wireframe
 explicitly, and keep the disagreement visible.
+
+This is the answer probe of the experiment machine in
+`references/experiment-log.md` — a cheap concrete instance, checked
+independently (a real reader/operator walkthrough), establishes an indubitable
+fact about the answer before the whole artifact is built: leaf before tree. Its
+technique repertoire (baseline comparison, red-team cases, blind comparison,
+LLM-as-judge) is how you make that check independent and cheap. Iterating an
+instance toward a metric is tuning, not this probe — see the neighbor note in
+that file.
 
 Gate to continue:
 
@@ -498,7 +516,11 @@ leaf-work.
 Rules: start with the most load-bearing uncertain chunk, not necessarily the
 first section; prefer ugly but checkable work over polished unsupported prose;
 keep claims and evidence linked; mark placeholders honestly. Log each session in
-`08-execution.md`: what you did, what came of it, what's next.
+`08-execution.md`: what you did, what came of it, what's next. Establishing a
+fact about a chunk (does this work? does it pass?) is an answer probe — use the
+experiment machine in `references/experiment-log.md`. Iterating a chunk toward a
+metric (repeated keep/discard) is tuning — a distinct activity that also logs
+here but is not that fact-gathering machine.
 
 Gate to continue:
 

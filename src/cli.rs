@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::io::IsTerminal;
+use std::process::ExitCode;
 
 #[derive(Debug, Parser)]
 #[command(name = "leaf")]
@@ -39,14 +40,20 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// Diagnose .leaf readiness for leaf list.
+    Doctor {
+        /// Write machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
-pub(crate) fn run() -> Result<()> {
+pub(crate) fn run() -> Result<ExitCode> {
     let cli = Cli::parse();
     execute(cli)
 }
 
-fn execute(cli: Cli) -> Result<()> {
+fn execute(cli: Cli) -> Result<ExitCode> {
     match cli.command {
         Commands::Init => {
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
@@ -56,34 +63,35 @@ fn execute(cli: Cli) -> Result<()> {
             } else {
                 println!(".leaf/ already initialized");
             }
-            Ok(())
+            Ok(ExitCode::SUCCESS)
         }
         Commands::New { slug } => {
             let slug = crate::slug::validate(&slug)?;
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             crate::storage::ensure_leaf_root(&paths)?;
             crate::scaffold::create_seed(&paths.root, &slug)?;
-            println!("created .leaf/seeds/{slug}/");
-            Ok(())
+            println!("created .leaf/01-seeds/{slug}/");
+            Ok(ExitCode::SUCCESS)
         }
         Commands::Promote { slug } => {
             let slug = crate::slug::validate(&slug)?;
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             crate::storage::ensure_leaf_root(&paths)?;
             crate::lifecycle::promote_seed(&paths.root, &slug)?;
-            println!("moved .leaf/seeds/{slug}/ to .leaf/leaves/{slug}/");
-            Ok(())
+            println!("moved .leaf/01-seeds/{slug}/ to .leaf/02-leaves/{slug}/");
+            Ok(ExitCode::SUCCESS)
         }
         Commands::Fall { slug, reason } => {
             let slug = crate::slug::validate(&slug)?;
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             crate::storage::ensure_leaf_root(&paths)?;
             crate::lifecycle::fall_leaf(&paths.root, &slug, &reason)?;
-            println!("moved .leaf/leaves/{slug}/ to .leaf/fallen/{slug}/");
-            Ok(())
+            println!("moved .leaf/02-leaves/{slug}/ to .leaf/03-fallen/{slug}/");
+            Ok(ExitCode::SUCCESS)
         }
         Commands::List { json } => {
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            crate::storage::migrate_layout(&paths.root.join(".leaf"))?;
             let inventory = crate::inventory::load(&paths.root)?;
             if json {
                 let stdout = std::io::stdout();
@@ -96,7 +104,23 @@ fn execute(cli: Cli) -> Result<()> {
                 let mut stdout = stdout.lock();
                 crate::list_output::write_text(&mut stdout, &inventory)?;
             }
-            Ok(())
+            Ok(ExitCode::SUCCESS)
+        }
+        Commands::Doctor { json } => {
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            let report = crate::doctor::check(&paths.root)?;
+            let stdout = std::io::stdout();
+            let mut stdout = stdout.lock();
+            if json {
+                crate::doctor_output::write_json(&mut stdout, &report)?;
+            } else {
+                crate::doctor_output::write_text(&mut stdout, &report)?;
+            }
+            if report.has_errors() {
+                Ok(ExitCode::FAILURE)
+            } else {
+                Ok(ExitCode::SUCCESS)
+            }
         }
     }
 }

@@ -35,9 +35,9 @@ LEAF names the four kinds of uncertainty to close, in order:
 - **Use the leaf CLI as the persistent body of the work.** `leaf-work` assumes
   work lives in a repo-local `.leaf/` workspace. Before gate work, run
   `leaf init` when `.leaf/` is absent, then create exploratory work with
-  `leaf new <slug>` under `.leaf/seeds/<slug>/`. If a seed already exists,
+  `leaf new <slug>` under `.leaf/01-seeds/<slug>/`. If a seed already exists,
   resume that folder instead of creating another. If an active leaf already
-  exists under `.leaf/leaves/<slug>/`, resume the active leaf instead. Do not
+  exists under `.leaf/02-leaves/<slug>/`, resume the active leaf instead. Do not
   create loose `01-Learn/` … `04-Feedback/` folders at the repo root.
 - **Write in the user's preferred language.** Default user-facing replies and
   durable `.leaf/` artifacts to the language the user appears to prefer from
@@ -45,6 +45,12 @@ LEAF names the four kinds of uncertainty to close, in order:
   for Korean readers, write Korean. Preserve fixed source language where needed
   for code identifiers, quoted text, citations, titles, or audience-specific
   deliverables.
+- **Handoff reviewable assumptions in the user's editor.** Mark assumptions,
+  placeholders, or reviewer questions with `USER REVIEW NEEDED:` or
+  `ASSUMPTION:`, then open the artifact in the user's preferred editor when
+  known (`cmux markdown`, `$VISUAL` / `$EDITOR`, `code`, `vim` / `nvim`,
+  Obsidian, Notepad, etc.). If no preference is known or opening is unavailable,
+  ask once or report the path and sections to review.
 - **Scaffolding is the first act — so the work stands on a firm foundation.**
   Learn, Example, and Architect lay that foundation; execution builds only once
   it is solid, not on guesses. The CLI scaffold creates `00-status.md` and the
@@ -94,12 +100,12 @@ LEAF names the four kinds of uncertainty to close, in order:
   small or low-risk that this feels wasteful, do not invoke leaf-work.
 - **Promote after Learn.** Seeds are for rough ideas and Learn-phase work. When
   ① Intent and ② Unknowns & Context have passed and the user approves moving to
-  Example, run `leaf promote <slug>` and continue from `.leaf/leaves/<slug>/`.
+  Example, run `leaf promote <slug>` and continue from `.leaf/02-leaves/<slug>/`.
   ③ Criteria, ④ Wireframe, Architect, execution, and Feedback belong in active
-  leaf storage, not `.leaf/seeds/`.
+  leaf storage, not `.leaf/01-seeds/`.
 - **Persistent files live inside the leaf project folder.** Use
-  `.leaf/seeds/<slug>/` for exploratory and Learn-phase work and
-  `.leaf/leaves/<slug>/` for committed active work after `leaf promote <slug>`.
+  `.leaf/01-seeds/<slug>/` for exploratory and Learn-phase work and
+  `.leaf/02-leaves/<slug>/` for committed active work after `leaf promote <slug>`.
   Inside that project folder, keep the four phase folders and two-digit gate
   prefixes. For all naming and file-vs-folder-by-count, read
   `references/layout.md`.
@@ -126,6 +132,7 @@ changes. Then report:
 - the current phase and gate, plus the first missing gate, if any;
 - why the next move belongs to Learn, Example, Architect, or Feedback;
 - the proposed next artifact to create or revise;
+- files or sections opened for user review, if any;
 - open questions that block the next gate;
 - a short task graph when entering Architect;
 - the promoted Architect snapshot for explicit approval before ⑧ execution;
@@ -153,6 +160,7 @@ diagram.
 | `references/gate-authoring.md` | when drafting, grilling, revising, or presenting a gate artifact for review or approval |
 | `references/engine.md` | you are inside ③–⑤ and need the full contract / variation point / generator mechanics + diagram |
 | `references/clarity-ledger.md` | you are scoring criteria dimensions at ③ — or using it as a lens in ① / ② to aim the next question or learning gap |
+| `references/experiment-log.md` | a gate's question needs an experiment — an independent, cheap probe that turns a guess into a fact you can't doubt: ② probing the world ("is this true?"), ④ probing one instance of the answer; gives the core, the fact/guess boundary, the fact ladder, and the technique repertoire |
 | `references/decision-rationale.md` | you are inside ⑤ and a non-obvious choice needs durable rationale |
 | `references/design-critic.md` | you are at ⑥ — every design gets at least a quick self-pass; read this for critic depth, output shape, or a durable critic pass |
 | `references/brownfield-html-capture.md` | brownfield web work needs a ④ artifact-specific wireframe after the text-first pass — capture the real page instead of redrawing it; not a replacement for ④ |

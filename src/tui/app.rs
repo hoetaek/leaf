@@ -1,7 +1,7 @@
 use crate::inventory::{Bucket, Inventory, InventoryItem, ItemKind, ParseState, PreviewSource};
 use crate::preview::{self, Preview, PreviewLine};
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -27,7 +27,9 @@ pub(crate) enum BucketFilter {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Mode {
     List,
+    RangeSelect,
     FilterInput,
+    ConfirmPromote,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,9 +44,20 @@ pub(crate) enum KeyInput {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum MouseInput {
+    Down { visible_index: usize, toggle: bool },
+    Drag { visible_index: usize },
+    Up,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Outcome {
     Continue,
     Quit,
+    PromoteSeed { slug: String },
+    Refresh,
+    CopyRow { slug: String, text: String },
+    CopyRows { count: usize, text: String },
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +69,10 @@ pub(crate) struct AppState {
     preview_open: bool,
     mode: Mode,
     status_line: String,
+    pending_promote_slug: Option<String>,
+    selected_keys: HashSet<String>,
+    range_anchor: Option<usize>,
+    mouse_anchor: Option<usize>,
     preview_cache: RefCell<HashMap<String, Preview>>,
 }
 
@@ -130,6 +147,18 @@ impl ListRow {
     pub(crate) fn preview_source(&self) -> &PreviewSource {
         &self.preview_source
     }
+
+    pub(crate) fn copy_line(&self) -> String {
+        format!(
+            "{}\t{}\t{}\t{}\t{}\t{}",
+            self.bucket_label,
+            self.state,
+            self.phase,
+            self.gate,
+            self.slug,
+            parse_state_label(self.parse_state),
+        )
+    }
 }
 
 impl AppState {
@@ -153,6 +182,10 @@ impl AppState {
             preview_open: true,
             mode: Mode::List,
             status_line: String::new(),
+            pending_promote_slug: None,
+            selected_keys: HashSet::new(),
+            range_anchor: None,
+            mouse_anchor: None,
             preview_cache: RefCell::new(HashMap::new()),
         };
         state.refresh_visibility_state();
@@ -161,6 +194,10 @@ impl AppState {
 
     pub(crate) fn rows(&self) -> &[ListRow] {
         &self.rows
+    }
+
+    pub(crate) fn row_count(&self) -> usize {
+        self.rows().len()
     }
 
     pub(crate) fn visible_rows(&self) -> Vec<&ListRow> {
@@ -227,7 +264,69 @@ impl AppState {
     pub(crate) fn handle_key(&mut self, input: KeyInput) -> Outcome {
         match self.mode {
             Mode::List => self.handle_list_key(input),
+            Mode::RangeSelect => self.handle_range_key(input),
             Mode::FilterInput => self.handle_filter_key(input),
+            Mode::ConfirmPromote => self.handle_confirm_promote_key(input),
+        }
+    }
+
+    pub(crate) fn handle_mouse(&mut self, input: MouseInput) -> Outcome {
+        if matches!(self.mode, Mode::FilterInput | Mode::ConfirmPromote) {
+            return Outcome::Continue;
+        }
+        match input {
+            MouseInput::Down {
+                visible_index,
+                toggle,
+            } => {
+                if !self.select_visible_index(visible_index) {
+                    return Outcome::Continue;
+                }
+                if toggle {
+                    self.mouse_anchor = None;
+                    self.toggle_current_row_selection();
+                } else {
+                    self.mouse_anchor = Some(self.selected_index);
+                }
+            }
+            MouseInput::Drag { visible_index } => {
+                let Some(anchor) = self.mouse_anchor else {
+                    return Outcome::Continue;
+                };
+                if !self.select_visible_index(visible_index) {
+                    return Outcome::Continue;
+                }
+                self.mark_visible_range(anchor, self.selected_index);
+            }
+            MouseInput::Up => {
+                self.mouse_anchor = None;
+            }
+        }
+        Outcome::Continue
+    }
+
+    fn select_visible_index(&mut self, visible_index: usize) -> bool {
+        if visible_index < self.visible_count() {
+            self.selected_index = visible_index;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn mark_visible_range(&mut self, anchor: usize, current: usize) {
+        let visible_keys: Vec<String> = self
+            .visible_rows()
+            .iter()
+            .map(|row| row.relative_path().to_string())
+            .collect();
+        let lo = anchor.min(current);
+        let hi = anchor.max(current);
+        self.selected_keys.clear();
+        for index in lo..=hi {
+            if let Some(key) = visible_keys.get(index) {
+                self.selected_keys.insert(key.clone());
+            }
         }
     }
 
@@ -239,10 +338,220 @@ impl AppState {
             KeyInput::Right | KeyInput::Char('l') => self.move_bucket_right(),
             KeyInput::Char('/') => self.mode = Mode::FilterInput,
             KeyInput::Char('p') => self.preview_open = !self.preview_open,
-            KeyInput::Esc | KeyInput::Char('q') => return Outcome::Quit,
+            KeyInput::Char(' ') => self.toggle_current_row_selection(),
+            KeyInput::Char('v') => self.begin_range_select(),
+            KeyInput::Char('a') => self.toggle_all_visible_selection(),
+            KeyInput::Char('y') => return self.copy_marked_or_current_row(),
+            KeyInput::Char('P') => self.begin_promote(),
+            KeyInput::Char('r') => return Outcome::Refresh,
+            KeyInput::Char('q') => return Outcome::Quit,
+            KeyInput::Esc => return self.clear_selection_or_quit(),
             KeyInput::Backspace | KeyInput::Char(_) => {}
         }
         Outcome::Continue
+    }
+
+    fn handle_range_key(&mut self, input: KeyInput) -> Outcome {
+        match input {
+            KeyInput::Up | KeyInput::Char('k') => self.move_selection_up(),
+            KeyInput::Down | KeyInput::Char('j') => self.move_selection_down(),
+            KeyInput::Char('a') => {
+                self.toggle_all_visible_selection();
+                self.range_anchor = None;
+                self.mode = Mode::List;
+            }
+            KeyInput::Char('y') => {
+                self.commit_range_select();
+                return self.copy_marked_or_current_row();
+            }
+            KeyInput::Char('v') | KeyInput::Esc => self.commit_range_select(),
+            KeyInput::Char('q') => return Outcome::Quit,
+            _ => {}
+        }
+        Outcome::Continue
+    }
+
+    fn copy_marked_or_current_row(&mut self) -> Outcome {
+        let marked = self.marked_copy_lines();
+        match marked.len() {
+            0 => match self.selected_row() {
+                Some(row) => Outcome::CopyRow {
+                    slug: row.slug().to_string(),
+                    text: row.copy_line(),
+                },
+                None => {
+                    self.status_line = "no row selected to copy".to_string();
+                    Outcome::Continue
+                }
+            },
+            count => Outcome::CopyRows {
+                count,
+                text: marked.join("\n"),
+            },
+        }
+    }
+
+    fn marked_copy_lines(&self) -> Vec<String> {
+        self.visible_rows()
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| self.visible_row_is_marked(*index))
+            .map(|(_, row)| row.copy_line())
+            .collect()
+    }
+
+    fn toggle_current_row_selection(&mut self) {
+        let Some(key) = self
+            .selected_row()
+            .map(|row| row.relative_path().to_string())
+        else {
+            return;
+        };
+        if !self.selected_keys.remove(&key) {
+            self.selected_keys.insert(key);
+        }
+    }
+
+    fn toggle_all_visible_selection(&mut self) {
+        let visible_keys: Vec<String> = self
+            .visible_rows()
+            .iter()
+            .map(|row| row.relative_path().to_string())
+            .collect();
+        if visible_keys.is_empty() {
+            return;
+        }
+        let all_marked = visible_keys
+            .iter()
+            .all(|key| self.selected_keys.contains(key));
+        if all_marked {
+            for key in &visible_keys {
+                self.selected_keys.remove(key);
+            }
+        } else {
+            for key in visible_keys {
+                self.selected_keys.insert(key);
+            }
+        }
+    }
+
+    fn begin_range_select(&mut self) {
+        let Some(key) = self
+            .selected_row()
+            .map(|row| row.relative_path().to_string())
+        else {
+            return;
+        };
+        self.selected_keys.clear();
+        self.selected_keys.insert(key);
+        self.range_anchor = Some(self.selected_index);
+        self.mode = Mode::RangeSelect;
+    }
+
+    fn commit_range_select(&mut self) {
+        let visible_keys: Vec<String> = self
+            .visible_rows()
+            .iter()
+            .map(|row| row.relative_path().to_string())
+            .collect();
+        if let Some(anchor) = self.range_anchor {
+            let lo = anchor.min(self.selected_index);
+            let hi = anchor.max(self.selected_index);
+            self.selected_keys.clear();
+            for index in lo..=hi {
+                if let Some(key) = visible_keys.get(index) {
+                    self.selected_keys.insert(key.clone());
+                }
+            }
+        }
+        self.range_anchor = None;
+        self.mode = Mode::List;
+    }
+
+    fn clear_selection_or_quit(&mut self) -> Outcome {
+        if self.selected_keys.is_empty() {
+            Outcome::Quit
+        } else {
+            self.selected_keys.clear();
+            self.range_anchor = None;
+            self.status_line = "selection cleared".to_string();
+            Outcome::Continue
+        }
+    }
+
+    pub(crate) fn selected_row_count(&self) -> usize {
+        let visible_len = self.visible_rows().len();
+        (0..visible_len)
+            .filter(|index| self.visible_row_is_marked(*index))
+            .count()
+    }
+
+    pub(crate) fn visible_row_is_marked(&self, visible_index: usize) -> bool {
+        let visible = self.visible_rows();
+        let Some(row) = visible.get(visible_index) else {
+            return false;
+        };
+        if self.selected_keys.contains(row.relative_path()) {
+            return true;
+        }
+        if self.mode == Mode::RangeSelect {
+            if let Some(anchor) = self.range_anchor {
+                let lo = anchor.min(self.selected_index);
+                let hi = anchor.max(self.selected_index);
+                if visible_index >= lo && visible_index <= hi {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn prune_hidden_selection(&mut self) {
+        if self.selected_keys.is_empty() {
+            return;
+        }
+        let visible_keys: HashSet<String> = self
+            .visible_rows()
+            .iter()
+            .map(|row| row.relative_path().to_string())
+            .collect();
+        self.selected_keys.retain(|key| visible_keys.contains(key));
+    }
+
+    fn begin_promote(&mut self) {
+        let target = self
+            .selected_row()
+            .filter(|row| row.bucket() == Bucket::Seeds)
+            .map(|row| row.slug().to_string());
+        match target {
+            Some(slug) => {
+                self.status_line = format!("Promote seed {slug}? y confirm  n/Esc cancel");
+                self.pending_promote_slug = Some(slug);
+                self.mode = Mode::ConfirmPromote;
+            }
+            None => {
+                self.status_line = "promote is only available for seed rows".to_string();
+            }
+        }
+    }
+
+    fn handle_confirm_promote_key(&mut self, input: KeyInput) -> Outcome {
+        match input {
+            KeyInput::Char('y') => {
+                self.mode = Mode::List;
+                match self.pending_promote_slug.take() {
+                    Some(slug) => Outcome::PromoteSeed { slug },
+                    None => Outcome::Continue,
+                }
+            }
+            KeyInput::Char('n') | KeyInput::Esc => {
+                self.pending_promote_slug = None;
+                self.mode = Mode::List;
+                self.status_line = "promote cancelled".to_string();
+                Outcome::Continue
+            }
+            _ => Outcome::Continue,
+        }
     }
 
     fn handle_filter_key(&mut self, input: KeyInput) -> Outcome {
@@ -297,6 +606,8 @@ impl AppState {
 
     fn refresh_visibility_state(&mut self) {
         self.clamp_selected_index();
+        self.prune_hidden_selection();
+        self.clamp_range_anchor();
         self.update_status_line();
     }
 
@@ -306,6 +617,16 @@ impl AppState {
             self.selected_index = 0;
         } else if self.selected_index >= visible_count {
             self.selected_index = visible_count - 1;
+        }
+    }
+
+    fn clamp_range_anchor(&mut self) {
+        let visible_count = self.visible_count();
+        if self
+            .range_anchor
+            .is_some_and(|anchor| anchor >= visible_count)
+        {
+            self.range_anchor = None;
         }
     }
 
@@ -343,6 +664,47 @@ impl AppState {
         } else {
             format!("{visible_count} of {total_count} {}", row_word(total_count))
         };
+    }
+
+    pub(crate) fn replace_inventory(&mut self, inventory: &Inventory) {
+        self.rows = inventory
+            .buckets
+            .iter()
+            .flat_map(|bucket| {
+                bucket
+                    .items
+                    .iter()
+                    .map(|item| ListRow::from_item(inventory, item))
+            })
+            .collect();
+        self.preview_cache.borrow_mut().clear();
+        self.pending_promote_slug = None;
+        self.selected_keys.clear();
+        self.range_anchor = None;
+        self.mouse_anchor = None;
+        self.mode = Mode::List;
+        self.refresh_visibility_state();
+    }
+
+    pub(crate) fn select_bucket_slug(&mut self, bucket: Bucket, slug: &str) -> bool {
+        self.active_bucket = BucketFilter::Bucket(bucket);
+        self.refresh_visibility_state();
+        let position = self
+            .visible_rows()
+            .iter()
+            .position(|row| row.bucket() == bucket && row.slug() == slug);
+        match position {
+            Some(index) => {
+                self.selected_index = index;
+                self.update_status_line();
+                true
+            }
+            None => false,
+        }
+    }
+
+    pub(crate) fn set_status_message(&mut self, message: impl Into<String>) {
+        self.status_line = message.into();
     }
 }
 
@@ -424,6 +786,14 @@ fn bucket_label_plural(bucket: Bucket) -> &'static str {
     }
 }
 
+fn parse_state_label(state: ParseState) -> &'static str {
+    match state {
+        ParseState::Ok => "ok",
+        ParseState::Partial => "partial",
+        ParseState::Error => "error",
+    }
+}
+
 fn row_word(count: usize) -> &'static str {
     if count == 1 { "row" } else { "rows" }
 }
@@ -484,13 +854,13 @@ mod tests {
         assert_eq!(rows[0].phase(), "learn");
         assert_eq!(rows[0].gate(), "intent");
         assert_eq!(rows[0].parse_state(), ParseState::Ok);
-        assert_eq!(rows[0].relative_path(), ".leaf/seeds/alpha-seed");
+        assert_eq!(rows[0].relative_path(), ".leaf/01-seeds/alpha-seed");
         assert_searchable(
             rows[0].searchable_text(),
             &[
                 "seed",
                 "alpha-seed",
-                ".leaf/seeds/alpha-seed",
+                ".leaf/01-seeds/alpha-seed",
                 "ready",
                 "learn",
                 "intent",
@@ -500,7 +870,7 @@ mod tests {
 
         assert_eq!(rows[1].bucket(), Bucket::Leaves);
         assert_eq!(rows[1].bucket_label(), "leaf");
-        assert_eq!(rows[1].relative_path(), ".leaf/leaves/beta-leaf");
+        assert_eq!(rows[1].relative_path(), ".leaf/02-leaves/beta-leaf");
         assert_eq!(rows[1].parse_state(), ParseState::Partial);
 
         assert_eq!(rows[2].bucket(), Bucket::Fallen);
@@ -508,14 +878,14 @@ mod tests {
         assert_eq!(rows[2].state(), "?");
         assert_eq!(rows[2].phase(), "-");
         assert_eq!(rows[2].gate(), "-");
-        assert_eq!(rows[2].relative_path(), ".leaf/fallen/gamma-fallen");
+        assert_eq!(rows[2].relative_path(), ".leaf/03-fallen/gamma-fallen");
 
         assert_eq!(rows[3].bucket(), Bucket::Pressed);
         assert_eq!(rows[3].bucket_label(), "pressed");
         assert_eq!(rows[3].state(), "-");
         assert_eq!(rows[3].phase(), "-");
         assert_eq!(rows[3].gate(), "-");
-        assert_eq!(rows[3].relative_path(), ".leaf/pressed/delta-pressed.md");
+        assert_eq!(rows[3].relative_path(), ".leaf/04-pressed/delta-pressed.md");
     }
 
     #[test]
@@ -636,11 +1006,11 @@ mod tests {
             "second",
             complete_leaf_status(),
         );
-        write_preview_status(root.path(), "first", "첫 번째 미리보기");
+        write_preview_status(root.path(), Bucket::Leaves, "first", "첫 번째 미리보기");
         let inventory = inventory_with_root(root.path(), vec![first, second]);
         let mut app = AppState::from_inventory(&inventory);
 
-        write_preview_status(root.path(), "second", "늦게 생긴 미리보기");
+        write_preview_status(root.path(), Bucket::Leaves, "second", "늦게 생긴 미리보기");
         app.handle_key(KeyInput::Down);
         let preview = app
             .selected_preview()
@@ -697,6 +1067,552 @@ mod tests {
             filtered_app.handle_key(KeyInput::Backspace),
             Outcome::Continue
         );
+    }
+
+    #[test]
+    fn tui_app_p_on_seed_enters_confirm_promote_and_y_emits_promote_outcome() {
+        let inventory = inventory_with_items(vec![leaf_item(
+            Bucket::Seeds,
+            "draft",
+            complete_leaf_status(),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Char('P')), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::ConfirmPromote);
+        assert!(app.status_line().contains("Promote seed draft?"));
+        assert!(app.status_line().contains("y confirm"));
+        assert!(app.status_line().contains("n/Esc cancel"));
+
+        assert_eq!(
+            app.handle_key(KeyInput::Char('y')),
+            Outcome::PromoteSeed {
+                slug: "draft".to_string()
+            }
+        );
+        assert_eq!(app.mode(), Mode::List);
+
+        app.handle_key(KeyInput::Char('P'));
+        assert_eq!(app.handle_key(KeyInput::Char('n')), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::List);
+        assert!(app.status_line().contains("cancelled"));
+
+        app.handle_key(KeyInput::Char('P'));
+        assert_eq!(app.handle_key(KeyInput::Esc), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::List);
+    }
+
+    #[test]
+    fn tui_app_p_on_non_seed_reports_status_without_mutation() {
+        let inventory = inventory_with_items(vec![leaf_item(
+            Bucket::Leaves,
+            "active",
+            complete_leaf_status(),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Char('P')), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::List);
+        assert!(app.status_line().contains("only available for seed"));
+    }
+
+    #[test]
+    fn tui_app_r_in_list_mode_emits_refresh_outcome() {
+        let inventory = inventory_with_items(vec![leaf_item(
+            Bucket::Leaves,
+            "active",
+            complete_leaf_status(),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Char('r')), Outcome::Refresh);
+        assert_eq!(app.mode(), Mode::List);
+    }
+
+    #[test]
+    fn tui_app_r_in_filter_mode_is_filter_text() {
+        let inventory = inventory_with_slugs(&["alpha"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('/'));
+        assert_eq!(app.handle_key(KeyInput::Char('r')), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::FilterInput);
+        assert_eq!(app.filter(), "r");
+    }
+
+    #[test]
+    fn tui_app_replace_inventory_selects_promoted_leaf_and_clears_preview_cache() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let seed = leaf_item_at(root.path(), Bucket::Seeds, "draft", complete_leaf_status());
+        write_preview_status(root.path(), Bucket::Seeds, "draft", "old seed preview");
+        let seed_inventory = inventory_with_root(root.path(), vec![seed]);
+        let mut app = AppState::from_inventory(&seed_inventory);
+        assert!(
+            preview_text(&app.selected_preview().expect("seed preview"))
+                .contains("old seed preview")
+        );
+
+        let leaf = leaf_item_at(root.path(), Bucket::Leaves, "draft", complete_leaf_status());
+        write_preview_status(root.path(), Bucket::Leaves, "draft", "new leaf preview");
+        let leaf_inventory = inventory_with_root(root.path(), vec![leaf]);
+
+        app.replace_inventory(&leaf_inventory);
+        app.select_bucket_slug(Bucket::Leaves, "draft");
+        app.set_status_message("promoted seed draft to .leaf/02-leaves/draft/");
+
+        assert_eq!(app.active_bucket(), BucketFilter::Bucket(Bucket::Leaves));
+        assert_eq!(app.selected_row().map(ListRow::slug), Some("draft"));
+        assert!(
+            preview_text(&app.selected_preview().expect("leaf preview"))
+                .contains("new leaf preview")
+        );
+        assert!(app.status_line().contains("promoted seed draft"));
+    }
+
+    #[test]
+    fn tui_app_copy_row_outcome_copies_selected_row() {
+        let inventory = inventory_with_slugs(&["alpha"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(
+            app.handle_key(KeyInput::Char('y')),
+            Outcome::CopyRow {
+                slug: "alpha".to_string(),
+                text: "leaf\tactive\tlearn\tintent\talpha\tok".to_string(),
+            }
+        );
+        assert_eq!(app.mode(), Mode::List);
+    }
+
+    #[test]
+    fn tui_app_copy_row_with_no_selection_reports_status() {
+        let inventory = inventory_with_items(Vec::new());
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Char('y')), Outcome::Continue);
+        assert!(app.status_line().contains("no row selected to copy"));
+    }
+
+    #[test]
+    fn tui_app_copy_row_y_in_filter_mode_is_filter_text() {
+        let inventory = inventory_with_slugs(&["alpha"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('/'));
+        assert_eq!(app.handle_key(KeyInput::Char('y')), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::FilterInput);
+        assert_eq!(app.filter(), "y");
+    }
+
+    #[test]
+    fn tui_app_space_toggles_current_row_selection() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Char(' ')), Outcome::Continue);
+        assert_eq!(app.selected_row_count(), 1);
+        assert!(app.visible_row_is_marked(0));
+
+        app.handle_key(KeyInput::Down);
+        assert_eq!(app.handle_key(KeyInput::Char(' ')), Outcome::Continue);
+        assert_eq!(app.selected_row_count(), 2);
+        assert!(app.visible_row_is_marked(0));
+        assert!(app.visible_row_is_marked(1));
+        assert!(!app.visible_row_is_marked(2));
+
+        assert_eq!(app.handle_key(KeyInput::Char(' ')), Outcome::Continue);
+        assert_eq!(app.selected_row_count(), 1);
+        assert!(app.visible_row_is_marked(0));
+        assert!(!app.visible_row_is_marked(1));
+        assert_eq!(app.mode(), Mode::List);
+    }
+
+    #[test]
+    fn tui_app_y_copies_all_multi_selected_rows_in_visible_order() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char(' '));
+        app.handle_key(KeyInput::Down);
+        app.handle_key(KeyInput::Down);
+        app.handle_key(KeyInput::Char(' '));
+        assert_eq!(app.selected_row_count(), 2);
+
+        assert_eq!(
+            app.handle_key(KeyInput::Char('y')),
+            Outcome::CopyRows {
+                count: 2,
+                text:
+                    "leaf\tactive\tlearn\tintent\talpha\tok\nleaf\tactive\tlearn\tintent\tgamma\tok"
+                        .to_string(),
+            }
+        );
+        assert_eq!(app.mode(), Mode::List);
+    }
+
+    #[test]
+    fn tui_app_y_without_multi_selection_keeps_current_row_copy_fallback() {
+        let inventory = inventory_with_slugs(&["alpha"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(
+            app.handle_key(KeyInput::Char('y')),
+            Outcome::CopyRow {
+                slug: "alpha".to_string(),
+                text: "leaf\tactive\tlearn\tintent\talpha\tok".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn tui_app_v_starts_range_mode_and_j_k_extend_selected_range() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Char('v')), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::RangeSelect);
+        assert_eq!(app.selected_row_count(), 1);
+        assert!(app.visible_row_is_marked(0));
+
+        app.handle_key(KeyInput::Char('j'));
+        app.handle_key(KeyInput::Char('j'));
+        assert_eq!(app.selected_index(), 2);
+        assert_eq!(app.selected_row_count(), 3);
+        assert!(app.visible_row_is_marked(0));
+        assert!(app.visible_row_is_marked(1));
+        assert!(app.visible_row_is_marked(2));
+
+        app.handle_key(KeyInput::Char('k'));
+        assert_eq!(app.selected_index(), 1);
+        assert_eq!(app.selected_row_count(), 2);
+        assert!(app.visible_row_is_marked(0));
+        assert!(app.visible_row_is_marked(1));
+        assert!(!app.visible_row_is_marked(2));
+
+        assert_eq!(app.handle_key(KeyInput::Esc), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::List);
+        assert_eq!(app.selected_row_count(), 2);
+    }
+
+    #[test]
+    fn tui_app_v_starts_fresh_range_clearing_prior_selection() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char(' '));
+        app.handle_key(KeyInput::Down);
+        app.handle_key(KeyInput::Down);
+        assert_eq!(app.handle_key(KeyInput::Char('v')), Outcome::Continue);
+
+        assert_eq!(app.mode(), Mode::RangeSelect);
+        assert_eq!(app.selected_index(), 2);
+        assert_eq!(app.selected_row_count(), 1);
+        assert!(!app.visible_row_is_marked(0));
+        assert!(!app.visible_row_is_marked(1));
+        assert!(app.visible_row_is_marked(2));
+    }
+
+    #[test]
+    fn tui_app_range_mode_v_exits_preserving_selected_range() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('v'));
+        app.handle_key(KeyInput::Char('j'));
+        assert_eq!(app.handle_key(KeyInput::Char('v')), Outcome::Continue);
+
+        assert_eq!(app.mode(), Mode::List);
+        assert_eq!(app.selected_row_count(), 2);
+        assert!(app.visible_row_is_marked(0));
+        assert!(app.visible_row_is_marked(1));
+        assert!(!app.visible_row_is_marked(2));
+    }
+
+    #[test]
+    fn tui_app_range_mode_y_copies_range_and_returns_to_list() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('v'));
+        app.handle_key(KeyInput::Char('j'));
+
+        assert_eq!(
+            app.handle_key(KeyInput::Char('y')),
+            Outcome::CopyRows {
+                count: 2,
+                text:
+                    "leaf\tactive\tlearn\tintent\talpha\tok\nleaf\tactive\tlearn\tintent\tbeta\tok"
+                        .to_string(),
+            }
+        );
+        assert_eq!(app.mode(), Mode::List);
+        assert_eq!(app.selected_row_count(), 2);
+    }
+
+    #[test]
+    fn tui_app_range_mode_q_quits() {
+        let inventory = inventory_with_slugs(&["alpha"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('v'));
+
+        assert_eq!(app.handle_key(KeyInput::Char('q')), Outcome::Quit);
+    }
+
+    #[test]
+    fn tui_app_range_mode_a_toggles_all_visible_and_returns_to_list() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('v'));
+        assert_eq!(app.handle_key(KeyInput::Char('a')), Outcome::Continue);
+
+        assert_eq!(app.mode(), Mode::List);
+        assert_eq!(app.selected_row_count(), 3);
+        assert!(app.visible_row_is_marked(0));
+        assert!(app.visible_row_is_marked(1));
+        assert!(app.visible_row_is_marked(2));
+    }
+
+    #[test]
+    fn tui_app_a_toggles_all_current_visible_rows() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('/'));
+        app.handle_key(KeyInput::Char('a'));
+        app.handle_key(KeyInput::Esc);
+        assert_eq!(visible_slugs(&app), vec!["alpha", "beta", "gamma"]);
+
+        assert_eq!(app.handle_key(KeyInput::Char('a')), Outcome::Continue);
+        assert_eq!(app.selected_row_count(), 3);
+        assert!(app.visible_row_is_marked(0));
+        assert!(app.visible_row_is_marked(1));
+        assert!(app.visible_row_is_marked(2));
+
+        assert_eq!(app.handle_key(KeyInput::Char('a')), Outcome::Continue);
+        assert_eq!(app.selected_row_count(), 0);
+    }
+
+    #[test]
+    fn tui_app_filter_or_bucket_change_prunes_hidden_selected_rows() {
+        let inventory = inventory_with_items(vec![
+            leaf_item(Bucket::Seeds, "seed-a", complete_leaf_status()),
+            leaf_item(Bucket::Leaves, "leaf-b", complete_leaf_status()),
+        ]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char(' '));
+        app.handle_key(KeyInput::Down);
+        app.handle_key(KeyInput::Char(' '));
+        assert_eq!(app.selected_row_count(), 2);
+
+        app.handle_key(KeyInput::Right);
+        assert_eq!(app.active_bucket(), BucketFilter::Bucket(Bucket::Seeds));
+        assert_eq!(visible_slugs(&app), vec!["seed-a"]);
+        assert_eq!(app.selected_row_count(), 1);
+        assert!(app.visible_row_is_marked(0));
+    }
+
+    #[test]
+    fn tui_app_esc_clears_selection_before_quitting_list_mode() {
+        let inventory = inventory_with_slugs(&["alpha"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char(' '));
+        assert_eq!(app.handle_key(KeyInput::Esc), Outcome::Continue);
+        assert_eq!(app.selected_row_count(), 0);
+        assert_eq!(app.mode(), Mode::List);
+        assert!(app.status_line().contains("selection cleared"));
+
+        assert_eq!(app.handle_key(KeyInput::Esc), Outcome::Quit);
+    }
+
+    #[test]
+    fn tui_app_multi_select_keys_are_filter_text_in_filter_mode() {
+        let inventory = inventory_with_slugs(&["alpha"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('/'));
+        app.handle_key(KeyInput::Char('y'));
+        app.handle_key(KeyInput::Char('a'));
+        app.handle_key(KeyInput::Char('v'));
+        app.handle_key(KeyInput::Char(' '));
+
+        assert_eq!(app.mode(), Mode::FilterInput);
+        assert_eq!(app.filter(), "yav ");
+        assert_eq!(app.selected_row_count(), 0);
+    }
+
+    #[test]
+    fn tui_app_mouse_row_click_moves_cursor_without_selecting() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::Down {
+                visible_index: 1,
+                toggle: false,
+            }),
+            Outcome::Continue
+        );
+
+        assert_eq!(app.selected_index(), 1);
+        assert_eq!(app.selected_row().map(ListRow::slug), Some("beta"));
+        assert_eq!(app.selected_row_count(), 0);
+    }
+
+    #[test]
+    fn tui_app_mouse_sel_click_toggles_row_selection() {
+        let inventory = inventory_with_slugs(&["alpha", "beta"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::Down {
+                visible_index: 1,
+                toggle: true,
+            }),
+            Outcome::Continue
+        );
+        assert_eq!(app.selected_index(), 1);
+        assert_eq!(app.selected_row_count(), 1);
+        assert!(app.visible_row_is_marked(1));
+        assert!(!app.visible_row_is_marked(0));
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::Down {
+                visible_index: 1,
+                toggle: true,
+            }),
+            Outcome::Continue
+        );
+        assert_eq!(app.selected_row_count(), 0);
+    }
+
+    #[test]
+    fn tui_app_mouse_drag_marks_range_from_press_to_current_row() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma", "delta"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_mouse(MouseInput::Down {
+            visible_index: 0,
+            toggle: false,
+        });
+        app.handle_mouse(MouseInput::Drag { visible_index: 1 });
+        assert_eq!(
+            app.handle_mouse(MouseInput::Drag { visible_index: 2 }),
+            Outcome::Continue
+        );
+
+        assert_eq!(app.selected_index(), 2);
+        assert_eq!(app.selected_row_count(), 3);
+        assert!(app.visible_row_is_marked(0));
+        assert!(app.visible_row_is_marked(1));
+        assert!(app.visible_row_is_marked(2));
+        assert!(!app.visible_row_is_marked(3));
+
+        assert_eq!(app.handle_mouse(MouseInput::Up), Outcome::Continue);
+        assert_eq!(app.selected_row_count(), 3);
+    }
+
+    #[test]
+    fn tui_app_mouse_reverse_drag_marks_range_upward() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_mouse(MouseInput::Down {
+            visible_index: 2,
+            toggle: false,
+        });
+        app.handle_mouse(MouseInput::Drag { visible_index: 0 });
+
+        assert_eq!(app.selected_index(), 0);
+        assert_eq!(app.selected_row_count(), 3);
+        assert!(app.visible_row_is_marked(0));
+        assert!(app.visible_row_is_marked(1));
+        assert!(app.visible_row_is_marked(2));
+    }
+
+    #[test]
+    fn tui_app_y_copies_rows_marked_by_mouse_drag() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_mouse(MouseInput::Down {
+            visible_index: 0,
+            toggle: false,
+        });
+        app.handle_mouse(MouseInput::Drag { visible_index: 1 });
+        app.handle_mouse(MouseInput::Up);
+
+        assert_eq!(
+            app.handle_key(KeyInput::Char('y')),
+            Outcome::CopyRows {
+                count: 2,
+                text:
+                    "leaf\tactive\tlearn\tintent\talpha\tok\nleaf\tactive\tlearn\tintent\tbeta\tok"
+                        .to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn tui_app_mouse_out_of_range_index_is_ignored() {
+        let inventory = inventory_with_slugs(&["alpha", "beta"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::Down {
+                visible_index: 9,
+                toggle: false,
+            }),
+            Outcome::Continue
+        );
+        assert_eq!(app.selected_index(), 0);
+        assert_eq!(app.selected_row_count(), 0);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::Down {
+                visible_index: 9,
+                toggle: true,
+            }),
+            Outcome::Continue
+        );
+        assert_eq!(app.selected_row_count(), 0);
+    }
+
+    #[test]
+    fn tui_app_mouse_is_ignored_in_filter_and_confirm_modes() {
+        let inventory = inventory_with_items(vec![leaf_item(
+            Bucket::Seeds,
+            "draft",
+            complete_leaf_status(),
+        )]);
+
+        let mut filter_app = AppState::from_inventory(&inventory);
+        filter_app.handle_key(KeyInput::Char('/'));
+        assert_eq!(
+            filter_app.handle_mouse(MouseInput::Down {
+                visible_index: 0,
+                toggle: true,
+            }),
+            Outcome::Continue
+        );
+        assert_eq!(filter_app.mode(), Mode::FilterInput);
+        assert_eq!(filter_app.selected_row_count(), 0);
+
+        let mut confirm_app = AppState::from_inventory(&inventory);
+        confirm_app.handle_key(KeyInput::Char('P'));
+        assert_eq!(confirm_app.mode(), Mode::ConfirmPromote);
+        assert_eq!(
+            confirm_app.handle_mouse(MouseInput::Down {
+                visible_index: 0,
+                toggle: true,
+            }),
+            Outcome::Continue
+        );
+        assert_eq!(confirm_app.mode(), Mode::ConfirmPromote);
+        assert_eq!(confirm_app.selected_row_count(), 0);
     }
 
     fn inventory_with_slugs(slugs: &[&str]) -> Inventory {
@@ -776,8 +1692,12 @@ mod tests {
         }
     }
 
-    fn write_preview_status(root: &Path, slug: &str, body: &str) {
-        let status_path = root.join(".leaf/leaves").join(slug).join("00-status.md");
+    fn write_preview_status(root: &Path, bucket: Bucket, slug: &str, body: &str) {
+        let status_path = root
+            .join(".leaf")
+            .join(bucket_dir(bucket))
+            .join(slug)
+            .join("00-status.md");
         std::fs::create_dir_all(status_path.parent().unwrap()).expect("preview dir");
         std::fs::write(status_path, format!("# Status\n\n{body}\n")).expect("preview status");
     }
@@ -807,7 +1727,7 @@ mod tests {
     fn pressed_item(slug: &str, status: StatusSummary) -> InventoryItem {
         let path = repo_root()
             .join(".leaf")
-            .join("pressed")
+            .join(Bucket::Pressed.dir_name())
             .join(format!("{slug}.md"));
         InventoryItem {
             bucket: Bucket::Pressed,
@@ -852,12 +1772,7 @@ mod tests {
     }
 
     fn bucket_dir(bucket: Bucket) -> &'static str {
-        match bucket {
-            Bucket::Seeds => "seeds",
-            Bucket::Leaves => "leaves",
-            Bucket::Fallen => "fallen",
-            Bucket::Pressed => "pressed",
-        }
+        bucket.dir_name()
     }
 
     fn visible_slugs(app: &AppState) -> Vec<&str> {

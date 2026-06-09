@@ -66,6 +66,20 @@ pub(crate) enum StatusField {
     NextAction,
 }
 
+impl StatusField {
+    /// The canonical snake_case label for this field, shared by list output and
+    /// doctor diagnostics so missing-field messages stay in sync.
+    pub(crate) fn label(self) -> &'static str {
+        match self {
+            StatusField::State => "state",
+            StatusField::CurrentPhase => "current_phase",
+            StatusField::CurrentGate => "current_gate",
+            StatusField::FirstMissingGate => "first_missing_gate",
+            StatusField::NextAction => "next_action",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum PreviewSource {
     LeafWork {
@@ -79,7 +93,7 @@ pub(crate) enum PreviewSource {
     },
 }
 
-const BUCKETS: [Bucket; 4] = [
+pub(crate) const BUCKETS: [Bucket; 4] = [
     Bucket::Seeds,
     Bucket::Leaves,
     Bucket::Fallen,
@@ -87,7 +101,18 @@ const BUCKETS: [Bucket; 4] = [
 ];
 
 impl Bucket {
-    fn dir_name(self) -> &'static str {
+    /// The on-disk directory name, prefixed to sort the buckets in lifecycle order.
+    pub(crate) fn dir_name(self) -> &'static str {
+        match self {
+            Bucket::Seeds => "01-seeds",
+            Bucket::Leaves => "02-leaves",
+            Bucket::Fallen => "03-fallen",
+            Bucket::Pressed => "04-pressed",
+        }
+    }
+
+    /// The pre-0.3 directory name, used to migrate legacy workspaces in place.
+    pub(crate) fn legacy_dir_name(self) -> &'static str {
         match self {
             Bucket::Seeds => "seeds",
             Bucket::Leaves => "leaves",
@@ -284,6 +309,13 @@ pub(crate) fn parse_status_summary(content: &str, bucket: Bucket) -> StatusSumma
     let mut next_action = None;
 
     for line in content.lines() {
+        // Only the status preamble is canonical. A second-level-or-deeper
+        // heading (`##`, `###`, …) ends it, so archived sections like
+        // `## Previous Status` in a fallen file cannot override the real
+        // state. The single-`#` document title does not match.
+        if line.trim_start().starts_with("##") {
+            break;
+        }
         let Some((key, value)) = parse_field_line(line) else {
             continue;
         };
@@ -417,22 +449,22 @@ mod tests {
 
         load(root.path()).expect("load inventory");
 
-        assert!(!root.path().join(".leaf/seeds").exists());
-        assert!(!root.path().join(".leaf/leaves").exists());
-        assert!(!root.path().join(".leaf/fallen").exists());
-        assert!(!root.path().join(".leaf/pressed").exists());
+        assert!(!root.path().join(".leaf/01-seeds").exists());
+        assert!(!root.path().join(".leaf/02-leaves").exists());
+        assert!(!root.path().join(".leaf/03-fallen").exists());
+        assert!(!root.path().join(".leaf/04-pressed").exists());
     }
 
     #[test]
     fn inventory_load_lists_only_directories_in_seeds_sorted_by_slug() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        root.child(".leaf/seeds/zebra/00-status.md")
+        root.child(".leaf/01-seeds/zebra/00-status.md")
             .write_str(full_status())
             .expect("zebra");
-        root.child(".leaf/seeds/apple/00-status.md")
+        root.child(".leaf/01-seeds/apple/00-status.md")
             .write_str(full_status())
             .expect("apple");
-        root.child(".leaf/seeds/loose.md")
+        root.child(".leaf/01-seeds/loose.md")
             .write_str("stray file\n")
             .expect("loose file");
 
@@ -449,13 +481,19 @@ mod tests {
     #[test]
     fn inventory_load_pressed_lists_only_md_files() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        root.child(".leaf/seeds").create_dir_all().expect("seeds");
-        root.child(".leaf/leaves").create_dir_all().expect("leaves");
-        root.child(".leaf/fallen").create_dir_all().expect("fallen");
-        root.child(".leaf/pressed/note.txt")
+        root.child(".leaf/01-seeds")
+            .create_dir_all()
+            .expect("seeds");
+        root.child(".leaf/02-leaves")
+            .create_dir_all()
+            .expect("leaves");
+        root.child(".leaf/03-fallen")
+            .create_dir_all()
+            .expect("fallen");
+        root.child(".leaf/04-pressed/note.txt")
             .write_str("not a digest\n")
             .expect("note");
-        root.child(".leaf/pressed/real.md")
+        root.child(".leaf/04-pressed/real.md")
             .write_str("# Real\n")
             .expect("digest");
 
@@ -468,7 +506,7 @@ mod tests {
     #[test]
     fn inventory_leaf_item_has_leafwork_kind_and_preview_paths() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        root.child(".leaf/leaves/demo/00-status.md")
+        root.child(".leaf/02-leaves/demo/00-status.md")
             .write_str(full_status())
             .expect("status");
 
@@ -478,7 +516,7 @@ mod tests {
         assert_eq!(item.bucket, Bucket::Leaves);
         assert_eq!(item.slug, "demo");
         assert_eq!(item.kind, ItemKind::LeafWork);
-        assert_eq!(item.path, root.path().join(".leaf/leaves/demo"));
+        assert_eq!(item.path, root.path().join(".leaf/02-leaves/demo"));
         assert_eq!(item.status.parse_state, ParseState::Ok);
         assert_eq!(item.status.state.as_deref(), Some("active"));
         assert_eq!(item.status.current_phase.as_deref(), Some("Architect"));
@@ -491,7 +529,7 @@ mod tests {
                 unknowns_path,
                 criteria_path,
             } => {
-                let base = root.path().join(".leaf/leaves/demo");
+                let base = root.path().join(".leaf/02-leaves/demo");
                 assert_eq!(status_path, &base.join("00-status.md"));
                 assert_eq!(intent_path, &base.join("01-Learn/01-intent.md"));
                 assert_eq!(unknowns_path, &base.join("01-Learn/02-unknowns.md"));
@@ -504,7 +542,7 @@ mod tests {
     #[test]
     fn inventory_leaf_item_without_status_is_visible_with_error_state() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        root.child(".leaf/leaves/no-status/01-Learn")
+        root.child(".leaf/02-leaves/no-status/01-Learn")
             .create_dir_all()
             .expect("dir without status");
 
@@ -523,7 +561,7 @@ mod tests {
     #[test]
     fn inventory_pressed_digest_has_digest_kind_and_preview() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        root.child(".leaf/pressed/summary.md")
+        root.child(".leaf/04-pressed/summary.md")
             .write_str("# Summary\n")
             .expect("digest");
 
@@ -538,7 +576,10 @@ mod tests {
 
         match &item.preview {
             PreviewSource::PressedDigest { digest_path } => {
-                assert_eq!(digest_path, &root.path().join(".leaf/pressed/summary.md"));
+                assert_eq!(
+                    digest_path,
+                    &root.path().join(".leaf/04-pressed/summary.md")
+                );
             }
             other => panic!("expected PressedDigest preview, got {other:?}"),
         }
@@ -622,5 +663,69 @@ mod tests {
         assert!(summary.state.is_none());
         assert!(summary.current_phase.is_none());
         assert!(summary.missing_fields.is_empty());
+    }
+
+    #[test]
+    fn inventory_parse_status_summary_ignores_fields_after_section_heading() {
+        // A fallen archive file keeps the canonical `- state: fallen` in its
+        // preamble, then embeds the prior active status under a `## Previous
+        // Status` section. Only the preamble is canonical; the archived
+        // `- state: active`/phase/gate lines below the heading must NOT
+        // override it.
+        let content = "# Leaf Status\n\n\
+                       - state: fallen\n\
+                       \n\
+                       ## Previous Status\n\
+                       \n\
+                       - state: active\n\
+                       - current phase: Architect\n\
+                       - current gate: G3\n";
+
+        let summary = parse_status_summary(content, Bucket::Fallen);
+
+        assert_eq!(summary.parse_state, ParseState::Ok);
+        assert_eq!(summary.state.as_deref(), Some("fallen"));
+        assert!(summary.current_phase.is_none());
+        assert!(summary.current_gate.is_none());
+        assert!(summary.missing_fields.is_empty());
+    }
+
+    #[test]
+    fn inventory_parse_status_summary_title_does_not_end_preamble() {
+        // The single-`#` document title must NOT be treated as a section break;
+        // all five fields below it are still canonical for an active leaf, and a
+        // trailing `## Gate progress` section with junk is ignored.
+        let content = "# Leaf Status\n\n\
+                       - state: active\n\
+                       - current phase: Architect\n\
+                       - current gate: G3\n\
+                       - first missing gate: G4\n\
+                       - next action: write design\n\
+                       \n\
+                       ## Gate progress\n\
+                       - state: fallen\n";
+
+        let summary = parse_status_summary(content, Bucket::Leaves);
+
+        assert_eq!(summary.parse_state, ParseState::Ok);
+        assert_eq!(summary.state.as_deref(), Some("active"));
+        assert_eq!(summary.current_phase.as_deref(), Some("Architect"));
+        assert_eq!(summary.current_gate.as_deref(), Some("G3"));
+        assert!(summary.missing_fields.is_empty());
+    }
+
+    #[test]
+    fn inventory_parse_status_summary_heading_before_fields_yields_no_fields() {
+        // Boundary: a `##` heading before any field line ends the preamble
+        // immediately, so no canonical field is captured.
+        let content = "## Previous Status\n\
+                       - state: active\n\
+                       - current phase: Architect\n";
+
+        let summary = parse_status_summary(content, Bucket::Leaves);
+
+        assert!(summary.state.is_none());
+        assert!(summary.current_phase.is_none());
+        assert_eq!(summary.parse_state, ParseState::Partial);
     }
 }
