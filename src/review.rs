@@ -177,11 +177,36 @@ fn append_markdown_lines(lines: &mut Vec<ReviewLine>, content: &str) {
 }
 
 fn parse_current_gate(content: &str) -> Option<usize> {
-    content.lines().find_map(|line| {
-        let lower = line.to_lowercase();
-        let (_, value) = lower.split_once("current gate:")?;
-        parse_gate_index(value.trim())
-    })
+    for line in content.lines() {
+        if line.trim_start().starts_with("##") {
+            break;
+        }
+        let Some((key, value)) = parse_status_field_line(line) else {
+            continue;
+        };
+        if key == "current gate" {
+            return parse_gate_index(&value);
+        }
+    }
+    None
+}
+
+fn parse_status_field_line(line: &str) -> Option<(String, String)> {
+    let rest = line.trim_start().strip_prefix("- ")?;
+    let (raw_key, raw_value) = rest.split_once(':')?;
+    let key = normalize_status_key(raw_key);
+    if key.is_empty() {
+        return None;
+    }
+    Some((key, raw_value.trim().to_string()))
+}
+
+fn normalize_status_key(raw_key: &str) -> String {
+    raw_key
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase()
 }
 
 fn source_exists(root_path: &Path, spec: &SourceSpec) -> bool {
@@ -329,8 +354,8 @@ fn parse_gate_index(value: &str) -> Option<usize> {
             .parse::<usize>()
             .ok()
             .filter(|number| (1..=10).contains(number)),
-        'g' => value
-            .strip_prefix('g')?
+        'g' | 'G' => value
+            .strip_prefix(['g', 'G'])?
             .chars()
             .take_while(|ch| ch.is_ascii_digit())
             .collect::<String>()
@@ -520,6 +545,29 @@ mod tests {
         assert!(text.contains("MISSING SOURCE"));
         assert!(text.contains(".leaf/02-leaves/demo/02-Example/03-criteria.md"));
         assert!(!text.contains(".leaf/02-leaves/demo/02-Example/04-wireframe.md"));
+    }
+
+    #[test]
+    fn review_build_normalizes_current_gate_field_like_inventory_status_parser() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_file(
+            &root,
+            slug,
+            "00-status.md",
+            "# Leaf Status\n\n- current   gate: ⑤ Design\n\n## Later\n\n- current gate: ① Intent\n",
+        );
+        write_file(&root, slug, "01-Learn/01-intent.md", "# Intent\n");
+        write_file(&root, slug, "01-Learn/02-unknowns.md", "# Unknowns\n");
+        write_file(&root, slug, "02-Example/03-criteria.md", "# Criteria\n");
+        write_file(&root, slug, "02-Example/04-wireframe.md", "# Wireframe\n");
+
+        let document = build(&source(&root, slug)).expect("review document");
+        let text = visible_text(&document);
+
+        assert!(text.contains("MISSING SOURCE"));
+        assert!(text.contains(".leaf/02-leaves/demo/03-Architect/05-design.md"));
+        assert!(!text.contains(".leaf/02-leaves/demo/03-Architect/06-critic.md"));
     }
 
     #[test]
