@@ -110,7 +110,8 @@ are committed active LEAF work from Example onward. `03-fallen/` is the trash
 bucket for active leaves you stop carrying. It keeps local files inspectable, but
 it is not the citation surface. `04-pressed/` stores citable Markdown digests of
 important LEAF work, such as intent, method, what was done, limits, and lessons
-learned.
+learned. Pressing also writes a paper-style abstract back to the source
+`00-status.md` for quick scanning.
 
 `leaf init` adds `/.leaf` to `.git/info/exclude` so local collaboration notes do
 not appear in normal `git status` output.

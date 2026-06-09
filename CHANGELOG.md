@@ -8,6 +8,10 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+- `leaf-press` now writes a paper-style `## Press Abstract` into the source
+  `00-status.md` while also creating the citable `.leaf/04-pressed/{slug}.md`
+  digest.
+
 ## 0.3.0 - 2026-06-09
 
 ### Breaking
