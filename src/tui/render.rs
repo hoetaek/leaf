@@ -70,8 +70,10 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         chunks[1],
     );
 
-    let current_source = current_source_index(document, review.scroll_offset);
-    let scroll_percent = review_scroll_percent(document, chunks[3].height, review.scroll_offset);
+    let scroll_offset =
+        clamped_review_scroll_offset(document, chunks[3].height, review.scroll_offset);
+    let current_source = current_source_index(document, scroll_offset);
+    let scroll_percent = review_scroll_percent(document, chunks[3].height, scroll_offset);
     let meta = format!(
         "source {}/{}  scroll {}%  {}",
         current_source, document.source_count, scroll_percent, review.status_message
@@ -81,7 +83,7 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
     let body_lines = document
         .lines
         .iter()
-        .skip(review.scroll_offset)
+        .skip(scroll_offset)
         .take(chunks[3].height as usize)
         .map(review_line)
         .collect::<Vec<_>>();
@@ -387,12 +389,24 @@ fn review_scroll_percent(
     body_height: u16,
     scroll_offset: usize,
 ) -> usize {
-    let max_scroll = document.lines.len().saturating_sub(body_height as usize);
+    let max_scroll = max_review_scroll_for_body(document, body_height);
     if max_scroll == 0 {
         0
     } else {
         scroll_offset.min(max_scroll) * 100 / max_scroll
     }
+}
+
+fn clamped_review_scroll_offset(
+    document: &ReviewDocument,
+    body_height: u16,
+    scroll_offset: usize,
+) -> usize {
+    scroll_offset.min(max_review_scroll_for_body(document, body_height))
+}
+
+fn max_review_scroll_for_body(document: &ReviewDocument, body_height: u16) -> usize {
+    document.lines.len().saturating_sub(body_height as usize)
 }
 
 fn chrome_block() -> Block<'static> {
@@ -898,6 +912,38 @@ mod tests {
         let text = buffer_text(50, 8, &app);
 
         assert!(text.contains("READ ONLY"));
+    }
+
+    #[test]
+    fn review_mode_short_document_scroll_down_keeps_full_first_page_visible() {
+        let fixture = RenderFixture::new();
+        let slug = "demo";
+        let status_path = fixture
+            .root
+            .path()
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug)
+            .join("00-status.md");
+        std::fs::create_dir_all(status_path.parent().unwrap()).expect("leaf dir");
+        std::fs::write(&status_path, "# Status\n\nshort body\n").expect("status");
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            slug,
+            status(ParseState::Ok, Some("active"), Some("Learn"), Some("-")),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        for _ in 0..12 {
+            assert_eq!(app.handle_key(KeyInput::PageDown), Outcome::Continue);
+        }
+
+        let text = buffer_text(80, 12, &app);
+
+        assert!(text.contains(".leaf/02-leaves/demo/00-status.md"));
+        assert!(text.contains("Status"));
+        assert!(text.contains("short body"));
     }
 
     struct RenderFixture {

@@ -930,7 +930,7 @@ fn row_word(count: usize) -> &'static str {
 }
 
 fn max_review_scroll(document: &ReviewDocument) -> usize {
-    document.lines.len().saturating_sub(1)
+    document.lines.len().saturating_sub(REVIEW_PAGE_SIZE)
 }
 
 #[cfg(test)]

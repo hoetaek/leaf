@@ -1,19 +1,58 @@
 use anyhow::{Context, Result};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-const CANONICAL_SOURCES: [&str; 11] = [
-    "00-status.md",
-    "01-Learn/01-intent.md",
-    "01-Learn/02-unknowns.md",
-    "02-Example/03-criteria.md",
-    "02-Example/04-wireframe.md",
-    "03-Architect/05-design.md",
-    "03-Architect/06-critic.md",
-    "03-Architect/07-tasks.md",
-    "03-Architect/08-execution.md",
-    "04-Feedback/09-review.md",
-    "04-Feedback/10-retrospect.md",
+#[derive(Debug, Clone, Copy)]
+struct SourceSpec {
+    file: &'static str,
+    folders: &'static [&'static str],
+}
+
+const CANONICAL_SOURCES: [SourceSpec; 11] = [
+    SourceSpec {
+        file: "00-status.md",
+        folders: &[],
+    },
+    SourceSpec {
+        file: "01-Learn/01-intent.md",
+        folders: &[],
+    },
+    SourceSpec {
+        file: "01-Learn/02-unknowns.md",
+        folders: &[],
+    },
+    SourceSpec {
+        file: "02-Example/03-criteria.md",
+        folders: &[],
+    },
+    SourceSpec {
+        file: "02-Example/04-wireframe.md",
+        folders: &["02-Example/04-wireframe"],
+    },
+    SourceSpec {
+        file: "03-Architect/05-design.md",
+        folders: &[],
+    },
+    SourceSpec {
+        file: "03-Architect/06-critic.md",
+        folders: &[],
+    },
+    SourceSpec {
+        file: "03-Architect/07-tasks.md",
+        folders: &[],
+    },
+    SourceSpec {
+        file: "03-Architect/08-execution.md",
+        folders: &[],
+    },
+    SourceSpec {
+        file: "04-Feedback/09-review.md",
+        folders: &["04-Feedback/09-reviews"],
+    },
+    SourceSpec {
+        file: "04-Feedback/10-retrospect.md",
+        folders: &["04-Feedback/10-retrospective"],
+    },
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,42 +129,32 @@ fn build_leaf_work(root_path: PathBuf, root_relative_path: String) -> Result<Rev
         .and_then(|name| name.to_str())
         .unwrap_or("leaf")
         .to_string();
-    let status_path = root_path.join(CANONICAL_SOURCES[0]);
+    let status_path = root_path.join(CANONICAL_SOURCES[0].file);
     let current_gate = fs::read_to_string(&status_path)
         .ok()
         .and_then(|content| parse_current_gate(&content));
 
     let mut sections = Vec::new();
     let mut lines = Vec::new();
-    for (index, relative) in CANONICAL_SOURCES.iter().enumerate() {
-        let path = root_path.join(relative);
+    for (index, spec) in CANONICAL_SOURCES.iter().enumerate() {
         let include = if index == 0 {
             true
         } else if let Some(gate) = current_gate {
-            index <= gate || path.exists()
+            index <= gate || source_exists(&root_path, spec)
         } else {
-            path.exists()
+            source_exists(&root_path, spec)
         };
         if !include {
             continue;
         }
 
-        let relative_path = format!("{root_relative_path}/{relative}");
-        sections.push(ReviewSection {
-            relative_path: relative_path.clone(),
-            start_line: lines.len(),
-        });
-        lines.push(ReviewLine::Separator(relative_path.clone()));
-
-        match fs::read_to_string(&path) {
-            Ok(content) => append_markdown_lines(&mut lines, &content),
-            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-                lines.push(ReviewLine::MissingSource { relative_path });
-            }
-            Err(err) => {
-                return Err(err).context(format!("failed to read {}", path.display()));
-            }
-        }
+        append_source(
+            &root_path,
+            &root_relative_path,
+            spec,
+            &mut sections,
+            &mut lines,
+        )?;
     }
 
     let source_count = sections.len();
@@ -155,6 +184,131 @@ fn parse_current_gate(content: &str) -> Option<usize> {
     })
 }
 
+fn source_exists(root_path: &Path, spec: &SourceSpec) -> bool {
+    root_path.join(spec.file).exists()
+        || spec
+            .folders
+            .iter()
+            .any(|folder| root_path.join(folder).is_dir())
+}
+
+fn append_source(
+    root_path: &Path,
+    root_relative_path: &str,
+    spec: &SourceSpec,
+    sections: &mut Vec<ReviewSection>,
+    lines: &mut Vec<ReviewLine>,
+) -> Result<()> {
+    let file_path = root_path.join(spec.file);
+    match fs::read_to_string(&file_path) {
+        Ok(content) => {
+            append_file_section(root_relative_path, spec.file, content, sections, lines);
+            return Ok(());
+        }
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+        Err(err) => {
+            return Err(err).context(format!("failed to read {}", file_path.display()));
+        }
+    }
+
+    for folder in spec.folders {
+        let folder_path = root_path.join(folder);
+        if !folder_path.is_dir() {
+            continue;
+        }
+
+        let markdown_files = markdown_files_in(&folder_path, folder)?;
+        if markdown_files.is_empty() {
+            let relative_path = format!("{root_relative_path}/{folder}/");
+            sections.push(ReviewSection {
+                relative_path: relative_path.clone(),
+                start_line: lines.len(),
+            });
+            lines.push(ReviewLine::Separator(relative_path.clone()));
+            lines.push(ReviewLine::Message(format!(
+                "NO MARKDOWN SOURCES {relative_path}"
+            )));
+            return Ok(());
+        }
+
+        for file in markdown_files {
+            let content = fs::read_to_string(&file.path)
+                .with_context(|| format!("failed to read {}", file.path.display()))?;
+            append_file_section(
+                root_relative_path,
+                &file.relative_path,
+                content,
+                sections,
+                lines,
+            );
+        }
+        return Ok(());
+    }
+
+    let relative_path = format!("{root_relative_path}/{}", spec.file);
+    sections.push(ReviewSection {
+        relative_path: relative_path.clone(),
+        start_line: lines.len(),
+    });
+    lines.push(ReviewLine::Separator(relative_path.clone()));
+    lines.push(ReviewLine::MissingSource { relative_path });
+    Ok(())
+}
+
+fn append_file_section(
+    root_relative_path: &str,
+    source_relative_path: &str,
+    content: String,
+    sections: &mut Vec<ReviewSection>,
+    lines: &mut Vec<ReviewLine>,
+) {
+    let relative_path = format!("{root_relative_path}/{source_relative_path}");
+    sections.push(ReviewSection {
+        relative_path: relative_path.clone(),
+        start_line: lines.len(),
+    });
+    lines.push(ReviewLine::Separator(relative_path));
+    append_markdown_lines(lines, &content);
+}
+
+#[derive(Debug)]
+struct MarkdownFile {
+    relative_path: String,
+    path: PathBuf,
+}
+
+fn markdown_files_in(folder_path: &Path, folder_relative_path: &str) -> Result<Vec<MarkdownFile>> {
+    let mut files = Vec::new();
+    for entry in fs::read_dir(folder_path)
+        .with_context(|| format!("failed to read {}", folder_path.display()))?
+    {
+        let entry = entry.with_context(|| format!("failed to read {}", folder_path.display()))?;
+        let file_type = entry
+            .file_type()
+            .with_context(|| format!("failed to inspect {}", entry.path().display()))?;
+        if !file_type.is_file() {
+            continue;
+        }
+        if entry
+            .path()
+            .extension()
+            .and_then(|extension| extension.to_str())
+            != Some("md")
+        {
+            continue;
+        }
+        let Some(file_name) = entry.file_name().to_str().map(str::to_string) else {
+            continue;
+        };
+        files.push(MarkdownFile {
+            relative_path: format!("{folder_relative_path}/{file_name}"),
+            path: entry.path(),
+        });
+    }
+    files.sort_by(|left, right| left.relative_path.cmp(&right.relative_path));
+    Ok(files)
+}
+
 fn parse_gate_index(value: &str) -> Option<usize> {
     let first = value.chars().next()?;
     match first {
@@ -169,6 +323,14 @@ fn parse_gate_index(value: &str) -> Option<usize> {
         '⑨' => Some(9),
         '⑩' => Some(10),
         ch if ch.is_ascii_digit() => value
+            .chars()
+            .take_while(|ch| ch.is_ascii_digit())
+            .collect::<String>()
+            .parse::<usize>()
+            .ok()
+            .filter(|number| (1..=10).contains(number)),
+        'g' => value
+            .strip_prefix('g')?
             .chars()
             .take_while(|ch| ch.is_ascii_digit())
             .collect::<String>()
@@ -217,6 +379,12 @@ mod tests {
         root.child(format!(".leaf/02-leaves/{slug}/{relative}"))
             .write_str(body)
             .expect("write review source");
+    }
+
+    fn create_dir(root: &assert_fs::TempDir, slug: &str, relative: &str) {
+        root.child(format!(".leaf/02-leaves/{slug}/{relative}"))
+            .create_dir_all()
+            .expect("create review source dir");
     }
 
     fn section_paths(document: &ReviewDocument) -> Vec<&str> {
@@ -331,5 +499,127 @@ mod tests {
             section_paths(&document).contains(&".leaf/02-leaves/demo/03-Architect/05-design.md")
         );
         assert!(visible_text(&document).contains("미리 작성됨"));
+    }
+
+    #[test]
+    fn review_build_accepts_g_prefixed_current_gate_labels() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_file(
+            &root,
+            slug,
+            "00-status.md",
+            "# Leaf Status\n\n- current gate: G3\n",
+        );
+        write_file(&root, slug, "01-Learn/01-intent.md", "# Intent\n");
+        write_file(&root, slug, "01-Learn/02-unknowns.md", "# Unknowns\n");
+
+        let document = build(&source(&root, slug)).expect("review document");
+        let text = visible_text(&document);
+
+        assert!(text.contains("MISSING SOURCE"));
+        assert!(text.contains(".leaf/02-leaves/demo/02-Example/03-criteria.md"));
+        assert!(!text.contains(".leaf/02-leaves/demo/02-Example/04-wireframe.md"));
+    }
+
+    #[test]
+    fn review_build_uses_folder_form_gate_sources_when_markdown_file_is_absent() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_file(
+            &root,
+            slug,
+            "00-status.md",
+            "# Leaf Status\n\n- current gate: ⑩ Retrospect\n",
+        );
+        write_file(&root, slug, "01-Learn/01-intent.md", "# Intent\n");
+        write_file(&root, slug, "01-Learn/02-unknowns.md", "# Unknowns\n");
+        write_file(&root, slug, "02-Example/03-criteria.md", "# Criteria\n");
+        write_file(
+            &root,
+            slug,
+            "02-Example/04-wireframe/02-second.md",
+            "# Second Wireframe\n",
+        );
+        write_file(
+            &root,
+            slug,
+            "02-Example/04-wireframe/01-first.md",
+            "# First Wireframe\n",
+        );
+        write_file(&root, slug, "03-Architect/05-design.md", "# Design\n");
+        write_file(&root, slug, "03-Architect/06-critic.md", "# Critic\n");
+        write_file(&root, slug, "03-Architect/07-tasks.md", "# Tasks\n");
+        write_file(&root, slug, "03-Architect/08-execution.md", "# Execution\n");
+        write_file(
+            &root,
+            slug,
+            "04-Feedback/09-reviews/02-followup.md",
+            "# Follow-up Review\n",
+        );
+        write_file(
+            &root,
+            slug,
+            "04-Feedback/09-reviews/01-initial.md",
+            "# Initial Review\n",
+        );
+        write_file(
+            &root,
+            slug,
+            "04-Feedback/10-retrospective/01-retro.md",
+            "# Retrospective\n",
+        );
+
+        let document = build(&source(&root, slug)).expect("review document");
+
+        assert_eq!(
+            section_paths(&document),
+            vec![
+                ".leaf/02-leaves/demo/00-status.md",
+                ".leaf/02-leaves/demo/01-Learn/01-intent.md",
+                ".leaf/02-leaves/demo/01-Learn/02-unknowns.md",
+                ".leaf/02-leaves/demo/02-Example/03-criteria.md",
+                ".leaf/02-leaves/demo/02-Example/04-wireframe/01-first.md",
+                ".leaf/02-leaves/demo/02-Example/04-wireframe/02-second.md",
+                ".leaf/02-leaves/demo/03-Architect/05-design.md",
+                ".leaf/02-leaves/demo/03-Architect/06-critic.md",
+                ".leaf/02-leaves/demo/03-Architect/07-tasks.md",
+                ".leaf/02-leaves/demo/03-Architect/08-execution.md",
+                ".leaf/02-leaves/demo/04-Feedback/09-reviews/01-initial.md",
+                ".leaf/02-leaves/demo/04-Feedback/09-reviews/02-followup.md",
+                ".leaf/02-leaves/demo/04-Feedback/10-retrospective/01-retro.md",
+            ]
+        );
+        assert_eq!(document.source_count, document.sections.len());
+        assert!(!visible_text(&document).contains("MISSING SOURCE"));
+    }
+
+    #[test]
+    fn review_build_reports_folder_form_gate_source_without_markdown_files() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_file(
+            &root,
+            slug,
+            "00-status.md",
+            "# Leaf Status\n\n- current gate: ④ Wireframe\n",
+        );
+        write_file(&root, slug, "01-Learn/01-intent.md", "# Intent\n");
+        write_file(&root, slug, "01-Learn/02-unknowns.md", "# Unknowns\n");
+        write_file(&root, slug, "02-Example/03-criteria.md", "# Criteria\n");
+        create_dir(&root, slug, "02-Example/04-wireframe");
+        write_file(
+            &root,
+            slug,
+            "02-Example/04-wireframe/notes.txt",
+            "not markdown\n",
+        );
+
+        let document = build(&source(&root, slug)).expect("review document");
+        let text = visible_text(&document);
+
+        assert!(text.contains("NO MARKDOWN SOURCES"));
+        assert!(text.contains(".leaf/02-leaves/demo/02-Example/04-wireframe/"));
+        assert!(!text.contains("MISSING SOURCE"));
     }
 }
