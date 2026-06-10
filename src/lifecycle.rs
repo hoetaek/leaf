@@ -1,3 +1,4 @@
+use crate::fs_ext::{DirectoryStatus, directory_status};
 use crate::inventory::Bucket;
 use anyhow::{Context, Result, bail};
 use std::fs;
@@ -97,13 +98,14 @@ fn validate_reason(reason: &str) -> Result<String> {
 }
 
 fn require_directory(path: &Path, missing_message: &str) -> Result<()> {
-    match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.file_type().is_dir() => Ok(()),
-        Ok(_) => bail!("path exists but is not a directory: {}", path.display()),
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+    match directory_status(path)? {
+        DirectoryStatus::Directory => Ok(()),
+        DirectoryStatus::NotDirectory => {
+            bail!("path exists but is not a directory: {}", path.display())
+        }
+        DirectoryStatus::Missing => {
             bail!("{missing_message}: {}", path.display());
         }
-        Err(err) => Err(err).with_context(|| format!("failed to inspect {}", path.display())),
     }
 }
 

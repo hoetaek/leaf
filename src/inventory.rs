@@ -1,3 +1,4 @@
+use crate::fs_ext::{DirectoryStatus, directory_status};
 use anyhow::{Result, bail};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -130,20 +131,14 @@ impl Bucket {
 /// as empty buckets.
 pub(crate) fn load(repo_root: &Path) -> Result<Inventory> {
     let leaf_root = repo_root.join(".leaf");
-    match fs::symlink_metadata(&leaf_root) {
-        Ok(metadata) if metadata.file_type().is_dir() => {}
-        Ok(_) => bail!(
+    match directory_status(&leaf_root)? {
+        DirectoryStatus::Directory => {}
+        DirectoryStatus::NotDirectory => bail!(
             "path exists but is not a directory: {}",
             leaf_root.display()
         ),
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+        DirectoryStatus::Missing => {
             bail!(".leaf/ is not initialized in this git repository\nhint: run `leaf init`");
-        }
-        Err(err) => {
-            return Err(err).map_err(|err| {
-                anyhow::Error::new(err)
-                    .context(format!("failed to inspect {}", leaf_root.display()))
-            });
         }
     }
 
@@ -495,6 +490,22 @@ mod tests {
         for bucket in &inventory.buckets {
             assert!(bucket.items.is_empty(), "expected empty bucket");
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn inventory_load_accepts_leaf_root_symlink_to_directory() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        root.child("leaf-store")
+            .create_dir_all()
+            .expect("leaf store");
+        std::os::unix::fs::symlink(root.path().join("leaf-store"), root.path().join(".leaf"))
+            .expect("leaf symlink");
+
+        let inventory = load(root.path()).expect("load inventory");
+
+        assert_eq!(inventory.leaf_root, root.path().join(".leaf"));
+        assert_eq!(inventory.buckets.len(), 4);
     }
 
     #[test]

@@ -1,6 +1,7 @@
 mod cli;
 mod doctor;
 mod doctor_output;
+mod fs_ext;
 mod git;
 mod inventory;
 mod lifecycle;

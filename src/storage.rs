@@ -1,3 +1,4 @@
+use crate::fs_ext::{DirectoryStatus, directory_status};
 use crate::git::RepoPaths;
 use crate::inventory::{BUCKETS, Bucket};
 use anyhow::{Context, Result, bail};
@@ -65,15 +66,16 @@ pub(crate) fn migrate_layout(leaf_root: &Path) -> Result<bool> {
 }
 
 fn ensure_directory(path: &Path) -> Result<bool> {
-    match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.file_type().is_dir() => Ok(false),
-        Ok(_) => bail!("path exists but is not a directory: {}", path.display()),
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+    match directory_status(path)? {
+        DirectoryStatus::Directory => Ok(false),
+        DirectoryStatus::NotDirectory => {
+            bail!("path exists but is not a directory: {}", path.display())
+        }
+        DirectoryStatus::Missing => {
             fs::create_dir_all(path)
                 .with_context(|| format!("failed to create directory {}", path.display()))?;
             Ok(true)
         }
-        Err(err) => Err(err).with_context(|| format!("failed to inspect path {}", path.display())),
     }
 }
 
