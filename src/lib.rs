@@ -1,4 +1,5 @@
 mod cli;
+mod codex_config;
 mod doctor;
 mod doctor_output;
 mod fs_ext;
@@ -12,6 +13,7 @@ mod review;
 mod scaffold;
 mod slug;
 mod storage;
+mod syntax;
 mod tui;
 
 pub fn run() -> anyhow::Result<std::process::ExitCode> {

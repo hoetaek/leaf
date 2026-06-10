@@ -55,13 +55,14 @@ pub(crate) enum KeyInput {
     Char(char),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum MouseInput {
     Down { visible_index: usize },
     Drag { visible_index: usize },
     Up,
     ScrollUp,
     ScrollDown,
+    Link { target: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -72,6 +73,7 @@ pub(crate) enum Outcome {
     Refresh,
     CopyRow { slug: String, text: String },
     CopyRows { count: usize, text: String },
+    CopyLink { target: String },
 }
 
 #[derive(Debug, Clone)]
@@ -314,6 +316,7 @@ impl AppState {
             match input {
                 MouseInput::ScrollUp => self.scroll_review_up(MOUSE_SCROLL_LINES),
                 MouseInput::ScrollDown => self.scroll_review_down(MOUSE_SCROLL_LINES),
+                MouseInput::Link { target } => return Outcome::CopyLink { target },
                 MouseInput::Down { .. } | MouseInput::Drag { .. } | MouseInput::Up => {}
             }
             return Outcome::Continue;
@@ -337,7 +340,7 @@ impl AppState {
             MouseInput::Up => {
                 self.mouse_anchor = None;
             }
-            MouseInput::ScrollUp | MouseInput::ScrollDown => {}
+            MouseInput::ScrollUp | MouseInput::ScrollDown | MouseInput::Link { .. } => {}
         }
         Outcome::Continue
     }
@@ -2138,15 +2141,26 @@ mod tests {
             .lines
             .iter()
             .map(|line| match line {
-                PreviewLine::Heading(text) | PreviewLine::Code(text) | PreviewLine::Plain(text) => {
-                    text.clone()
+                PreviewLine::BlockQuote { prefix, line, .. } => {
+                    format!("{prefix}{}", preview_line_text(line))
                 }
+                PreviewLine::Heading { text, .. }
+                | PreviewLine::Code(text)
+                | PreviewLine::Plain(text) => text.clone(),
+                PreviewLine::CodeSpans(spans) => preview_span_text(spans),
                 PreviewLine::TableHeader { .. }
                 | PreviewLine::TableDivider { .. }
                 | PreviewLine::TableRow { .. } => {
                     crate::preview::table_line_text(line).expect("table line text")
                 }
-                PreviewLine::Checkbox { text, .. } => text.clone(),
+                PreviewLine::Checkbox {
+                    marker,
+                    checked,
+                    text,
+                } => {
+                    let checkbox = if *checked { "[x]" } else { "[ ]" };
+                    format!("{marker} {checkbox} {text}")
+                }
                 PreviewLine::ListItem { marker, spans } => {
                     format!("{marker} {}", preview_span_text(spans))
                 }
@@ -2155,7 +2169,10 @@ mod tests {
                     .map(|span| match span {
                         crate::preview::PreviewSpan::Plain(text)
                         | crate::preview::PreviewSpan::Bold(text)
-                        | crate::preview::PreviewSpan::Code(text) => text.as_str(),
+                        | crate::preview::PreviewSpan::StyledText { text, .. }
+                        | crate::preview::PreviewSpan::Code(text)
+                        | crate::preview::PreviewSpan::Link { text, .. } => text.as_str(),
+                        crate::preview::PreviewSpan::Syntax { text, .. } => text.as_str(),
                     })
                     .collect(),
                 PreviewLine::SourceBoundary {
@@ -2168,13 +2185,60 @@ mod tests {
             .join("\n")
     }
 
+    fn preview_line_text(line: &PreviewLine) -> String {
+        match line {
+            PreviewLine::BlockQuote { prefix, line, .. } => {
+                format!("{prefix}{}", preview_line_text(line))
+            }
+            PreviewLine::Heading { text, .. }
+            | PreviewLine::Code(text)
+            | PreviewLine::Plain(text) => text.clone(),
+            PreviewLine::CodeSpans(spans) => preview_span_text(spans),
+            PreviewLine::TableHeader { .. }
+            | PreviewLine::TableDivider { .. }
+            | PreviewLine::TableRow { .. } => {
+                crate::preview::table_line_text(line).expect("table line text")
+            }
+            PreviewLine::Checkbox {
+                marker,
+                checked,
+                text,
+            } => {
+                let checkbox = if *checked { "[x]" } else { "[ ]" };
+                format!("{marker} {checkbox} {text}")
+            }
+            PreviewLine::ListItem { marker, spans } => {
+                format!("{marker} {}", preview_span_text(spans))
+            }
+            PreviewLine::Styled(spans) => spans
+                .iter()
+                .map(|span| match span {
+                    crate::preview::PreviewSpan::Plain(text)
+                    | crate::preview::PreviewSpan::Bold(text)
+                    | crate::preview::PreviewSpan::StyledText { text, .. }
+                    | crate::preview::PreviewSpan::Code(text)
+                    | crate::preview::PreviewSpan::Link { text, .. } => text.as_str(),
+                    crate::preview::PreviewSpan::Syntax { text, .. } => text.as_str(),
+                })
+                .collect(),
+            PreviewLine::SourceBoundary {
+                phase,
+                gate,
+                source,
+            } => format!("{phase} / {gate} {source}"),
+        }
+    }
+
     fn preview_span_text(spans: &[crate::preview::PreviewSpan]) -> String {
         spans
             .iter()
             .map(|span| match span {
                 crate::preview::PreviewSpan::Plain(text)
                 | crate::preview::PreviewSpan::Bold(text)
-                | crate::preview::PreviewSpan::Code(text) => text.as_str(),
+                | crate::preview::PreviewSpan::StyledText { text, .. }
+                | crate::preview::PreviewSpan::Code(text)
+                | crate::preview::PreviewSpan::Link { text, .. } => text.as_str(),
+                crate::preview::PreviewSpan::Syntax { text, .. } => text.as_str(),
             })
             .collect()
     }

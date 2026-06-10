@@ -1,6 +1,6 @@
 use crate::inventory::{Bucket, ParseState};
 use crate::list_columns::{ColumnWidth, LIST_COLUMNS, ListColumn};
-use crate::preview::{PreviewLine, PreviewSpan};
+use crate::preview::{PreviewColor, PreviewLine, PreviewSpan, PreviewStyle};
 use crate::review::{ReviewDocument, ReviewLine};
 use crate::tui::app::{AppState, BucketFilter, ListRow, Mode};
 use ratatui::Frame;
@@ -8,6 +8,9 @@ use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
+use std::ops::Range;
+use std::sync::OnceLock;
+use url::Url;
 
 const PREVIEW_MIN_HEIGHT: u16 = 14;
 const LIST_HEADER_HEIGHT: u16 = 2;
@@ -16,6 +19,8 @@ const HEADER_SUMMARY_WIDTH: u16 = 24;
 const RIGHT_PREVIEW_RATIO: f32 = 0.45;
 const BOTTOM_PREVIEW_RATIO: f32 = 0.40;
 const MIN_TABLE_WIDTH_FOR_RIGHT_PREVIEW: u16 = 80;
+
+static MARKDOWN_STYLE_PROFILE: OnceLock<MarkdownStyleProfile> = OnceLock::new();
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PreviewPlacement {
@@ -70,15 +75,8 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         return;
     };
 
-    let chunks = Layout::vertical([
-        Constraint::Length(1),
-        Constraint::Length(1),
-        Constraint::Length(1),
-        Constraint::Min(1),
-        Constraint::Length(1),
-    ])
-    .split(area);
-    app.set_review_body_size(chunks[3].height as usize, chunks[3].width as usize);
+    let layout = review_layout(area);
+    app.set_review_body_size(layout.body.height as usize, layout.body.width as usize);
 
     let document = &review.document;
     let header = Line::from(vec![
@@ -88,43 +86,119 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         Span::raw("  "),
         Span::styled(document.root_relative_path.clone(), dim_style()),
     ]);
-    frame.render_widget(Paragraph::new(header), chunks[0]);
+    frame.render_widget(Paragraph::new(header), layout.header);
 
     frame.render_widget(
         Paragraph::new(Line::styled(
             "READ ONLY - edit originals",
             strong_style().fg(Color::Yellow),
         )),
-        chunks[1],
+        layout.notice,
     );
 
-    let rendered_body_lines = wrapped_review_lines(document, chunks[3].width);
-    let scroll_offset =
-        clamped_review_scroll_offset(&rendered_body_lines, chunks[3].height, review.scroll_offset);
+    let rendered_body_lines = wrapped_review_lines(document, layout.body.width);
+    let scroll_offset = clamped_review_scroll_offset(
+        &rendered_body_lines,
+        layout.body.height,
+        review.scroll_offset,
+    );
     let current_source = current_source_index(&rendered_body_lines, scroll_offset);
     let scroll_percent =
-        review_scroll_percent(&rendered_body_lines, chunks[3].height, scroll_offset);
+        review_scroll_percent(&rendered_body_lines, layout.body.height, scroll_offset);
     let meta = format!(
         "source {}/{}  scroll {}%  {}",
         current_source, document.source_count, scroll_percent, review.status_message
     );
-    frame.render_widget(Paragraph::new(Line::styled(meta, dim_style())), chunks[2]);
+    frame.render_widget(Paragraph::new(Line::styled(meta, dim_style())), layout.meta);
 
-    let body_lines = rendered_body_lines
-        .iter()
-        .skip(scroll_offset)
-        .take(chunks[3].height as usize)
-        .map(|line| line.line.clone())
-        .collect::<Vec<_>>();
-    frame.render_widget(Paragraph::new(body_lines), chunks[3]);
+    frame.render_widget(review_body_block(), layout.body_shell);
+
+    let body_lines =
+        visible_review_body_lines(&rendered_body_lines, scroll_offset, layout.body.height)
+            .into_iter()
+            .map(|line| line.content.line.clone())
+            .collect::<Vec<_>>();
+    frame.render_widget(Paragraph::new(body_lines), layout.body);
 
     frame.render_widget(
         Paragraph::new(Line::styled(
             "↑/↓/wheel scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Esc/q back",
             dim_style(),
         )),
-        chunks[4],
+        layout.footer,
     );
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ReviewLayout {
+    header: Rect,
+    notice: Rect,
+    meta: Rect,
+    body_shell: Rect,
+    body: Rect,
+    footer: Rect,
+}
+
+fn review_layout(area: Rect) -> ReviewLayout {
+    let chunks = Layout::vertical([
+        Constraint::Length(1),
+        Constraint::Length(1),
+        Constraint::Length(1),
+        Constraint::Min(1),
+        Constraint::Length(1),
+    ])
+    .split(area);
+    let body_shell = chunks[3];
+    ReviewLayout {
+        header: chunks[0],
+        notice: chunks[1],
+        meta: chunks[2],
+        body_shell,
+        body: review_body_inner(body_shell),
+        footer: chunks[4],
+    }
+}
+
+fn review_body_inner(area: Rect) -> Rect {
+    review_body_block().inner(area)
+}
+
+fn rect_contains(rect: Rect, column: u16, row: u16) -> bool {
+    column >= rect.x
+        && column < rect.x.saturating_add(rect.width)
+        && row >= rect.y
+        && row < rect.y.saturating_add(rect.height)
+}
+
+pub(crate) fn review_hyperlink_target(
+    area: Rect,
+    app: &AppState,
+    column: u16,
+    row: u16,
+) -> Option<String> {
+    if app.mode() != Mode::Review {
+        return None;
+    }
+    let review = app.review_state()?;
+    let layout = review_layout(area);
+    if !rect_contains(layout.body, column, row) {
+        return None;
+    }
+
+    let rendered = wrapped_review_lines(&review.document, layout.body.width);
+    let scroll_offset =
+        clamped_review_scroll_offset(&rendered, layout.body.height, review.scroll_offset);
+    let relative_row = usize::from(row.saturating_sub(layout.body.y));
+    let relative_column = usize::from(column.saturating_sub(layout.body.x));
+    let line = visible_review_body_lines(&rendered, scroll_offset + relative_row, 1)
+        .into_iter()
+        .next()?;
+
+    line.content
+        .hyperlinks
+        .iter()
+        .find(|link| link.columns.contains(&relative_column))
+        .and_then(|link| safe_hyperlink_destination(&link.destination))
 }
 
 fn draw_header(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
@@ -457,42 +531,78 @@ fn bottom_preview_height(area: Rect) -> u16 {
 }
 
 fn preview_line(line: &PreviewLine) -> Line<'static> {
+    preview_hyperlink_line(line).line
+}
+
+fn preview_hyperlink_line(line: &PreviewLine) -> HyperlinkLine {
     match line {
-        PreviewLine::Heading(text) => Line::styled(text.clone(), strong_style()),
-        PreviewLine::Checkbox { checked, text } => {
-            let marker = if *checked { "[x]" } else { "[ ]" };
-            Line::from(vec![
-                Span::styled(marker, chrome_style()),
+        PreviewLine::BlockQuote { prefix, line, .. } => {
+            prepend_blockquote_prefix(prefix, preview_hyperlink_line(line))
+        }
+        PreviewLine::Heading { level, text } => {
+            HyperlinkLine::new(Line::styled(text.clone(), heading_style(*level)))
+        }
+        PreviewLine::Checkbox {
+            marker,
+            checked,
+            text,
+        } => {
+            let checkbox = if *checked { "[x]" } else { "[ ]" };
+            HyperlinkLine::new(Line::from(vec![
+                Span::styled(marker.clone(), list_marker_style()),
+                Span::raw(" "),
+                Span::styled(checkbox, list_marker_style()),
                 Span::raw(" "),
                 Span::raw(text.clone()),
-            ])
+            ]))
         }
         PreviewLine::ListItem { marker, spans } => {
-            let mut rendered = vec![Span::styled(marker.clone(), chrome_style()), Span::raw(" ")];
-            rendered.extend(spans.iter().map(preview_span));
-            Line::from(rendered)
+            let rendered = vec![
+                Span::styled(marker.clone(), list_marker_style()),
+                Span::raw(" "),
+            ];
+            let mut line = HyperlinkLine::new(Line::from(rendered));
+            push_preview_spans(&mut line, spans);
+            line
         }
-        PreviewLine::Code(text) => Line::styled(text.clone(), code_style()),
+        PreviewLine::Code(text) => HyperlinkLine::new(Line::styled(text.clone(), code_style())),
+        PreviewLine::CodeSpans(spans) => {
+            let mut line = HyperlinkLine::default();
+            push_preview_spans(&mut line, spans);
+            line
+        }
         PreviewLine::Styled(spans) => {
-            Line::from(spans.iter().map(preview_span).collect::<Vec<_>>())
+            let mut line = HyperlinkLine::default();
+            push_preview_spans(&mut line, spans);
+            line
         }
         PreviewLine::SourceBoundary {
             phase,
             gate,
             source,
-        } => source_boundary_line(None, phase, gate, source),
-        PreviewLine::TableHeader { .. } => Line::styled(
+        } => HyperlinkLine::new(source_boundary_line(None, phase, gate, source)),
+        PreviewLine::TableHeader { .. } => HyperlinkLine::new(Line::styled(
             crate::preview::table_line_text(line).expect("table line text"),
-            strong_style(),
-        ),
-        PreviewLine::TableDivider { .. } => Line::styled(
+            table_header_style(),
+        )),
+        PreviewLine::TableDivider { .. } => HyperlinkLine::new(Line::styled(
             crate::preview::table_line_text(line).expect("table line text"),
-            chrome_style(),
-        ),
-        PreviewLine::TableRow { .. } => {
-            Line::from(crate::preview::table_line_text(line).expect("table line text"))
-        }
-        PreviewLine::Plain(text) => Line::from(text.clone()),
+            table_rule_style(),
+        )),
+        PreviewLine::TableRow { .. } => HyperlinkLine::new(Line::from(
+            crate::preview::table_line_text(line).expect("table line text"),
+        )),
+        PreviewLine::Plain(text) => HyperlinkLine::new(Line::from(text.clone())),
+    }
+}
+
+fn push_preview_spans(line: &mut HyperlinkLine, spans: &[PreviewSpan]) {
+    for span in spans {
+        let destination = match span {
+            PreviewSpan::Link { target, .. } => Some(target.as_str()),
+            _ => None,
+        };
+        line.push_span(preview_span(span), destination);
     }
 }
 
@@ -500,31 +610,175 @@ fn preview_span(span: &PreviewSpan) -> Span<'static> {
     match span {
         PreviewSpan::Plain(text) => Span::raw(text.clone()),
         PreviewSpan::Bold(text) => Span::styled(text.clone(), strong_style()),
+        PreviewSpan::StyledText { text, style } => {
+            Span::styled(text.clone(), preview_text_style(*style))
+        }
         PreviewSpan::Code(text) => Span::styled(text.clone(), code_style()),
+        PreviewSpan::Link { text, .. } => Span::styled(text.clone(), link_style()),
+        PreviewSpan::Syntax { text, style } => Span::styled(text.clone(), preview_style(*style)),
     }
 }
 
+fn preview_text_style(style: crate::preview::PreviewTextStyle) -> Style {
+    let mut rendered = Style::default();
+    if style.bold {
+        rendered = rendered.add_modifier(Modifier::BOLD);
+    }
+    if style.italic {
+        rendered = rendered.add_modifier(Modifier::ITALIC);
+    }
+    if style.underline {
+        rendered = rendered.add_modifier(Modifier::UNDERLINED);
+    }
+    if style.strikethrough {
+        rendered = rendered.add_modifier(Modifier::CROSSED_OUT);
+    }
+    rendered
+}
+
+fn preview_style(style: PreviewStyle) -> Style {
+    let mut rendered = Style::default();
+    if let Some(color) = style.fg {
+        rendered = rendered.fg(preview_color(color));
+    }
+    if let Some(color) = style.bg {
+        rendered = rendered.bg(preview_color(color));
+    }
+    if style.text_style.bold {
+        rendered = rendered.add_modifier(Modifier::BOLD);
+    }
+    if style.text_style.italic {
+        rendered = rendered.add_modifier(Modifier::ITALIC);
+    }
+    if style.text_style.underline {
+        rendered = rendered.add_modifier(Modifier::UNDERLINED);
+    }
+    if style.text_style.strikethrough {
+        rendered = rendered.add_modifier(Modifier::CROSSED_OUT);
+    }
+    rendered
+}
+
+#[allow(clippy::disallowed_methods)]
+fn preview_color(color: PreviewColor) -> Color {
+    match color {
+        PreviewColor::Rgb(red, green, blue) => Color::Rgb(red, green, blue),
+        PreviewColor::Ansi(index) => match index {
+            0x00 => Color::Black,
+            0x01 => Color::Red,
+            0x02 => Color::Green,
+            0x03 => Color::Yellow,
+            0x04 => Color::Blue,
+            0x05 => Color::Magenta,
+            0x06 => Color::Cyan,
+            0x07 => Color::Gray,
+            index => Color::Indexed(index),
+        },
+    }
+}
+
+#[cfg(test)]
 fn review_line(line: &ReviewLine) -> Line<'static> {
+    review_hyperlink_line(line).line
+}
+
+fn review_hyperlink_line(line: &ReviewLine) -> HyperlinkLine {
     match line {
         ReviewLine::Separator {
             relative_path,
             phase,
             gate,
-        } => source_boundary_line(Some("FILE"), phase, gate, relative_path),
-        ReviewLine::MissingSource { relative_path } => Line::from(vec![
+        } => HyperlinkLine::new(source_boundary_line(
+            Some("FILE"),
+            phase,
+            gate,
+            relative_path,
+        )),
+        ReviewLine::MissingSource { relative_path } => HyperlinkLine::new(Line::from(vec![
             Span::styled("MISSING SOURCE", Style::default().fg(Color::Red)),
             Span::raw(" "),
             Span::styled(relative_path.clone(), dim_style()),
-        ]),
-        ReviewLine::Markdown(line) => preview_line(line),
-        ReviewLine::Message(text) => Line::from(text.clone()),
+        ])),
+        ReviewLine::Markdown(line) => preview_hyperlink_line(line),
+        ReviewLine::Message(text) => HyperlinkLine::new(Line::from(text.clone())),
     }
 }
 
 #[derive(Debug, Clone)]
 struct RenderedReviewLine {
     source_index: usize,
+    content: HyperlinkLine,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct TerminalHyperlink {
+    columns: Range<usize>,
+    destination: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct HyperlinkLine {
     line: Line<'static>,
+    hyperlinks: Vec<TerminalHyperlink>,
+}
+
+impl HyperlinkLine {
+    fn new(line: Line<'static>) -> Self {
+        Self {
+            line,
+            hyperlinks: Vec::new(),
+        }
+    }
+
+    fn width(&self) -> usize {
+        line_width(&self.line)
+    }
+
+    fn push_span(&mut self, span: Span<'static>, destination: Option<&str>) {
+        let start = self.width();
+        let end = start + span_width(&span);
+        self.line.push_span(span);
+        if end > start
+            && let Some(destination) = destination
+        {
+            push_hyperlink_range(&mut self.hyperlinks, start..end, destination);
+        }
+    }
+}
+
+#[allow(dead_code)]
+fn terminal_hyperlink_text(line: &HyperlinkLine) -> String {
+    let text = line_text(&line.line);
+    if line.hyperlinks.is_empty() {
+        return text;
+    }
+
+    let mut rendered = String::new();
+    let mut column = 0;
+    let mut active_destination: Option<String> = None;
+    for ch in text.chars() {
+        let width = crate::review::terminal_char_width(ch);
+        let destination = line
+            .hyperlinks
+            .iter()
+            .find(|link| link.columns.contains(&column))
+            .and_then(|link| safe_hyperlink_destination(&link.destination));
+        if active_destination != destination {
+            if active_destination.is_some() {
+                rendered.push_str("\x1b]8;;\x07");
+            }
+            if let Some(destination) = &destination {
+                rendered.push_str(&format!("\x1b]8;;{destination}\x07"));
+            }
+            active_destination = destination;
+        }
+        rendered.push(ch);
+        column += width;
+    }
+    if active_destination.is_some() {
+        rendered.push_str("\x1b]8;;\x07");
+    }
+    rendered
 }
 
 fn wrapped_review_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedReviewLine> {
@@ -544,16 +798,32 @@ fn wrapped_review_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedRe
             section_index + 1
         };
         if let Some(table_lines) = review_table_lines(line, width) {
+            rendered.extend(table_lines.into_iter().map(|content| RenderedReviewLine {
+                source_index,
+                content,
+            }));
+        } else if let Some(blockquote_lines) = review_blockquote_lines(line, width) {
             rendered.extend(
-                table_lines
+                blockquote_lines
                     .into_iter()
-                    .map(|line| RenderedReviewLine { source_index, line }),
+                    .map(|content| RenderedReviewLine {
+                        source_index,
+                        content,
+                    }),
             );
+        } else if let Some(list_lines) = review_list_lines(line, width) {
+            rendered.extend(list_lines.into_iter().map(|content| RenderedReviewLine {
+                source_index,
+                content,
+            }));
         } else {
             rendered.extend(
-                wrap_line(review_line(line), width)
+                wrap_hyperlink_line(review_hyperlink_line(line), width)
                     .into_iter()
-                    .map(|line| RenderedReviewLine { source_index, line }),
+                    .map(|content| RenderedReviewLine {
+                        source_index,
+                        content,
+                    }),
             );
         }
     }
@@ -561,53 +831,546 @@ fn wrapped_review_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedRe
     rendered
 }
 
-fn review_table_lines(line: &ReviewLine, width: usize) -> Option<Vec<Line<'static>>> {
+fn visible_review_body_lines(
+    lines: &[RenderedReviewLine],
+    scroll_offset: usize,
+    height: u16,
+) -> Vec<RenderedReviewLine> {
+    lines
+        .iter()
+        .skip(scroll_offset)
+        .take(height as usize)
+        .cloned()
+        .collect()
+}
+
+fn review_table_lines(line: &ReviewLine, width: usize) -> Option<Vec<HyperlinkLine>> {
     let ReviewLine::Markdown(line) = line else {
         return None;
     };
-    let table_lines = crate::preview::wrapped_table_line_texts(line, width)?;
-    let style = match line {
-        PreviewLine::TableHeader { .. } => strong_style(),
-        PreviewLine::TableDivider { .. } => chrome_style(),
+    let (prefix, table_line) = blockquote_context(line);
+    let prefix_width = prefix.len();
+    let table_width = width.saturating_sub(prefix_width).max(1);
+    let table_lines = crate::preview::wrapped_table_line_texts(table_line, table_width)?;
+    let style = match table_line {
+        PreviewLine::TableHeader { .. } => table_header_style(),
+        PreviewLine::TableDivider { .. } => table_rule_style(),
         PreviewLine::TableRow { .. } => Style::default(),
         _ => return None,
     };
     Some(
-        table_lines
+        annotate_table_link_fragments(table_line, table_lines, style)
             .into_iter()
-            .map(|line| Line::styled(line, style))
+            .map(|line| prepend_blockquote_prefix(prefix, line))
             .collect(),
     )
 }
 
-fn wrap_line(line: Line<'static>, width: usize) -> Vec<Line<'static>> {
-    let width = width.max(1);
-    let mut lines = Vec::new();
-    let mut current = Vec::new();
-    let mut current_width = 0;
+fn review_blockquote_lines(line: &ReviewLine, width: usize) -> Option<Vec<HyperlinkLine>> {
+    let ReviewLine::Markdown(PreviewLine::BlockQuote { prefix, line, .. }) = line else {
+        return None;
+    };
+    let prefix_width = prefix.len();
+    let inner_width = width.saturating_sub(prefix_width).max(1);
+    Some(
+        wrap_preview_line(line, inner_width)
+            .into_iter()
+            .map(|line| prepend_blockquote_prefix(prefix, line))
+            .collect(),
+    )
+}
 
-    for span in line.spans {
-        let style = span.style;
-        let mut chunk = String::new();
-        for ch in span.content.chars() {
-            let char_width = crate::review::terminal_char_width(ch);
-            if current_width > 0 && current_width + char_width > width {
-                if !chunk.is_empty() {
-                    current.push(Span::styled(std::mem::take(&mut chunk), style));
-                }
-                lines.push(Line::from(std::mem::take(&mut current)));
-                current_width = 0;
+fn review_list_lines(line: &ReviewLine, width: usize) -> Option<Vec<HyperlinkLine>> {
+    let ReviewLine::Markdown(line) = line else {
+        return None;
+    };
+    preview_list_lines(line, width)
+}
+
+fn wrap_preview_line(line: &PreviewLine, width: usize) -> Vec<HyperlinkLine> {
+    preview_list_lines(line, width)
+        .unwrap_or_else(|| wrap_hyperlink_line(preview_hyperlink_line(line), width))
+}
+
+fn preview_list_lines(line: &PreviewLine, width: usize) -> Option<Vec<HyperlinkLine>> {
+    let continuation_width = match line {
+        PreviewLine::ListItem { marker, .. } => text_width(marker) + 1,
+        PreviewLine::Checkbox { marker, .. } => text_width(marker) + 1 + "[x]".len() + 1,
+        _ => return None,
+    };
+    Some(wrap_hyperlink_line_with_continuation(
+        preview_hyperlink_line(line),
+        width,
+        continuation_width,
+    ))
+}
+
+fn blockquote_context(line: &PreviewLine) -> (&str, &PreviewLine) {
+    match line {
+        PreviewLine::BlockQuote { prefix, line, .. } => (prefix.as_str(), line),
+        _ => ("", line),
+    }
+}
+
+fn prepend_blockquote_prefix(prefix: &str, mut line: HyperlinkLine) -> HyperlinkLine {
+    if prefix.is_empty() {
+        return line;
+    }
+    let shift = text_width(prefix);
+    let mut spans = vec![Span::styled(prefix.to_string(), quote_style())];
+    spans.extend(line.line.spans);
+    line.line = Line::from(spans);
+    for hyperlink in &mut line.hyperlinks {
+        hyperlink.columns = hyperlink.columns.start + shift..hyperlink.columns.end + shift;
+    }
+    line
+}
+
+fn wrap_hyperlink_line(line: HyperlinkLine, width: usize) -> Vec<HyperlinkLine> {
+    wrap_hyperlink_line_with_prefix(line, width, None)
+}
+
+fn wrap_hyperlink_line_with_continuation(
+    line: HyperlinkLine,
+    width: usize,
+    continuation_width: usize,
+) -> Vec<HyperlinkLine> {
+    let continuation_prefix = (continuation_width > 0)
+        .then(|| Span::styled(" ".repeat(continuation_width), Style::default()));
+    wrap_hyperlink_line_with_prefix(line, width, continuation_prefix)
+}
+
+fn wrap_hyperlink_line_with_prefix(
+    line: HyperlinkLine,
+    width: usize,
+    continuation_prefix: Option<Span<'static>>,
+) -> Vec<HyperlinkLine> {
+    let width = width.max(1);
+    let units = hyperlink_line_units(&line);
+    let mut lines = Vec::new();
+    let mut start = 0;
+    let mut use_prefix = false;
+
+    while start < units.len() {
+        let prefix = use_prefix.then(|| continuation_prefix.clone()).flatten();
+        let prefix_width = prefix.as_ref().map(span_width).unwrap_or(0);
+        let available_width = width.saturating_sub(prefix_width).max(1);
+        let token_end = non_whitespace_token_end(&units, start);
+        if token_end > start
+            && units_width(&units[start..token_end]) > available_width
+            && is_url_like_units(&units[start..token_end])
+        {
+            lines.push(hyperlink_line_from_units(prefix, &units[start..token_end]));
+            start = skip_whitespace_units(&units, token_end);
+            use_prefix = true;
+            continue;
+        }
+
+        let mut current_width = 0;
+        let mut end = start;
+        let mut last_space_after = None;
+
+        while end < units.len() {
+            let unit = &units[end];
+            if current_width > 0 && current_width + unit.width > available_width {
+                break;
             }
-            chunk.push(ch);
-            current_width += char_width;
+            if current_width == 0 && unit.width > available_width {
+                end += 1;
+                break;
+            }
+            current_width += unit.width;
+            end += 1;
+            if unit.ch.is_whitespace() {
+                last_space_after = Some(end);
+            }
         }
-        if !chunk.is_empty() {
-            current.push(Span::styled(chunk, style));
+
+        let mut next_start = end;
+        let mut line_end = end;
+        if end < units.len() {
+            if units[end].ch.is_whitespace() {
+                line_end = trim_trailing_whitespace_units(&units, end);
+                next_start = skip_whitespace_units(&units, end);
+            } else if let Some(space_after) = last_space_after
+                && space_after > start
+            {
+                line_end = trim_trailing_whitespace_units(&units, space_after);
+                next_start = skip_whitespace_units(&units, space_after);
+            }
         }
+        if line_end <= start {
+            line_end = end.max(start + 1).min(units.len());
+            next_start = line_end;
+        }
+
+        lines.push(hyperlink_line_from_units(prefix, &units[start..line_end]));
+        start = next_start;
+        use_prefix = true;
     }
 
-    lines.push(Line::from(current));
+    if lines.is_empty() {
+        lines.push(HyperlinkLine::new(Line::default()));
+    }
     lines
+}
+
+#[derive(Debug, Clone)]
+struct HyperlinkUnit {
+    ch: char,
+    width: usize,
+    style: Style,
+    destination: Option<String>,
+}
+
+fn hyperlink_line_units(line: &HyperlinkLine) -> Vec<HyperlinkUnit> {
+    let mut units = Vec::new();
+    let mut source_column = 0;
+    for span in &line.line.spans {
+        for ch in span.content.chars() {
+            let width = crate::review::terminal_char_width(ch);
+            let destination = line
+                .hyperlinks
+                .iter()
+                .find(|link| link.columns.contains(&source_column))
+                .map(|link| link.destination.clone());
+            units.push(HyperlinkUnit {
+                ch,
+                width,
+                style: span.style,
+                destination,
+            });
+            source_column += width;
+        }
+    }
+    units
+}
+
+fn hyperlink_line_from_units(
+    prefix: Option<Span<'static>>,
+    units: &[HyperlinkUnit],
+) -> HyperlinkLine {
+    let mut line = HyperlinkLine::default();
+    if let Some(prefix) = prefix {
+        line.push_span(prefix, None);
+    }
+    for unit in units {
+        let span = Span::styled(unit.ch.to_string(), unit.style);
+        line.push_span(span, unit.destination.as_deref());
+    }
+    line
+}
+
+fn skip_whitespace_units(units: &[HyperlinkUnit], mut index: usize) -> usize {
+    while index < units.len() && units[index].ch.is_whitespace() {
+        index += 1;
+    }
+    index
+}
+
+fn non_whitespace_token_end(units: &[HyperlinkUnit], mut index: usize) -> usize {
+    while index < units.len() && !units[index].ch.is_whitespace() {
+        index += 1;
+    }
+    index
+}
+
+fn units_width(units: &[HyperlinkUnit]) -> usize {
+    units.iter().map(|unit| unit.width).sum()
+}
+
+fn is_url_like_units(units: &[HyperlinkUnit]) -> bool {
+    let text = units.iter().map(|unit| unit.ch).collect::<String>();
+    is_url_like_token(&text)
+}
+
+fn is_url_like_token(text: &str) -> bool {
+    if text.contains("://") {
+        return true;
+    }
+    if !(text.contains('/') || text.contains('\\')) {
+        return false;
+    }
+    text.contains('.')
+        || text.contains('?')
+        || text.contains('#')
+        || text.matches('/').count() + text.matches('\\').count() >= 2
+}
+
+fn trim_trailing_whitespace_units(units: &[HyperlinkUnit], mut end: usize) -> usize {
+    while end > 0 && units[end - 1].ch.is_whitespace() {
+        end -= 1;
+    }
+    end
+}
+
+fn push_hyperlink_range(
+    hyperlinks: &mut Vec<TerminalHyperlink>,
+    columns: Range<usize>,
+    destination: &str,
+) {
+    if columns.is_empty() {
+        return;
+    }
+    if hyperlinks
+        .iter()
+        .any(|link| link.destination == destination && link.columns == columns)
+    {
+        return;
+    }
+    if let Some(previous) = hyperlinks.last_mut()
+        && previous.destination == destination
+        && previous.columns.end == columns.start
+    {
+        previous.columns.end = columns.end;
+        return;
+    }
+    hyperlinks.push(TerminalHyperlink {
+        columns,
+        destination: destination.to_string(),
+    });
+}
+
+fn annotate_web_urls(mut line: HyperlinkLine) -> HyperlinkLine {
+    let text = line_text(&line.line);
+    line.hyperlinks.extend(web_links_in_text(&text));
+    line
+}
+
+fn annotate_table_link_fragments(
+    table_line: &PreviewLine,
+    table_lines: Vec<String>,
+    style: Style,
+) -> Vec<HyperlinkLine> {
+    let mut rendered = table_lines
+        .into_iter()
+        .map(|line| annotate_web_urls(HyperlinkLine::new(Line::styled(line, style))))
+        .collect::<Vec<_>>();
+    let links = match table_line {
+        PreviewLine::TableHeader { links, .. } | PreviewLine::TableRow { links, .. } => links,
+        _ => return rendered,
+    };
+
+    let mut cursor = TableLinkSearchCursor::default();
+    for link in links {
+        annotate_table_link_fragment(&mut rendered, &link.text, &link.target, &mut cursor);
+    }
+    rendered
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+struct TableLinkSearchCursor {
+    line_index: usize,
+    byte_start: usize,
+}
+
+fn annotate_table_link_fragment(
+    lines: &mut [HyperlinkLine],
+    link_text: &str,
+    destination: &str,
+    cursor: &mut TableLinkSearchCursor,
+) {
+    if link_text.is_empty() {
+        return;
+    }
+
+    let mut remaining_start = 0;
+    for (line_index, line) in lines.iter_mut().enumerate().skip(cursor.line_index) {
+        if remaining_start >= link_text.len() {
+            break;
+        }
+        let line_text = line_text(&line.line);
+        let search_from = if line_index == cursor.line_index {
+            cursor.byte_start.min(line_text.len())
+        } else {
+            0
+        };
+        let remaining = &link_text[remaining_start..];
+        if let Some(relative_start) = line_text[search_from..].find(remaining) {
+            let byte_start = search_from + relative_start;
+            if let Some(columns) = display_range_in_text(&line_text, remaining, byte_start) {
+                push_hyperlink_range(&mut line.hyperlinks, columns, destination);
+            }
+            cursor.line_index = line_index;
+            cursor.byte_start = byte_start + remaining.len();
+            break;
+        }
+
+        let Some((relative_start, fragment_len)) =
+            longest_link_fragment_in_line(&line_text[search_from..], remaining)
+        else {
+            continue;
+        };
+        let byte_start = search_from + relative_start;
+        if let Some(columns) =
+            display_range_in_text(&line_text, &remaining[..fragment_len], byte_start)
+        {
+            push_hyperlink_range(&mut line.hyperlinks, columns, destination);
+        }
+        remaining_start += fragment_len;
+        cursor.line_index = line_index + 1;
+        cursor.byte_start = 0;
+    }
+}
+
+fn longest_link_fragment_in_line(line: &str, remaining: &str) -> Option<(usize, usize)> {
+    let mut best = None;
+    for (offset, _) in remaining.char_indices() {
+        let suffix = &remaining[offset..];
+        if suffix.trim().is_empty() {
+            continue;
+        }
+        let mut end = suffix.len();
+        while end > 0 && !suffix.is_char_boundary(end) {
+            end -= 1;
+        }
+        while end > 0 {
+            let candidate = &suffix[..end];
+            if !candidate.trim().is_empty()
+                && let Some(byte_start) = line.find(candidate)
+            {
+                let score = text_width(candidate);
+                if best
+                    .as_ref()
+                    .is_none_or(|(_, length, best_score)| score > *best_score && *length < end)
+                {
+                    best = Some((byte_start, offset + end, score));
+                }
+                break;
+            }
+            end = previous_char_boundary(suffix, end);
+        }
+    }
+    best.map(|(byte_start, consumed, _)| (byte_start, consumed))
+}
+
+fn previous_char_boundary(text: &str, mut index: usize) -> usize {
+    if index == 0 {
+        return 0;
+    }
+    index -= 1;
+    while index > 0 && !text.is_char_boundary(index) {
+        index -= 1;
+    }
+    index
+}
+
+fn display_range_in_text(text: &str, needle: &str, byte_start: usize) -> Option<Range<usize>> {
+    if byte_start > text.len() || !text[byte_start..].starts_with(needle) {
+        return None;
+    }
+    let start = text_width(&text[..byte_start]);
+    Some(start..start + text_width(needle))
+}
+
+fn web_links_in_text(text: &str) -> Vec<TerminalHyperlink> {
+    let mut links = Vec::new();
+    let mut search_from = 0;
+    for raw_token in text.split_whitespace() {
+        let Some(relative_start) = text[search_from..].find(raw_token) else {
+            continue;
+        };
+        let raw_start = search_from + relative_start;
+        search_from = raw_start + raw_token.len();
+
+        let trimmed_start = raw_token
+            .find(|ch: char| !matches!(ch, '(' | '[' | '{' | '<' | '"' | '\''))
+            .unwrap_or(raw_token.len());
+        let trimmed_end = trailing_web_url_end(&raw_token[trimmed_start..]) + trimmed_start;
+        if trimmed_start >= trimmed_end {
+            continue;
+        }
+
+        let candidate = &raw_token[trimmed_start..trimmed_end];
+        let Some(destination) = web_destination(candidate) else {
+            continue;
+        };
+        let start = text_width(&text[..raw_start + trimmed_start]);
+        let end = start + text_width(candidate);
+        links.push(TerminalHyperlink {
+            columns: start..end,
+            destination,
+        });
+    }
+    links
+}
+
+fn trailing_web_url_end(candidate: &str) -> usize {
+    let mut end = candidate.len();
+    while end > 0 {
+        let remaining = &candidate[..end];
+        let Some(ch) = remaining.chars().next_back() else {
+            break;
+        };
+        if !matches!(
+            ch,
+            ',' | '.' | ';' | '!' | '"' | '\'' | ')' | ']' | '}' | '>'
+        ) {
+            break;
+        }
+        end -= ch.len_utf8();
+    }
+    end
+}
+
+fn web_destination(destination: &str) -> Option<String> {
+    let safe = safe_hyperlink_destination(destination)?;
+    let parsed = Url::parse(&safe).ok()?;
+    matches!(parsed.scheme(), "http" | "https")
+        .then(|| parsed.host_str())
+        .flatten()?;
+    Some(safe)
+}
+
+fn safe_hyperlink_destination(destination: &str) -> Option<String> {
+    let safe = destination
+        .chars()
+        .filter(|ch| !ch.is_control())
+        .collect::<String>();
+    if safe.is_empty() {
+        return None;
+    }
+
+    if let Ok(parsed) = Url::parse(&safe) {
+        return matches!(parsed.scheme(), "http" | "https" | "file").then_some(safe);
+    }
+
+    is_local_path_like_destination(&safe).then_some(safe)
+}
+
+fn is_local_path_like_destination(destination: &str) -> bool {
+    destination.starts_with('/')
+        || destination.starts_with("~/")
+        || destination.starts_with("./")
+        || destination.starts_with("../")
+        || destination.starts_with("\\\\")
+        || matches!(
+            destination.as_bytes(),
+            [drive, b':', separator, ..]
+                if drive.is_ascii_alphabetic() && matches!(separator, b'/' | b'\\')
+        )
+}
+
+fn line_width(line: &Line<'_>) -> usize {
+    line.spans.iter().map(span_width).sum()
+}
+
+fn line_text(line: &Line<'_>) -> String {
+    line.spans
+        .iter()
+        .map(|span| span.content.as_ref())
+        .collect()
+}
+
+fn span_width(span: &Span<'_>) -> usize {
+    span.content
+        .chars()
+        .map(crate::review::terminal_char_width)
+        .sum()
+}
+
+fn text_width(text: &str) -> usize {
+    text.chars().map(crate::review::terminal_char_width).sum()
 }
 
 fn source_boundary_line(
@@ -618,10 +1381,7 @@ fn source_boundary_line(
 ) -> Line<'static> {
     let mut spans = Vec::new();
     if let Some(prefix) = prefix {
-        spans.push(Span::styled(
-            format!("{prefix} "),
-            strong_style().fg(Color::Yellow),
-        ));
+        spans.push(Span::styled(format!("{prefix} "), source_label_style()));
     }
     spans.extend([
         Span::styled(phase.to_string(), phase_style(phase)),
@@ -685,6 +1445,12 @@ fn chrome_block() -> Block<'static> {
         .title_style(chrome_style())
 }
 
+fn review_body_block() -> Block<'static> {
+    Block::default()
+        .borders(Borders::ALL)
+        .border_style(chrome_style())
+}
+
 fn bucket_filter_label(filter: BucketFilter) -> &'static str {
     match filter {
         BucketFilter::All => "all",
@@ -713,19 +1479,216 @@ fn bucket_style(bucket: Bucket) -> Style {
 }
 
 fn chrome_style() -> Style {
-    Style::default().fg(Color::Gray)
+    Style::default().fg(markdown_style_profile().chrome)
 }
 
 fn dim_style() -> Style {
-    Style::default().fg(Color::DarkGray)
+    Style::default().fg(markdown_style_profile().dim)
 }
 
 fn strong_style() -> Style {
     Style::default().add_modifier(Modifier::BOLD)
 }
 
+fn heading_style(level: u8) -> Style {
+    let base = Style::default().fg(markdown_style_profile().heading);
+    match level {
+        1 => base
+            .add_modifier(Modifier::BOLD)
+            .add_modifier(Modifier::UNDERLINED),
+        2 => base.add_modifier(Modifier::BOLD),
+        3 => base
+            .add_modifier(Modifier::BOLD)
+            .add_modifier(Modifier::ITALIC),
+        _ => Style::default().add_modifier(Modifier::ITALIC),
+    }
+}
+
+fn table_header_style() -> Style {
+    Style::default()
+        .fg(markdown_style_profile().table_header)
+        .add_modifier(Modifier::BOLD)
+}
+
+fn table_rule_style() -> Style {
+    Style::default().fg(markdown_style_profile().table_rule)
+}
+
+fn quote_style() -> Style {
+    Style::default().fg(markdown_style_profile().quote)
+}
+
+fn list_marker_style() -> Style {
+    Style::default().fg(markdown_style_profile().list_marker)
+}
+
+fn source_label_style() -> Style {
+    Style::default()
+        .fg(markdown_style_profile().source_label)
+        .add_modifier(Modifier::BOLD)
+}
+
 fn code_style() -> Style {
-    Style::default().fg(Color::Cyan)
+    Style::default().fg(markdown_style_profile().code)
+}
+
+fn link_style() -> Style {
+    Style::default()
+        .fg(markdown_style_profile().link)
+        .add_modifier(Modifier::UNDERLINED)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct MarkdownStyleProfile {
+    chrome: Color,
+    dim: Color,
+    heading: Color,
+    table_header: Color,
+    table_rule: Color,
+    quote: Color,
+    list_marker: Color,
+    code: Color,
+    link: Color,
+    source_label: Color,
+}
+
+impl MarkdownStyleProfile {
+    fn from_markdown_settings(settings: &crate::codex_config::CodexMarkdownRenderSettings) -> Self {
+        if !settings.use_theme_colors {
+            return Self::from_codex_theme_name(settings.theme.as_deref(), false);
+        }
+        Self::from_codex_theme_name_with_accents(
+            settings.theme.as_deref(),
+            true,
+            crate::syntax::theme_accent_colors(),
+        )
+    }
+
+    fn from_codex_theme_name(theme_name: Option<&str>, use_theme_colors: bool) -> Self {
+        Self::from_codex_theme_name_with_accents(
+            theme_name,
+            use_theme_colors,
+            crate::syntax::ThemeAccentColors::default(),
+        )
+    }
+
+    fn from_codex_theme_name_with_accents(
+        theme_name: Option<&str>,
+        use_theme_colors: bool,
+        accents: crate::syntax::ThemeAccentColors,
+    ) -> Self {
+        let appearance = theme_appearance(theme_name);
+        if !use_theme_colors {
+            return match appearance {
+                ThemeAppearance::Light => Self {
+                    chrome: Color::DarkGray,
+                    dim: Color::Gray,
+                    heading: Color::Black,
+                    table_header: Color::Black,
+                    table_rule: Color::Gray,
+                    quote: Color::DarkGray,
+                    list_marker: Color::DarkGray,
+                    code: Color::DarkGray,
+                    link: Color::Black,
+                    source_label: Color::DarkGray,
+                },
+                ThemeAppearance::Dark => Self {
+                    chrome: Color::Gray,
+                    dim: Color::DarkGray,
+                    heading: Color::White,
+                    table_header: Color::White,
+                    table_rule: Color::DarkGray,
+                    quote: Color::Gray,
+                    list_marker: Color::Gray,
+                    code: Color::Gray,
+                    link: Color::White,
+                    source_label: Color::Gray,
+                },
+            };
+        }
+
+        match appearance {
+            ThemeAppearance::Light => {
+                let primary = syntax_accent_color(accents.primary, Color::Blue);
+                let secondary = syntax_accent_color(accents.secondary, primary);
+                let muted = syntax_accent_color(accents.muted, Color::DarkGray);
+                Self {
+                    chrome: Color::DarkGray,
+                    dim: Color::Gray,
+                    heading: Color::Black,
+                    table_header: primary,
+                    table_rule: Color::Gray,
+                    quote: secondary,
+                    list_marker: primary,
+                    code: primary,
+                    link: primary,
+                    source_label: muted,
+                }
+            }
+            ThemeAppearance::Dark => {
+                let primary = syntax_accent_color(accents.primary, Color::Cyan);
+                let secondary = syntax_accent_color(accents.secondary, Color::Yellow);
+                let muted = syntax_accent_color(accents.muted, Color::DarkGray);
+                Self {
+                    chrome: Color::Gray,
+                    dim: Color::DarkGray,
+                    heading: Color::White,
+                    table_header: secondary,
+                    table_rule: muted,
+                    quote: primary,
+                    list_marker: primary,
+                    code: primary,
+                    link: primary,
+                    source_label: secondary,
+                }
+            }
+        }
+    }
+}
+
+fn syntax_accent_color(color: Option<PreviewColor>, fallback: Color) -> Color {
+    color.map(preview_color).unwrap_or(fallback)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ThemeAppearance {
+    Dark,
+    Light,
+}
+
+fn markdown_style_profile() -> &'static MarkdownStyleProfile {
+    MARKDOWN_STYLE_PROFILE.get_or_init(|| {
+        let settings = crate::codex_config::CodexSettings::load();
+        MarkdownStyleProfile::from_markdown_settings(&settings.markdown_render_settings())
+    })
+}
+
+fn theme_appearance(theme_name: Option<&str>) -> ThemeAppearance {
+    let Some(theme_name) = theme_name else {
+        return ThemeAppearance::Dark;
+    };
+    let normalized = normalized_theme_name(theme_name);
+    if normalized.ends_with("-light")
+        || matches!(
+            normalized.as_str(),
+            "catppuccin-latte" | "coldark-cold" | "github" | "inspired-github"
+        )
+    {
+        ThemeAppearance::Light
+    } else {
+        ThemeAppearance::Dark
+    }
+}
+
+fn normalized_theme_name(name: &str) -> String {
+    let mut normalized = String::new();
+    for ch in name.trim().chars() {
+        match ch {
+            ' ' | '_' => normalized.push('-'),
+            _ => normalized.extend(ch.to_lowercase()),
+        }
+    }
+    normalized
 }
 
 #[cfg(test)]
@@ -759,6 +1722,32 @@ mod tests {
             })
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    fn strip_osc8(text: &str) -> String {
+        let bytes = text.as_bytes();
+        let mut stripped = String::with_capacity(text.len());
+        let mut index = 0;
+        while index < bytes.len() {
+            if bytes[index..].starts_with(b"\x1b]8;;") {
+                index += 5;
+                while index < bytes.len() {
+                    if bytes[index] == b'\x07' {
+                        index += 1;
+                        break;
+                    }
+                    index += 1;
+                }
+                continue;
+            }
+            let ch = text[index..]
+                .chars()
+                .next()
+                .expect("index starts a character");
+            stripped.push(ch);
+            index += ch.len_utf8();
+        }
+        stripped
     }
 
     fn buffer_line(buffer: &Buffer, width: u16, y: u16) -> String {
@@ -1123,6 +2112,214 @@ mod tests {
     }
 
     #[test]
+    fn preview_line_renders_syntax_span_style() {
+        let line = preview_line(&PreviewLine::CodeSpans(vec![PreviewSpan::Syntax {
+            text: "fn".to_string(),
+            style: crate::preview::PreviewStyle {
+                fg: Some(crate::preview::PreviewColor::Rgb(1, 2, 3)),
+                bg: Some(crate::preview::PreviewColor::Rgb(4, 5, 6)),
+                text_style: crate::preview::PreviewTextStyle {
+                    bold: true,
+                    underline: true,
+                    ..Default::default()
+                },
+            },
+        }]));
+
+        assert_eq!(line.spans[0].content.as_ref(), "fn");
+        assert_eq!(line.spans[0].style.fg, Some(Color::Rgb(1, 2, 3)));
+        assert_eq!(line.spans[0].style.bg, Some(Color::Rgb(4, 5, 6)));
+        assert!(line.spans[0].style.add_modifier.contains(Modifier::BOLD));
+        assert!(
+            line.spans[0]
+                .style
+                .add_modifier
+                .contains(Modifier::UNDERLINED)
+        );
+    }
+
+    #[test]
+    fn preview_line_renders_heading_level_styles() {
+        let h1 = preview_line(&PreviewLine::Heading {
+            level: 1,
+            text: "Title".to_string(),
+        });
+        let h3 = preview_line(&PreviewLine::Heading {
+            level: 3,
+            text: "Subhead".to_string(),
+        });
+        let h6 = preview_line(&PreviewLine::Heading {
+            level: 6,
+            text: "Minor".to_string(),
+        });
+
+        assert!(h1.style.add_modifier.contains(Modifier::BOLD));
+        assert!(h1.style.add_modifier.contains(Modifier::UNDERLINED));
+        assert!(h3.style.add_modifier.contains(Modifier::BOLD));
+        assert!(h3.style.add_modifier.contains(Modifier::ITALIC));
+        assert!(!h6.style.add_modifier.contains(Modifier::BOLD));
+        assert!(h6.style.add_modifier.contains(Modifier::ITALIC));
+    }
+
+    #[test]
+    fn preview_line_renders_inline_text_style_modifiers() {
+        let line = preview_line(&PreviewLine::Styled(vec![PreviewSpan::StyledText {
+            text: "styled".to_string(),
+            style: crate::preview::PreviewTextStyle {
+                bold: true,
+                italic: true,
+                underline: true,
+                strikethrough: true,
+            },
+        }]));
+
+        assert_eq!(line.spans[0].content.as_ref(), "styled");
+        assert!(line.spans[0].style.add_modifier.contains(Modifier::BOLD));
+        assert!(line.spans[0].style.add_modifier.contains(Modifier::ITALIC));
+        assert!(
+            line.spans[0]
+                .style
+                .add_modifier
+                .contains(Modifier::UNDERLINED)
+        );
+        assert!(
+            line.spans[0]
+                .style
+                .add_modifier
+                .contains(Modifier::CROSSED_OUT)
+        );
+    }
+
+    #[test]
+    fn markdown_style_profile_tracks_codex_theme_appearance() {
+        let dark = MarkdownStyleProfile::from_codex_theme_name(Some("catppuccin_mocha"), true);
+        let light = MarkdownStyleProfile::from_codex_theme_name(Some("Gruvbox Light"), true);
+
+        assert_eq!(dark.link, Color::Cyan);
+        assert_eq!(dark.code, Color::Cyan);
+        assert_eq!(dark.heading, Color::White);
+        assert_eq!(dark.table_header, Color::Yellow);
+        assert_eq!(dark.table_rule, Color::DarkGray);
+        assert_eq!(dark.quote, Color::Cyan);
+        assert_eq!(dark.list_marker, Color::Cyan);
+        assert_eq!(dark.source_label, Color::Yellow);
+        assert_eq!(light.link, Color::Blue);
+        assert_eq!(light.code, Color::Blue);
+        assert_eq!(light.heading, Color::Black);
+        assert_eq!(light.table_header, Color::Blue);
+        assert_eq!(light.table_rule, Color::Gray);
+        assert_eq!(light.quote, Color::Blue);
+        assert_eq!(light.list_marker, Color::Blue);
+        assert_eq!(light.source_label, Color::DarkGray);
+        assert_eq!(theme_appearance(Some("github")), ThemeAppearance::Light);
+        assert_eq!(theme_appearance(Some("dracula")), ThemeAppearance::Dark);
+    }
+
+    #[test]
+    fn markdown_style_profile_can_disable_theme_accent_colors_from_codex_config() {
+        let colored = MarkdownStyleProfile::from_codex_theme_name(Some("catppuccin_mocha"), true);
+        let neutral = MarkdownStyleProfile::from_codex_theme_name(Some("catppuccin_mocha"), false);
+
+        assert_eq!(colored.table_header, Color::Yellow);
+        assert_eq!(colored.link, Color::Cyan);
+        assert_eq!(neutral.table_header, Color::White);
+        assert_eq!(neutral.link, Color::White);
+        assert_eq!(neutral.code, Color::Gray);
+        assert_eq!(neutral.list_marker, Color::Gray);
+    }
+
+    #[test]
+    fn markdown_style_profile_uses_syntax_theme_accent_colors_when_available() {
+        let accents = crate::syntax::ThemeAccentColors {
+            primary: Some(PreviewColor::Rgb(1, 2, 3)),
+            secondary: Some(PreviewColor::Rgb(4, 5, 6)),
+            muted: Some(PreviewColor::Ansi(8)),
+        };
+
+        let profile = MarkdownStyleProfile::from_codex_theme_name_with_accents(
+            Some("dracula"),
+            true,
+            accents,
+        );
+
+        assert_eq!(profile.link, Color::Rgb(1, 2, 3));
+        assert_eq!(profile.code, Color::Rgb(1, 2, 3));
+        assert_eq!(profile.quote, Color::Rgb(1, 2, 3));
+        assert_eq!(profile.list_marker, Color::Rgb(1, 2, 3));
+        assert_eq!(profile.table_header, Color::Rgb(4, 5, 6));
+        assert_eq!(profile.source_label, Color::Rgb(4, 5, 6));
+        assert_eq!(profile.table_rule, Color::Indexed(8));
+    }
+
+    #[test]
+    fn markdown_style_profile_uses_codex_config_theme() {
+        let temp = assert_fs::TempDir::new().expect("temp codex home");
+        let config = temp.path().join("config.toml");
+        std::fs::write(
+            &config,
+            "[tui]\ntheme = \"github\"\nstatus_line_use_colors = false\n",
+        )
+        .expect("config");
+        let settings = crate::codex_config::CodexSettings::from_config_path(&config);
+
+        let render_settings = settings.markdown_render_settings();
+        let profile = MarkdownStyleProfile::from_markdown_settings(&render_settings);
+
+        assert_eq!(settings.tui.theme.as_deref(), Some("github"));
+        assert!(!settings.tui.status_line_use_colors);
+        assert_eq!(render_settings.theme.as_deref(), Some("github"));
+        assert!(!render_settings.use_theme_colors);
+        assert_eq!(profile.link, Color::Black);
+        assert_eq!(profile.code, Color::DarkGray);
+        assert_eq!(profile.chrome, Color::DarkGray);
+        assert_eq!(profile.heading, Color::Black);
+        assert_eq!(profile.table_header, Color::Black);
+        assert_eq!(profile.list_marker, Color::DarkGray);
+    }
+
+    #[test]
+    fn markdown_element_styles_use_separate_profile_tokens() {
+        let header = preview_line(&PreviewLine::TableHeader {
+            cells: vec!["Plain check".to_string(), "EARS".to_string()],
+            links: Vec::new(),
+            widths: vec![11, 4],
+            alignments: vec![
+                crate::preview::TableAlignment::None,
+                crate::preview::TableAlignment::None,
+            ],
+        });
+        let divider = preview_line(&PreviewLine::TableDivider {
+            widths: vec![11, 4],
+            kind: crate::preview::TableDividerKind::Header,
+        });
+        let list_item = preview_line(&PreviewLine::ListItem {
+            marker: "•".to_string(),
+            spans: vec![PreviewSpan::Plain("item".to_string())],
+        });
+        let quoted = review_blockquote_lines(
+            &ReviewLine::Markdown(PreviewLine::BlockQuote {
+                depth: 1,
+                prefix: "> ".to_string(),
+                line: Box::new(PreviewLine::Plain("quoted".to_string())),
+            }),
+            80,
+        )
+        .expect("blockquote lines");
+
+        assert_eq!(header.style.fg, Some(markdown_style_profile().table_header));
+        assert!(header.style.add_modifier.contains(Modifier::BOLD));
+        assert_eq!(divider.style.fg, Some(markdown_style_profile().table_rule));
+        assert_eq!(
+            list_item.spans[0].style.fg,
+            Some(markdown_style_profile().list_marker)
+        );
+        assert_eq!(
+            quoted[0].line.spans[0].style.fg,
+            Some(markdown_style_profile().quote)
+        );
+    }
+
+    #[test]
     fn review_separator_renders_as_prominent_file_boundary() {
         let line = review_line(&ReviewLine::Separator {
             relative_path: ".leaf/02-leaves/demo/01-Learn/01-intent.md".to_string(),
@@ -1171,7 +2368,8 @@ mod tests {
         let text = rendered
             .iter()
             .map(|line| {
-                line.line
+                line.content
+                    .line
                     .spans
                     .iter()
                     .map(|span| span.content.as_ref())
@@ -1183,6 +2381,571 @@ mod tests {
         assert_eq!(text[0], "abcdefghijklmnopqrst");
         assert_eq!(text[1], "uvwxyz0123456789ABCD");
         assert_eq!(text[3], "YZ");
+    }
+
+    #[test]
+    fn review_body_wraps_plain_text_at_word_boundaries() {
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/02-leaves/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/02-leaves/demo/00-status.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![ReviewLine::Markdown(PreviewLine::Plain(
+                "This is a simple sentence that should wrap.".to_string(),
+            ))],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 16);
+        let text = rendered
+            .iter()
+            .map(|line| line_text(&line.content.line))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            text,
+            vec!["This is a simple", "sentence that", "should wrap."]
+        );
+    }
+
+    #[test]
+    fn review_body_does_not_split_long_url_like_token_without_scheme() {
+        let url_like =
+            "example.test/api/v1/projects/alpha-team/releases/2026-02-17/builds/1234567890";
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/02-leaves/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/02-leaves/demo/00-status.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![ReviewLine::Markdown(PreviewLine::Plain(
+                url_like.to_string(),
+            ))],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 24);
+        let text = rendered
+            .iter()
+            .map(|line| line_text(&line.content.line))
+            .collect::<Vec<_>>();
+
+        assert_eq!(text, vec![url_like]);
+    }
+
+    #[test]
+    fn review_wrapping_keeps_long_url_hyperlink_token_intact() {
+        let destination =
+            "https://example.com/a-very-long-path-with-many-segments-and-query?x=1&y=2";
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/02-leaves/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/02-leaves/demo/00-status.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![ReviewLine::Markdown(PreviewLine::Styled(vec![
+                PreviewSpan::Plain("see ".to_string()),
+                PreviewSpan::Link {
+                    text: destination.to_string(),
+                    target: destination.to_string(),
+                    source_range: crate::preview::PreviewSourceRange {
+                        start: 4,
+                        end: 4 + destination.len(),
+                    },
+                    local: false,
+                },
+            ]))],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 24);
+        let text = rendered
+            .iter()
+            .map(|line| line_text(&line.content.line))
+            .collect::<Vec<_>>();
+
+        assert_eq!(text, vec!["see", destination]);
+        assert_eq!(
+            rendered[1].content.hyperlinks,
+            vec![TerminalHyperlink {
+                columns: 0..destination.len(),
+                destination: destination.to_string(),
+            }]
+        );
+    }
+
+    #[test]
+    fn review_wrapping_preserves_list_item_continuation_indent() {
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/02-leaves/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/02-leaves/demo/01-Learn/01-intent.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![ReviewLine::Markdown(PreviewLine::ListItem {
+                marker: "•".to_string(),
+                spans: vec![PreviewSpan::Plain("first second third fourth".to_string())],
+            })],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 16);
+        let text = rendered
+            .iter()
+            .map(|line| line_text(&line.content.line))
+            .collect::<Vec<_>>();
+
+        assert_eq!(text, vec!["• first second", "   third fourth"]);
+    }
+
+    #[test]
+    fn review_wrapping_preserves_checkbox_continuation_indent() {
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/02-leaves/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/02-leaves/demo/01-Learn/01-intent.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![ReviewLine::Markdown(PreviewLine::Checkbox {
+                marker: "  •".to_string(),
+                checked: true,
+                text: "first second third".to_string(),
+            })],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 18);
+        let text = rendered
+            .iter()
+            .map(|line| line_text(&line.content.line))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            text,
+            vec!["  • [x] first", "         second", "         third"]
+        );
+    }
+
+    #[test]
+    fn review_wrapping_preserves_link_ranges_across_wrapped_lines() {
+        let destination = "https://example.com/very/long/path";
+        let label = "abcdefghijklmnopqrstuvwxyz0123456789";
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/02-leaves/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/02-leaves/demo/00-status.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![ReviewLine::Markdown(PreviewLine::Styled(vec![
+                PreviewSpan::Plain("See ".to_string()),
+                PreviewSpan::Link {
+                    text: label.to_string(),
+                    target: destination.to_string(),
+                    source_range: crate::preview::PreviewSourceRange {
+                        start: 4,
+                        end: 4 + label.len(),
+                    },
+                    local: false,
+                },
+                PreviewSpan::Plain(" now".to_string()),
+            ]))],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 14);
+        let linked_lines = rendered
+            .iter()
+            .filter(|line| {
+                line.content
+                    .hyperlinks
+                    .iter()
+                    .any(|link| link.destination == destination)
+            })
+            .collect::<Vec<_>>();
+
+        assert!(
+            linked_lines.len() >= 2,
+            "expected wrapped link fragments: {rendered:?}"
+        );
+        for line in linked_lines {
+            let width = line.content.width();
+            for link in &line.content.hyperlinks {
+                assert_eq!(link.destination, destination);
+                assert!(link.columns.start < link.columns.end);
+                assert!(link.columns.end <= width);
+            }
+        }
+    }
+
+    #[test]
+    fn visible_review_body_lines_preserve_hyperlink_metadata_after_scroll_windowing() {
+        let destination = "https://example.com/docs";
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/02-leaves/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/02-leaves/demo/00-status.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![
+                ReviewLine::Markdown(PreviewLine::Plain("before".to_string())),
+                ReviewLine::Markdown(PreviewLine::Styled(vec![PreviewSpan::Link {
+                    text: "docs".to_string(),
+                    target: destination.to_string(),
+                    source_range: crate::preview::PreviewSourceRange { start: 0, end: 4 },
+                    local: false,
+                }])),
+                ReviewLine::Markdown(PreviewLine::Plain("after".to_string())),
+            ],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 80);
+        let visible = visible_review_body_lines(&rendered, 1, 1);
+
+        assert_eq!(visible.len(), 1);
+        assert_eq!(line_text(&visible[0].content.line), "docs");
+        assert_eq!(
+            visible[0].content.hyperlinks,
+            vec![TerminalHyperlink {
+                columns: 0..4,
+                destination: destination.to_string(),
+            }]
+        );
+    }
+
+    #[test]
+    fn review_blockquote_wrapping_shifts_link_ranges_by_prefix_width() {
+        let destination = "https://example.com";
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/02-leaves/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/02-leaves/demo/00-status.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![ReviewLine::Markdown(PreviewLine::BlockQuote {
+                depth: 1,
+                prefix: "> ".to_string(),
+                line: Box::new(PreviewLine::Styled(vec![PreviewSpan::Link {
+                    text: "docs".to_string(),
+                    target: destination.to_string(),
+                    source_range: crate::preview::PreviewSourceRange { start: 0, end: 4 },
+                    local: false,
+                }])),
+            })],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 20);
+
+        assert_eq!(
+            rendered[0].content.hyperlinks,
+            vec![TerminalHyperlink {
+                columns: 2..6,
+                destination: destination.to_string(),
+            }]
+        );
+    }
+
+    #[test]
+    fn review_wrapping_complex_snapshot_preserves_nested_link_ranges() {
+        let destination = "file:///Users/example/code/codex/README.md#L10";
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/02-leaves/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/02-leaves/demo/00-status.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![
+                ReviewLine::Markdown(PreviewLine::BlockQuote {
+                    depth: 1,
+                    prefix: "> ".to_string(),
+                    line: Box::new(PreviewLine::ListItem {
+                        marker: "•".to_string(),
+                        spans: vec![
+                            PreviewSpan::Plain("see ".to_string()),
+                            PreviewSpan::Link {
+                                text: "README.md:10".to_string(),
+                                target: destination.to_string(),
+                                source_range: crate::preview::PreviewSourceRange {
+                                    start: 0,
+                                    end: 12,
+                                },
+                                local: true,
+                            },
+                        ],
+                    }),
+                }),
+                ReviewLine::Markdown(PreviewLine::BlockQuote {
+                    depth: 1,
+                    prefix: "> ".to_string(),
+                    line: Box::new(PreviewLine::Code("  fn main() {}".to_string())),
+                }),
+            ],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 14);
+        let text = rendered
+            .iter()
+            .map(|line| line_text(&line.content.line))
+            .collect::<Vec<_>>();
+        let linked_lines = rendered
+            .iter()
+            .filter(|line| {
+                line.content
+                    .hyperlinks
+                    .iter()
+                    .any(|link| link.destination == destination)
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            text,
+            vec![
+                "> • see",
+                ">    README.md",
+                ">    :10",
+                ">   fn main()",
+                "> {}"
+            ]
+        );
+        assert_eq!(linked_lines.len(), 2);
+        assert_eq!(
+            linked_lines[0].content.hyperlinks,
+            vec![TerminalHyperlink {
+                columns: 5..14,
+                destination: destination.to_string(),
+            }]
+        );
+        assert_eq!(
+            linked_lines[1].content.hyperlinks,
+            vec![TerminalHyperlink {
+                columns: 5..8,
+                destination: destination.to_string(),
+            }]
+        );
+    }
+
+    #[test]
+    fn terminal_hyperlink_text_adds_osc8_without_changing_visible_text() {
+        let destination = "https://example.com/very/long/path";
+        let mut line = HyperlinkLine::new(Line::from(vec![
+            Span::raw("See "),
+            Span::styled(destination.to_string(), link_style()),
+            Span::raw(" now."),
+        ]));
+        line.hyperlinks.push(TerminalHyperlink {
+            columns: 4..4 + destination.len(),
+            destination: destination.to_string(),
+        });
+
+        let raw = terminal_hyperlink_text(&line);
+        let visible = strip_osc8(&raw);
+
+        assert!(raw.contains("\x1b]8;;https://example.com/very/long/path\x07"));
+        assert_eq!(visible, format!("See {destination} now."));
+        assert!(visible.contains("now."));
+    }
+
+    #[test]
+    fn terminal_hyperlink_text_rejects_unsafe_schemes() {
+        let mut line = HyperlinkLine::new(Line::from("open"));
+        line.hyperlinks.push(TerminalHyperlink {
+            columns: 0..4,
+            destination: "javascript:alert(1)".to_string(),
+        });
+
+        let raw = terminal_hyperlink_text(&line);
+
+        assert_eq!(raw, "open");
+        assert!(!raw.contains("\x1b]8;;"));
+        assert_eq!(safe_hyperlink_destination("data:text/plain,hello"), None);
+        assert_eq!(
+            safe_hyperlink_destination("file:///Users/example/code/codex/README.md").as_deref(),
+            Some("file:///Users/example/code/codex/README.md")
+        );
+        assert_eq!(
+            safe_hyperlink_destination("/Users/example/code/codex/README.md").as_deref(),
+            Some("/Users/example/code/codex/README.md")
+        );
+    }
+
+    #[test]
+    fn review_table_lines_recover_web_url_hyperlinks_from_rendered_cells() {
+        let destination = "https://example.com/docs";
+        let line = ReviewLine::Markdown(PreviewLine::TableRow {
+            headers: vec!["URL".to_string()],
+            cells: vec![destination.to_string()],
+            links: vec![],
+            widths: vec![destination.len()],
+            alignments: vec![crate::preview::TableAlignment::None],
+        });
+
+        let rendered = review_table_lines(&line, 80).expect("table row");
+        let raw = terminal_hyperlink_text(&rendered[0]);
+        let visible = strip_osc8(&raw);
+
+        assert_eq!(line_text(&rendered[0].line), destination);
+        assert_eq!(
+            rendered[0].hyperlinks,
+            vec![TerminalHyperlink {
+                columns: 0..destination.len(),
+                destination: destination.to_string(),
+            }]
+        );
+        assert!(raw.contains("\x1b]8;;https://example.com/docs\x07"));
+        assert_eq!(visible, destination);
+    }
+
+    #[test]
+    fn review_table_lines_preserve_local_file_hyperlinks_from_table_metadata() {
+        let visible = "README.md:12";
+        let destination = "file:///Users/example/code/codex/README.md#L12";
+        let line = ReviewLine::Markdown(PreviewLine::TableRow {
+            headers: vec!["File".to_string()],
+            cells: vec![visible.to_string()],
+            links: vec![crate::preview::PreviewTableLink {
+                cell: 0,
+                text: visible.to_string(),
+                columns: 0..visible.len(),
+                target: destination.to_string(),
+                source_range: crate::preview::PreviewSourceRange { start: 0, end: 12 },
+                local: true,
+            }],
+            widths: vec![visible.len()],
+            alignments: vec![crate::preview::TableAlignment::None],
+        });
+
+        let rendered = review_table_lines(&line, 80).expect("table row");
+        let raw = terminal_hyperlink_text(&rendered[0]);
+
+        assert_eq!(line_text(&rendered[0].line), visible);
+        assert_eq!(
+            rendered[0].hyperlinks,
+            vec![TerminalHyperlink {
+                columns: 0..visible.len(),
+                destination: destination.to_string(),
+            }]
+        );
+        assert!(raw.contains("\x1b]8;;file:///Users/example/code/codex/README.md#L12\x07"));
+        assert_eq!(strip_osc8(&raw), visible);
+    }
+
+    #[test]
+    fn review_table_lines_keep_duplicate_cell_link_text_targets_distinct() {
+        let visible = "README.md:1";
+        let first = "file:///Users/example/code/codex/a/README.md#L1";
+        let second = "file:///Users/example/code/codex/b/README.md#L1";
+        let line = ReviewLine::Markdown(PreviewLine::TableRow {
+            headers: vec!["A".to_string(), "B".to_string()],
+            cells: vec![visible.to_string(), visible.to_string()],
+            links: vec![
+                crate::preview::PreviewTableLink {
+                    cell: 0,
+                    text: visible.to_string(),
+                    columns: 0..visible.len(),
+                    target: first.to_string(),
+                    source_range: crate::preview::PreviewSourceRange { start: 0, end: 10 },
+                    local: true,
+                },
+                crate::preview::PreviewTableLink {
+                    cell: 1,
+                    text: visible.to_string(),
+                    columns: 0..visible.len(),
+                    target: second.to_string(),
+                    source_range: crate::preview::PreviewSourceRange { start: 11, end: 21 },
+                    local: true,
+                },
+            ],
+            widths: vec![visible.len(), visible.len()],
+            alignments: vec![
+                crate::preview::TableAlignment::None,
+                crate::preview::TableAlignment::None,
+            ],
+        });
+
+        let rendered = review_table_lines(&line, 80).expect("table row");
+
+        assert_eq!(
+            line_text(&rendered[0].line),
+            format!("{visible}    {visible}")
+        );
+        assert_eq!(
+            rendered[0].hyperlinks,
+            vec![
+                TerminalHyperlink {
+                    columns: 0..visible.len(),
+                    destination: first.to_string(),
+                },
+                TerminalHyperlink {
+                    columns: visible.len() + crate::preview::TABLE_COLUMN_GAP
+                        ..visible.len() + crate::preview::TABLE_COLUMN_GAP + visible.len(),
+                    destination: second.to_string(),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn review_table_lines_preserve_wrapped_local_file_hyperlink_fragments() {
+        let visible = "codex-rs/tui/src/markdown_render.rs:74:3";
+        let destination =
+            "file:///Users/example/code/codex/codex-rs/tui/src/markdown_render.rs#L74C3";
+        let line = ReviewLine::Markdown(PreviewLine::TableRow {
+            headers: vec!["File".to_string()],
+            cells: vec![visible.to_string()],
+            links: vec![crate::preview::PreviewTableLink {
+                cell: 0,
+                text: visible.to_string(),
+                columns: 0..visible.len(),
+                target: destination.to_string(),
+                source_range: crate::preview::PreviewSourceRange { start: 0, end: 12 },
+                local: true,
+            }],
+            widths: vec![visible.len()],
+            alignments: vec![crate::preview::TableAlignment::None],
+        });
+
+        let rendered = review_table_lines(&line, 16).expect("table row");
+        let linked_lines = rendered
+            .iter()
+            .filter(|line| {
+                line.hyperlinks
+                    .iter()
+                    .any(|link| link.destination == destination)
+            })
+            .collect::<Vec<_>>();
+
+        assert!(
+            linked_lines.len() >= 2,
+            "expected wrapped linked fragments: {rendered:?}"
+        );
+        assert_eq!(
+            rendered
+                .iter()
+                .map(|line| line_text(&line.line))
+                .collect::<String>(),
+            visible
+        );
+        for line in linked_lines {
+            let width = line.width();
+            for hyperlink in &line.hyperlinks {
+                assert_eq!(hyperlink.destination, destination);
+                assert!(hyperlink.columns.start < hyperlink.columns.end);
+                assert!(hyperlink.columns.end <= width);
+            }
+            assert!(terminal_hyperlink_text(line).contains(destination));
+        }
     }
 
     #[test]
@@ -1458,6 +3221,184 @@ mod tests {
     }
 
     #[test]
+    fn review_hyperlink_target_maps_visible_body_coordinates_to_safe_destinations() {
+        let fixture = RenderFixture::new();
+        let slug = "link-demo";
+        let root = fixture.root.path();
+        let leaf_path = root
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug);
+        std::fs::create_dir_all(leaf_path.join("01-Learn")).expect("intent dir");
+        std::fs::write(
+            leaf_path.join("00-status.md"),
+            "# Status\n\n- current gate: ① Intent\n",
+        )
+        .expect("status");
+        std::fs::write(
+            leaf_path.join("01-Learn/01-intent.md"),
+            "See [docs](https://example.com/docs) today.\n",
+        )
+        .expect("intent");
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            slug,
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("① Intent"),
+            ),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        let width = 100;
+        let height = 18;
+        let area = Rect::new(0, 0, width, height);
+        let buffer = render_buffer(width, height, &app);
+        let (x, y) = text_position(&buffer, width, height, "docs").expect("visible link text");
+
+        assert_eq!(
+            review_hyperlink_target(area, &app, x, y).as_deref(),
+            Some("https://example.com/docs")
+        );
+        assert_eq!(
+            review_hyperlink_target(area, &app, x + "docs".len() as u16 - 1, y).as_deref(),
+            Some("https://example.com/docs")
+        );
+        assert_eq!(
+            review_hyperlink_target(area, &app, x.saturating_sub(1), y),
+            None
+        );
+        assert_eq!(review_hyperlink_target(area, &app, x, 0), None);
+    }
+
+    #[test]
+    fn review_hyperlink_target_rejects_unsafe_destinations() {
+        let fixture = RenderFixture::new();
+        let slug = "unsafe-link";
+        let root = fixture.root.path();
+        let leaf_path = root
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug);
+        std::fs::create_dir_all(leaf_path.join("01-Learn")).expect("intent dir");
+        std::fs::write(
+            leaf_path.join("00-status.md"),
+            "# Status\n\n- current gate: ① Intent\n",
+        )
+        .expect("status");
+        std::fs::write(
+            leaf_path.join("01-Learn/01-intent.md"),
+            "Open [bad](javascript:alert(1)) link.\n",
+        )
+        .expect("intent");
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            slug,
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("① Intent"),
+            ),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        let width = 80;
+        let height = 18;
+        let area = Rect::new(0, 0, width, height);
+        let buffer = render_buffer(width, height, &app);
+        let (x, y) = text_position(&buffer, width, height, "bad").expect("visible link text");
+
+        assert_eq!(review_hyperlink_target(area, &app, x, y), None);
+    }
+
+    #[test]
+    fn review_mode_renders_complex_markdown_through_pulldown_pipeline() {
+        let fixture = RenderFixture::new();
+        let slug = "complex-review";
+        let root = fixture.root.path();
+        let leaf_path = root
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug);
+        std::fs::create_dir_all(leaf_path.join("01-Learn")).expect("intent dir");
+        std::fs::write(
+            leaf_path.join("00-status.md"),
+            "# Status\n\n- current gate: ① Intent\n",
+        )
+        .expect("status");
+        std::fs::write(
+            leaf_path.join("01-Learn/01-intent.md"),
+            r#"# Intent
+
+Intro with **bold**, `code`, and [docs](https://example.com/docs).
+
+> Quote [guide](./notes/guide.md#L3C2-L4C8)
+> - nested [web](https://example.com/a)
+> ```rust
+> fn main() {}
+> ```
+> | Plain check | EARS |
+> | --- | --- |
+> | fallen reason | WHEN an item enters fallen, THE MODEL SHALL record a narrow removal reason. |
+"#,
+        )
+        .expect("intent");
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            slug,
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Learn"),
+                Some("① Intent"),
+            ),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        let width = 104;
+        let height = 34;
+        let area = Rect::new(0, 0, width, height);
+        let buffer = render_buffer(width, height, &app);
+        let text = buffer_to_text(&buffer, width, height);
+
+        assert!(text.contains("┌"), "{text}");
+        assert!(line_contains_text(&buffer, width, height, "Intent"));
+        assert!(text.contains("Intro with bold, code, and docs"), "{text}");
+        assert!(text.contains("> Quote ./notes/guide.md:3:2-4:8"), "{text}");
+        assert!(
+            text.contains("> • nested web (https://example.com/a)"),
+            "{text}"
+        );
+        assert!(text.contains("> fn main() {}"), "{text}");
+        assert!(text.contains("> Plain check"), "{text}");
+        assert!(text.contains("fallen reason"), "{text}");
+        assert!(text.contains("WHEN an item enters fallen"), "{text}");
+        assert!(!text.contains("**bold**"), "{text}");
+        assert!(!text.contains("```rust"), "{text}");
+        assert!(!text.contains("| Plain check | EARS |"), "{text}");
+
+        let (docs_x, docs_y) =
+            text_position(&buffer, width, height, "docs").expect("visible web link text");
+        assert_eq!(
+            review_hyperlink_target(area, &app, docs_x, docs_y).as_deref(),
+            Some("https://example.com/docs")
+        );
+
+        let (guide_x, guide_y) = text_position(&buffer, width, height, "./notes/guide.md:3:2-4:8")
+            .expect("visible local link text");
+        assert_eq!(
+            review_hyperlink_target(area, &app, guide_x, guide_y).as_deref(),
+            Some("./notes/guide.md#L3C2-L4C8")
+        );
+    }
+
+    #[test]
     fn review_mode_renders_markdown_table_as_aligned_terminal_lines() {
         let fixture = RenderFixture::new();
         let slug = "table-demo";
@@ -1566,13 +3507,27 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert!(table_lines.len() >= 3, "{text}");
+        assert!(
+            text.contains(" Plain check  fallen reason is narrow"),
+            "{text}"
+        );
+        assert!(
+            text.contains(" EARS         WHEN an item enters fallen"),
+            "{text}"
+        );
         assert!(text.contains("WHEN an item"));
         assert!(text.contains("lifecycle outcome"));
+        assert!(!text.contains("Plain check    EARS"), "{text}");
         assert!(!text.contains("lifecycl\n"));
         assert!(
-            table_lines
-                .iter()
-                .all(|line| crate::preview::display_width(line.trim_end()) <= usize::from(width)),
+            table_lines.iter().all(|line| {
+                let body = line
+                    .trim_end()
+                    .strip_prefix('│')
+                    .and_then(|line| line.strip_suffix('│'))
+                    .unwrap_or(line);
+                crate::preview::display_width(body.trim_end()) <= usize::from(width - 2)
+            }),
             "{text}"
         );
     }
@@ -1789,12 +3744,16 @@ mod tests {
         assert_eq!(app.handle_key(KeyInput::Char('G')), Outcome::Continue);
         let bottom = buffer_text(80, 9, &app);
         assert!(bottom.contains("status line 16"));
+        let bottom_offset = app.review_state().unwrap().scroll_offset;
 
         assert_eq!(app.handle_key(KeyInput::Up), Outcome::Continue);
         let after_up = buffer_text(80, 9, &app);
 
-        assert!(after_up.contains("status line 11"));
-        assert!(!after_up.contains("status line 16"));
+        assert_eq!(
+            app.review_state().unwrap().scroll_offset,
+            bottom_offset.saturating_sub(1)
+        );
+        assert_ne!(after_up, bottom);
     }
 
     struct RenderFixture {

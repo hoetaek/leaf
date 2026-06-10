@@ -166,7 +166,7 @@ pub(crate) fn wrapped_line_count(document: &ReviewDocument, width: usize) -> usi
         .iter()
         .map(|line| {
             if let ReviewLine::Markdown(line) = line
-                && let Some(lines) = crate::preview::wrapped_table_line_texts(line, width)
+                && let Some(lines) = wrapped_markdown_table_line_texts(line, width)
             {
                 lines.len()
             } else {
@@ -248,9 +248,9 @@ fn build_leaf_work(root_path: PathBuf, root_relative_path: String) -> Result<Rev
     })
 }
 
-fn append_markdown_lines(lines: &mut Vec<ReviewLine>, content: &str) {
+fn append_markdown_lines(lines: &mut Vec<ReviewLine>, content: &str, cwd: &Path) {
     lines.extend(
-        crate::preview::marked_lines(content.lines().map(str::to_string).collect())
+        crate::preview::render_markdown_with_cwd(content, Some(cwd))
             .into_iter()
             .map(ReviewLine::Markdown),
     );
@@ -307,7 +307,14 @@ fn append_source(
     let file_path = root_path.join(spec.file);
     match fs::read_to_string(&file_path) {
         Ok(content) => {
-            append_file_section(root_relative_path, spec.file, content, sections, lines);
+            append_file_section(
+                root_path,
+                root_relative_path,
+                spec.file,
+                content,
+                sections,
+                lines,
+            );
             return Ok(());
         }
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
@@ -342,6 +349,7 @@ fn append_source(
             let content = fs::read_to_string(&file.path)
                 .with_context(|| format!("failed to read {}", file.path.display()))?;
             append_file_section(
+                root_path,
                 root_relative_path,
                 &file.relative_path,
                 content,
@@ -365,6 +373,7 @@ fn append_source(
 }
 
 fn append_file_section(
+    root_path: &Path,
     root_relative_path: &str,
     source_relative_path: &str,
     content: String,
@@ -377,7 +386,7 @@ fn append_file_section(
     } else {
         append_section_separator(relative_path, "Source", "Source", sections, lines);
     }
-    append_markdown_lines(lines, &content);
+    append_markdown_lines(lines, &content, root_path);
 }
 
 fn append_section_separator(
@@ -485,17 +494,27 @@ fn parse_gate_index(value: &str) -> Option<usize> {
 #[allow(dead_code)]
 fn preview_visible_text(line: &crate::preview::PreviewLine) -> String {
     match line {
-        crate::preview::PreviewLine::Heading(text)
+        crate::preview::PreviewLine::BlockQuote { prefix, line, .. } => {
+            format!("{prefix}{}", preview_visible_text(line))
+        }
+        crate::preview::PreviewLine::Heading { text, .. }
         | crate::preview::PreviewLine::Code(text)
         | crate::preview::PreviewLine::Plain(text) => text.clone(),
+        crate::preview::PreviewLine::CodeSpans(spans) => {
+            spans.iter().map(preview_span_text_one).collect()
+        }
         crate::preview::PreviewLine::TableHeader { .. }
         | crate::preview::PreviewLine::TableDivider { .. }
         | crate::preview::PreviewLine::TableRow { .. } => {
             crate::preview::table_line_text(line).expect("table line text")
         }
-        crate::preview::PreviewLine::Checkbox { checked, text } => {
-            let marker = if *checked { "[x]" } else { "[ ]" };
-            format!("{marker} {text}")
+        crate::preview::PreviewLine::Checkbox {
+            marker,
+            checked,
+            text,
+        } => {
+            let checkbox = if *checked { "[x]" } else { "[ ]" };
+            format!("{marker} {checkbox} {text}")
         }
         crate::preview::PreviewLine::ListItem { marker, spans } => {
             format!("{marker} {}", preview_span_text(spans))
@@ -513,6 +532,25 @@ fn preview_visible_text(line: &crate::preview::PreviewLine) -> String {
     }
 }
 
+fn wrapped_markdown_table_line_texts(
+    line: &crate::preview::PreviewLine,
+    width: usize,
+) -> Option<Vec<String>> {
+    match line {
+        crate::preview::PreviewLine::BlockQuote { prefix, line, .. } => {
+            let inner_width = width.saturating_sub(prefix.len()).max(1);
+            let lines = crate::preview::wrapped_table_line_texts(line, inner_width)?;
+            Some(
+                lines
+                    .into_iter()
+                    .map(|line| format!("{prefix}{line}"))
+                    .collect(),
+            )
+        }
+        _ => crate::preview::wrapped_table_line_texts(line, width),
+    }
+}
+
 fn preview_span_text(spans: &[crate::preview::PreviewSpan]) -> String {
     spans.iter().map(preview_span_text_one).collect()
 }
@@ -521,7 +559,10 @@ fn preview_span_text_one(span: &crate::preview::PreviewSpan) -> &str {
     match span {
         crate::preview::PreviewSpan::Plain(text)
         | crate::preview::PreviewSpan::Bold(text)
-        | crate::preview::PreviewSpan::Code(text) => text,
+        | crate::preview::PreviewSpan::StyledText { text, .. }
+        | crate::preview::PreviewSpan::Code(text)
+        | crate::preview::PreviewSpan::Link { text, .. } => text,
+        crate::preview::PreviewSpan::Syntax { text, .. } => text,
     }
 }
 
