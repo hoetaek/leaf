@@ -8,6 +8,21 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+## 0.4.1 - 2026-06-10
+
+- Improved `leaf list` review and preview Markdown rendering with
+  pulldown-cmark parsing, Codex-style syntax highlighting, quote gutters,
+  vertical rhythm, heading markers, and wrapped table/link handling.
+- Added review reader layout polish including cached rendered body lines,
+  content padding, an end-of-document marker, and restored 3-line mouse wheel
+  scrolling.
+- Clarified LEAF skill guidance around `leaf-soul`, Learn close checks, preview
+  gate boundaries, and review voice.
+- Fixed review text wrapping, Markdown table rendering, `.leaf` symlink
+  directory handling, and inventory row ordering by gate.
+- Updated the transitive `time` dependency to address `RUSTSEC-2026-0009` and
+  raised the declared Rust version to 1.88.
+
 ## 0.4.0 - 2026-06-10
 
 - `leaf-press` now writes a paper-style `## Press Abstract` into the source

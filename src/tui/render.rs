@@ -846,9 +846,7 @@ fn wrapped_review_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedRe
     for line in &document.lines {
         let current = markdown_block_kind_for_review(line);
         if should_insert_markdown_rhythm(previous_kind, current)
-            && !rendered
-                .last()
-                .is_some_and(|line| line.content.width() == 0)
+            && rendered.last().is_none_or(|line| line.content.width() != 0)
         {
             rendered.push(RenderedReviewLine {
                 content: HyperlinkLine::default(),
@@ -891,10 +889,7 @@ fn review_body_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedRevie
     if rendered.is_empty() {
         return rendered;
     }
-    if !rendered
-        .last()
-        .is_some_and(|line| line.content.width() == 0)
-    {
+    if rendered.last().is_none_or(|line| line.content.width() != 0) {
         rendered.push(RenderedReviewLine {
             content: HyperlinkLine::default(),
         });

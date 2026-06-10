@@ -746,13 +746,13 @@ impl AppState {
         if self.selected_keys.contains(row.relative_path()) {
             return true;
         }
-        if self.mode == Mode::RangeSelect {
-            if let Some(anchor) = self.range_anchor {
-                let lo = anchor.min(self.selected_index);
-                let hi = anchor.max(self.selected_index);
-                if visible_index >= lo && visible_index <= hi {
-                    return true;
-                }
+        if self.mode == Mode::RangeSelect
+            && let Some(anchor) = self.range_anchor
+        {
+            let lo = anchor.min(self.selected_index);
+            let hi = anchor.max(self.selected_index);
+            if visible_index >= lo && visible_index <= hi {
+                return true;
             }
         }
         false
@@ -997,10 +997,10 @@ fn markdown_copy_table(rows: &[&ListRow]) -> String {
 }
 
 fn relative_leaf_path(inventory: &Inventory, path: &Path) -> String {
-    if let Some(repo_root) = inventory.leaf_root.parent() {
-        if let Ok(relative_path) = path.strip_prefix(repo_root) {
-            return normalize_path(relative_path);
-        }
+    if let Some(repo_root) = inventory.leaf_root.parent()
+        && let Ok(relative_path) = path.strip_prefix(repo_root)
+    {
+        return normalize_path(relative_path);
     }
 
     if let Ok(relative_path) = path.strip_prefix(&inventory.leaf_root) {

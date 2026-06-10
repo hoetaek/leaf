@@ -304,16 +304,16 @@ fn check_item_status(
         );
     }
 
-    if let (Some(expected), Some(actual)) = (expected_state(bucket), summary.state.as_deref()) {
-        if actual != expected {
-            findings.push(
-                DoctorFinding::error(
-                    "state_bucket_mismatch",
-                    format!("state {actual} conflicts with bucket {dir_name}; expected {expected}"),
-                )
-                .with_path(rel_status),
-            );
-        }
+    if let (Some(expected), Some(actual)) = (expected_state(bucket), summary.state.as_deref())
+        && actual != expected
+    {
+        findings.push(
+            DoctorFinding::error(
+                "state_bucket_mismatch",
+                format!("state {actual} conflicts with bucket {dir_name}; expected {expected}"),
+            )
+            .with_path(rel_status),
+        );
     }
 }
 

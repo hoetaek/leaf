@@ -1,8 +1,8 @@
 [package]
 name = "leaf"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 publish = false
 description = "Domain-neutral human-agent collaboration CLI"
 license = "MIT OR Apache-2.0"

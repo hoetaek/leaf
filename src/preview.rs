@@ -734,16 +734,14 @@ impl MarkdownState {
         if !self.inline_spans.is_empty() {
             return;
         }
-        if self.blockquote_depth > 0
+        let continuing_blockquote = self.blockquote_depth > 0
             && self
                 .blockquote_frames
                 .last()
-                .is_some_and(|frame| !frame.first_line)
-        {
-            self.push_output(PreviewLine::Plain(String::new()));
-        } else if self.blockquote_depth == 0
-            && self.item_stack.last().is_some_and(|item| item.emitted)
-        {
+                .is_some_and(|frame| !frame.first_line);
+        let continuing_list_item =
+            self.blockquote_depth == 0 && self.item_stack.last().is_some_and(|item| item.emitted);
+        if continuing_blockquote || continuing_list_item {
             self.push_output(PreviewLine::Plain(String::new()));
         }
     }
