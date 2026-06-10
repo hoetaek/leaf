@@ -1,3 +1,4 @@
+use crate::fs_ext::{DirectoryStatus, directory_status};
 use crate::inventory::{BUCKETS, Bucket, parse_status_summary};
 use anyhow::Result;
 use std::collections::BTreeMap;
@@ -44,27 +45,26 @@ pub(crate) fn check(repo_root: &Path) -> Result<DoctorReport> {
     let leaf_root = repo_root.join(".leaf");
     let mut findings = Vec::new();
 
-    match fs::symlink_metadata(&leaf_root) {
-        Ok(metadata) if metadata.file_type().is_dir() => {
+    match directory_status(&leaf_root)? {
+        DirectoryStatus::Directory => {
             findings.push(
                 DoctorFinding::ok("leaf_root_present", ".leaf initialized").with_path(".leaf"),
             );
         }
-        Ok(_) => {
+        DirectoryStatus::NotDirectory => {
             findings.push(
                 DoctorFinding::error("leaf_root_not_directory", ".leaf is not a directory")
                     .with_path(".leaf"),
             );
             return Ok(DoctorReport::new(".leaf", findings));
         }
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+        DirectoryStatus::Missing => {
             findings.push(
                 DoctorFinding::error("leaf_root_missing", ".leaf is not initialized")
                     .with_path(".leaf"),
             );
             return Ok(DoctorReport::new(".leaf", findings));
         }
-        Err(err) => return Err(err.into()),
     }
 
     check_buckets(&leaf_root, &mut findings)?;
@@ -83,9 +83,8 @@ fn check_buckets(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<
         let lifecycle = leaf_root.join(lifecycle_name);
 
         let legacy_is_dir = legacy.is_dir();
-        let lifecycle_metadata = fs::symlink_metadata(&lifecycle);
-        let lifecycle_is_dir =
-            matches!(&lifecycle_metadata, Ok(metadata) if metadata.file_type().is_dir());
+        let lifecycle_status = directory_status(&lifecycle)?;
+        let lifecycle_is_dir = lifecycle_status == DirectoryStatus::Directory;
 
         if legacy_is_dir && lifecycle_is_dir {
             all_lifecycle_buckets_readable = false;
@@ -114,8 +113,8 @@ fn check_buckets(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<
             );
         }
 
-        match lifecycle_metadata {
-            Ok(metadata) if metadata.file_type().is_dir() => {
+        match lifecycle_status {
+            DirectoryStatus::Directory => {
                 if let Err(err) = fs::read_dir(&lifecycle) {
                     all_lifecycle_buckets_readable = false;
                     findings.push(
@@ -127,7 +126,7 @@ fn check_buckets(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<
                     );
                 }
             }
-            Ok(_) => {
+            DirectoryStatus::NotDirectory => {
                 all_lifecycle_buckets_readable = false;
                 findings.push(
                     DoctorFinding::error(
@@ -137,7 +136,7 @@ fn check_buckets(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<
                     .with_path(format!(".leaf/{lifecycle_name}")),
                 );
             }
-            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            DirectoryStatus::Missing => {
                 all_lifecycle_buckets_readable = false;
                 findings.push(
                     DoctorFinding::warn(
@@ -147,7 +146,6 @@ fn check_buckets(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<
                     .with_path(format!(".leaf/{lifecycle_name}")),
                 );
             }
-            Err(err) => return Err(err.into()),
         }
     }
 
@@ -306,16 +304,16 @@ fn check_item_status(
         );
     }
 
-    if let (Some(expected), Some(actual)) = (expected_state(bucket), summary.state.as_deref()) {
-        if actual != expected {
-            findings.push(
-                DoctorFinding::error(
-                    "state_bucket_mismatch",
-                    format!("state {actual} conflicts with bucket {dir_name}; expected {expected}"),
-                )
-                .with_path(rel_status),
-            );
-        }
+    if let (Some(expected), Some(actual)) = (expected_state(bucket), summary.state.as_deref())
+        && actual != expected
+    {
+        findings.push(
+            DoctorFinding::error(
+                "state_bucket_mismatch",
+                format!("state {actual} conflicts with bucket {dir_name}; expected {expected}"),
+            )
+            .with_path(rel_status),
+        );
     }
 }
 
@@ -453,6 +451,36 @@ mod tests {
             &report,
             Severity::Error,
             "leaf_root_not_directory",
+            Some(Location::Path(".leaf".into())),
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn check_accepts_leaf_root_symlink_to_directory() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        root.child("leaf-store/01-seeds")
+            .create_dir_all()
+            .expect("seed bucket");
+        root.child("leaf-store/02-leaves")
+            .create_dir_all()
+            .expect("leaf bucket");
+        root.child("leaf-store/03-fallen")
+            .create_dir_all()
+            .expect("fallen bucket");
+        root.child("leaf-store/04-pressed")
+            .create_dir_all()
+            .expect("pressed bucket");
+        std::os::unix::fs::symlink(root.path().join("leaf-store"), root.path().join(".leaf"))
+            .expect("leaf symlink");
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(!report.has_errors());
+        assert_finding(
+            &report,
+            Severity::Ok,
+            "leaf_root_present",
             Some(Location::Path(".leaf".into())),
         );
     }

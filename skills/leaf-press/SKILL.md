@@ -34,7 +34,10 @@ source `00-status.md` and extracts the important context into
 ## Reference map
 
 Conduct and reporting are shared across the LEAF family, not duplicated here.
-Read this sibling before writing the digest:
+**Invoke the `leaf-soul` skill with the Skill tool** before writing the digest and
+follow it — do not just read its file. When the work needs another LEAF skill,
+invoke that skill rather than only referencing it. The sibling reference below
+backs it up:
 
 | Read | When |
 |---|---|

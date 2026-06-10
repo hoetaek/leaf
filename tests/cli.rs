@@ -175,6 +175,33 @@ fn init_fails_when_leaf_path_is_a_file() {
         .stderr(predicate::str::contains("not a directory"));
 }
 
+#[cfg(unix)]
+#[test]
+fn init_accepts_leaf_root_symlink_to_directory() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    repo.child("leaf-store")
+        .create_dir_all()
+        .expect("leaf store");
+    std::os::unix::fs::symlink(repo.path().join("leaf-store"), repo.path().join(".leaf"))
+        .expect("leaf symlink");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    repo.child("leaf-store/01-seeds")
+        .assert(predicate::path::is_dir());
+    repo.child("leaf-store/02-leaves")
+        .assert(predicate::path::is_dir());
+    repo.child("leaf-store/03-fallen")
+        .assert(predicate::path::is_dir());
+    repo.child("leaf-store/04-pressed")
+        .assert(predicate::path::is_dir());
+}
+
 #[test]
 fn init_works_in_git_worktree() {
     let root = assert_fs::TempDir::new().expect("temp root");
@@ -278,6 +305,32 @@ fn list_writes_deterministic_text_output_for_captured_stdout() {
         ))
         .stdout(predicate::str::contains("STATE").not())
         .stdout(predicate::str::contains("empty: fallen"));
+}
+
+#[cfg(unix)]
+#[test]
+fn list_accepts_leaf_root_symlink_to_directory() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_status(
+        &repo,
+        "leaf-store/02-leaves/active/00-status.md",
+        "- state: active\n\
+         - current phase: Architect\n\
+         - current gate: ⑦ Task Graph\n\
+         - first missing gate: ⑧ Artifact / execution\n\
+         - next action: implement\n",
+    );
+    std::os::unix::fs::symlink(repo.path().join("leaf-store"), repo.path().join(".leaf"))
+        .expect("leaf symlink");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("list")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("active"))
+        .stdout(predicate::str::contains("empty: seeds, fallen, pressed"));
 }
 
 #[test]

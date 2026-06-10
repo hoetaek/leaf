@@ -4,9 +4,12 @@ use crate::list_columns::{
 };
 use crate::preview::{self, Preview, PreviewLine};
 use crate::review::{self, ReviewDocument, ReviewSource};
+use crate::tui::render;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
+
+const MOUSE_SCROLL_LINES: usize = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ListRow {
@@ -53,11 +56,14 @@ pub(crate) enum KeyInput {
     Char(char),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum MouseInput {
     Down { visible_index: usize },
     Drag { visible_index: usize },
     Up,
+    ScrollUp,
+    ScrollDown,
+    Link { target: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,6 +74,7 @@ pub(crate) enum Outcome {
     Refresh,
     CopyRow { slug: String, text: String },
     CopyRows { count: usize, text: String },
+    CopyLink { target: String },
 }
 
 #[derive(Debug, Clone)]
@@ -85,6 +92,7 @@ pub(crate) struct AppState {
     mouse_anchor: Option<usize>,
     preview_cache: RefCell<HashMap<String, Preview>>,
     review_body_height: Cell<usize>,
+    review_body_width: Cell<usize>,
     review_state: Option<ReviewState>,
 }
 
@@ -94,6 +102,60 @@ pub(crate) struct ReviewState {
     pub(crate) document: ReviewDocument,
     pub(crate) scroll_offset: usize,
     pub(crate) status_message: String,
+    render_cache: RefCell<Option<render::ReviewRenderCache>>,
+}
+
+impl ReviewState {
+    fn new(
+        source: ReviewSource,
+        document: ReviewDocument,
+        scroll_offset: usize,
+        status_message: String,
+    ) -> Self {
+        Self {
+            source,
+            document,
+            scroll_offset,
+            status_message,
+            render_cache: RefCell::new(None),
+        }
+    }
+
+    pub(crate) fn rendered_body_lines(
+        &self,
+        document: &ReviewDocument,
+        width: u16,
+    ) -> std::cell::Ref<'_, [render::RenderedReviewLine]> {
+        let width = usize::from(width);
+        let needs_render = self
+            .render_cache
+            .borrow()
+            .as_ref()
+            .is_none_or(|cache| !render::review_render_cache_matches(cache, width));
+        if needs_render {
+            *self.render_cache.borrow_mut() =
+                Some(render::build_review_render_cache(document, width));
+        }
+        std::cell::Ref::map(self.render_cache.borrow(), |cache| {
+            cache.as_ref().expect("review render cache").lines()
+        })
+    }
+
+    fn rendered_line_count(&self, width: usize) -> usize {
+        let needs_render = self
+            .render_cache
+            .borrow()
+            .as_ref()
+            .is_none_or(|cache| !render::review_render_cache_matches(cache, width));
+        if needs_render {
+            *self.render_cache.borrow_mut() =
+                Some(render::build_review_render_cache(&self.document, width));
+        }
+        self.render_cache
+            .borrow()
+            .as_ref()
+            .map_or(0, render::ReviewRenderCache::line_count)
+    }
 }
 
 const BUCKET_FILTERS: [BucketFilter; 5] = [
@@ -104,6 +166,7 @@ const BUCKET_FILTERS: [BucketFilter; 5] = [
     BucketFilter::Bucket(Bucket::Pressed),
 ];
 const DEFAULT_REVIEW_BODY_HEIGHT: usize = 10;
+const DEFAULT_REVIEW_BODY_WIDTH: usize = 80;
 
 impl ListRow {
     fn from_item(inventory: &Inventory, item: &InventoryItem) -> Self {
@@ -205,6 +268,7 @@ impl AppState {
             mouse_anchor: None,
             preview_cache: RefCell::new(HashMap::new()),
             review_body_height: Cell::new(DEFAULT_REVIEW_BODY_HEIGHT),
+            review_body_width: Cell::new(DEFAULT_REVIEW_BODY_WIDTH),
             review_state: None,
         };
         state.refresh_visibility_state();
@@ -258,8 +322,9 @@ impl AppState {
         self.review_state.as_ref()
     }
 
-    pub(crate) fn set_review_body_height(&self, height: usize) {
+    pub(crate) fn set_review_body_size(&self, height: usize, width: usize) {
         self.review_body_height.set(height);
+        self.review_body_width.set(width);
     }
 
     pub(crate) fn selected_preview(&self) -> Option<Preview> {
@@ -299,10 +364,16 @@ impl AppState {
     }
 
     pub(crate) fn handle_mouse(&mut self, input: MouseInput) -> Outcome {
-        if matches!(
-            self.mode,
-            Mode::FilterInput | Mode::ConfirmPromote | Mode::Review
-        ) {
+        if matches!(self.mode, Mode::FilterInput | Mode::ConfirmPromote) {
+            return Outcome::Continue;
+        }
+        if self.mode == Mode::Review {
+            match input {
+                MouseInput::ScrollUp => self.scroll_review_up(MOUSE_SCROLL_LINES),
+                MouseInput::ScrollDown => self.scroll_review_down(MOUSE_SCROLL_LINES),
+                MouseInput::Link { target } => return Outcome::CopyLink { target },
+                MouseInput::Down { .. } | MouseInput::Drag { .. } | MouseInput::Up => {}
+            }
             return Outcome::Continue;
         }
         match input {
@@ -324,6 +395,7 @@ impl AppState {
             MouseInput::Up => {
                 self.mouse_anchor = None;
             }
+            MouseInput::ScrollUp | MouseInput::ScrollDown | MouseInput::Link { .. } => {}
         }
         Outcome::Continue
     }
@@ -436,12 +508,7 @@ impl AppState {
 
         match review::build(&source) {
             Ok(document) => {
-                self.review_state = Some(ReviewState {
-                    source,
-                    document,
-                    scroll_offset: 0,
-                    status_message: String::new(),
-                });
+                self.review_state = Some(ReviewState::new(source, document, 0, String::new()));
                 self.mode = Mode::Review;
             }
             Err(err) => {
@@ -456,17 +523,21 @@ impl AppState {
         };
         let source = state.source.clone();
         let body_height = self.review_body_height.get();
+        let body_width = self.review_body_width.get();
         match review::build(&source) {
             Ok(document) => {
-                let scroll_offset = state
-                    .scroll_offset
-                    .min(max_review_scroll(&document, body_height));
-                self.review_state = Some(ReviewState {
+                let mut next_state = ReviewState::new(
                     source,
                     document,
-                    scroll_offset,
-                    status_message: "refreshed from source".to_string(),
-                });
+                    state.scroll_offset,
+                    "refreshed from source".to_string(),
+                );
+                next_state.scroll_offset = next_state.scroll_offset.min(max_review_scroll(
+                    &next_state,
+                    body_height,
+                    body_width,
+                ));
+                self.review_state = Some(next_state);
             }
             Err(err) => {
                 if let Some(state) = &mut self.review_state {
@@ -484,16 +555,21 @@ impl AppState {
         let current_document = state.document.clone();
         let current_scroll_offset = state.scroll_offset;
         let body_height = self.review_body_height.get();
+        let body_width = self.review_body_width.get();
         match review::build(&source) {
             Ok(document) if document != current_document => {
-                let scroll_offset =
-                    current_scroll_offset.min(max_review_scroll(&document, body_height));
-                self.review_state = Some(ReviewState {
+                let mut next_state = ReviewState::new(
                     source,
                     document,
-                    scroll_offset,
-                    status_message: "updated from source".to_string(),
-                });
+                    current_scroll_offset,
+                    "updated from source".to_string(),
+                );
+                next_state.scroll_offset = next_state.scroll_offset.min(max_review_scroll(
+                    &next_state,
+                    body_height,
+                    body_width,
+                ));
+                self.review_state = Some(next_state);
                 true
             }
             Ok(_) => false,
@@ -516,8 +592,9 @@ impl AppState {
 
     fn scroll_review_down(&mut self, amount: usize) {
         let body_height = self.review_body_height.get();
+        let body_width = self.review_body_width.get();
         if let Some(state) = &mut self.review_state {
-            let max_scroll = max_review_scroll(&state.document, body_height);
+            let max_scroll = max_review_scroll(state, body_height, body_width);
             let current_scroll = state.scroll_offset.min(max_scroll);
             state.scroll_offset = current_scroll.saturating_add(amount).min(max_scroll);
         }
@@ -525,8 +602,9 @@ impl AppState {
 
     fn scroll_review_up(&mut self, amount: usize) {
         let body_height = self.review_body_height.get();
+        let body_width = self.review_body_width.get();
         if let Some(state) = &mut self.review_state {
-            let max_scroll = max_review_scroll(&state.document, body_height);
+            let max_scroll = max_review_scroll(state, body_height, body_width);
             state.scroll_offset = state.scroll_offset.min(max_scroll).saturating_sub(amount);
         }
     }
@@ -539,8 +617,9 @@ impl AppState {
 
     fn scroll_review_bottom(&mut self) {
         let body_height = self.review_body_height.get();
+        let body_width = self.review_body_width.get();
         if let Some(state) = &mut self.review_state {
-            state.scroll_offset = max_review_scroll(&state.document, body_height);
+            state.scroll_offset = max_review_scroll(state, body_height, body_width);
         }
     }
 
@@ -667,13 +746,13 @@ impl AppState {
         if self.selected_keys.contains(row.relative_path()) {
             return true;
         }
-        if self.mode == Mode::RangeSelect {
-            if let Some(anchor) = self.range_anchor {
-                let lo = anchor.min(self.selected_index);
-                let hi = anchor.max(self.selected_index);
-                if visible_index >= lo && visible_index <= hi {
-                    return true;
-                }
+        if self.mode == Mode::RangeSelect
+            && let Some(anchor) = self.range_anchor
+        {
+            let lo = anchor.min(self.selected_index);
+            let hi = anchor.max(self.selected_index);
+            if visible_index >= lo && visible_index <= hi {
+                return true;
             }
         }
         false
@@ -918,10 +997,10 @@ fn markdown_copy_table(rows: &[&ListRow]) -> String {
 }
 
 fn relative_leaf_path(inventory: &Inventory, path: &Path) -> String {
-    if let Some(repo_root) = inventory.leaf_root.parent() {
-        if let Ok(relative_path) = path.strip_prefix(repo_root) {
-            return normalize_path(relative_path);
-        }
+    if let Some(repo_root) = inventory.leaf_root.parent()
+        && let Ok(relative_path) = path.strip_prefix(repo_root)
+    {
+        return normalize_path(relative_path);
     }
 
     if let Ok(relative_path) = path.strip_prefix(&inventory.leaf_root) {
@@ -948,8 +1027,10 @@ fn row_word(count: usize) -> &'static str {
     if count == 1 { "row" } else { "rows" }
 }
 
-fn max_review_scroll(document: &ReviewDocument, body_height: usize) -> usize {
-    document.lines.len().saturating_sub(body_height)
+fn max_review_scroll(review: &ReviewState, body_height: usize, body_width: usize) -> usize {
+    review
+        .rendered_line_count(body_width)
+        .saturating_sub(body_height)
 }
 
 #[cfg(test)]
@@ -1407,7 +1488,7 @@ mod tests {
         let mut app = AppState::from_inventory(&inventory);
 
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
-        app.set_review_body_height(8);
+        app.set_review_body_size(8, DEFAULT_REVIEW_BODY_WIDTH);
         assert!(
             app.review_state()
                 .unwrap()
@@ -1451,7 +1532,7 @@ mod tests {
         let mut app = AppState::from_inventory(&inventory);
 
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
-        app.set_review_body_height(4);
+        app.set_review_body_size(4, DEFAULT_REVIEW_BODY_WIDTH);
         assert_eq!(app.handle_key(KeyInput::PageDown), Outcome::Continue);
 
         assert_eq!(app.review_state().unwrap().scroll_offset, 4);
@@ -1487,7 +1568,7 @@ mod tests {
         let mut app = AppState::from_inventory(&inventory);
 
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
-        app.set_review_body_height(7);
+        app.set_review_body_size(7, DEFAULT_REVIEW_BODY_WIDTH);
         assert_eq!(app.handle_key(KeyInput::Char('d')), Outcome::Continue);
         assert_eq!(app.review_state().unwrap().scroll_offset, 3);
 
@@ -1498,6 +1579,44 @@ mod tests {
         assert_eq!(app.review_state().unwrap().scroll_offset, 3);
 
         assert_eq!(app.handle_key(KeyInput::HalfPageUp), Outcome::Continue);
+        assert_eq!(app.review_state().unwrap().scroll_offset, 0);
+    }
+
+    #[test]
+    fn tui_app_review_mouse_wheel_scrolls_document() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_preview_status(
+            root.path(),
+            Bucket::Leaves,
+            slug,
+            "- current gate: ① Intent\n",
+        );
+        let intent_path = root
+            .path()
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug)
+            .join("01-Learn/01-intent.md");
+        std::fs::create_dir_all(intent_path.parent().unwrap()).expect("intent dir");
+        let body = (1..=20)
+            .map(|line| format!("intent line {line:02}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        std::fs::write(&intent_path, format!("# Intent\n\n{body}\n")).expect("intent");
+        let item = leaf_item_at(root.path(), Bucket::Leaves, slug, complete_leaf_status());
+        let inventory = inventory_with_root(root.path(), vec![item]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+        app.set_review_body_size(4, DEFAULT_REVIEW_BODY_WIDTH);
+        assert_eq!(app.handle_mouse(MouseInput::ScrollDown), Outcome::Continue);
+        assert_eq!(
+            app.review_state().unwrap().scroll_offset,
+            MOUSE_SCROLL_LINES
+        );
+
+        assert_eq!(app.handle_mouse(MouseInput::ScrollUp), Outcome::Continue);
         assert_eq!(app.review_state().unwrap().scroll_offset, 0);
     }
 
@@ -2077,10 +2196,26 @@ mod tests {
             .lines
             .iter()
             .map(|line| match line {
-                PreviewLine::Heading(text) | PreviewLine::Code(text) | PreviewLine::Plain(text) => {
-                    text.clone()
+                PreviewLine::BlockQuote { prefix, line, .. } => {
+                    format!("{prefix}{}", preview_line_text(line))
                 }
-                PreviewLine::Checkbox { text, .. } => text.clone(),
+                PreviewLine::Heading { text, .. }
+                | PreviewLine::Code(text)
+                | PreviewLine::Plain(text) => text.clone(),
+                PreviewLine::CodeSpans(spans) => preview_span_text(spans),
+                PreviewLine::TableHeader { .. }
+                | PreviewLine::TableDivider { .. }
+                | PreviewLine::TableRow { .. } => {
+                    crate::preview::table_line_text(line).expect("table line text")
+                }
+                PreviewLine::Checkbox {
+                    marker,
+                    checked,
+                    text,
+                } => {
+                    let checkbox = if *checked { "[x]" } else { "[ ]" };
+                    format!("{marker} {checkbox} {text}")
+                }
                 PreviewLine::ListItem { marker, spans } => {
                     format!("{marker} {}", preview_span_text(spans))
                 }
@@ -2089,12 +2224,64 @@ mod tests {
                     .map(|span| match span {
                         crate::preview::PreviewSpan::Plain(text)
                         | crate::preview::PreviewSpan::Bold(text)
-                        | crate::preview::PreviewSpan::Code(text) => text.as_str(),
+                        | crate::preview::PreviewSpan::StyledText { text, .. }
+                        | crate::preview::PreviewSpan::Code(text)
+                        | crate::preview::PreviewSpan::Link { text, .. } => text.as_str(),
+                        crate::preview::PreviewSpan::Syntax { text, .. } => text.as_str(),
                     })
                     .collect(),
+                PreviewLine::SourceBoundary {
+                    phase,
+                    gate,
+                    source,
+                } => format!("{phase} / {gate} {source}"),
             })
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    fn preview_line_text(line: &PreviewLine) -> String {
+        match line {
+            PreviewLine::BlockQuote { prefix, line, .. } => {
+                format!("{prefix}{}", preview_line_text(line))
+            }
+            PreviewLine::Heading { text, .. }
+            | PreviewLine::Code(text)
+            | PreviewLine::Plain(text) => text.clone(),
+            PreviewLine::CodeSpans(spans) => preview_span_text(spans),
+            PreviewLine::TableHeader { .. }
+            | PreviewLine::TableDivider { .. }
+            | PreviewLine::TableRow { .. } => {
+                crate::preview::table_line_text(line).expect("table line text")
+            }
+            PreviewLine::Checkbox {
+                marker,
+                checked,
+                text,
+            } => {
+                let checkbox = if *checked { "[x]" } else { "[ ]" };
+                format!("{marker} {checkbox} {text}")
+            }
+            PreviewLine::ListItem { marker, spans } => {
+                format!("{marker} {}", preview_span_text(spans))
+            }
+            PreviewLine::Styled(spans) => spans
+                .iter()
+                .map(|span| match span {
+                    crate::preview::PreviewSpan::Plain(text)
+                    | crate::preview::PreviewSpan::Bold(text)
+                    | crate::preview::PreviewSpan::StyledText { text, .. }
+                    | crate::preview::PreviewSpan::Code(text)
+                    | crate::preview::PreviewSpan::Link { text, .. } => text.as_str(),
+                    crate::preview::PreviewSpan::Syntax { text, .. } => text.as_str(),
+                })
+                .collect(),
+            PreviewLine::SourceBoundary {
+                phase,
+                gate,
+                source,
+            } => format!("{phase} / {gate} {source}"),
+        }
     }
 
     fn preview_span_text(spans: &[crate::preview::PreviewSpan]) -> String {
@@ -2103,7 +2290,10 @@ mod tests {
             .map(|span| match span {
                 crate::preview::PreviewSpan::Plain(text)
                 | crate::preview::PreviewSpan::Bold(text)
-                | crate::preview::PreviewSpan::Code(text) => text.as_str(),
+                | crate::preview::PreviewSpan::StyledText { text, .. }
+                | crate::preview::PreviewSpan::Code(text)
+                | crate::preview::PreviewSpan::Link { text, .. } => text.as_str(),
+                crate::preview::PreviewSpan::Syntax { text, .. } => text.as_str(),
             })
             .collect()
     }

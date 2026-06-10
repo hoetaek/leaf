@@ -44,13 +44,17 @@ leaves, or one unstable frame that needs a question before it can be split.
 
 ## Reference map
 
-Conduct and the gate contracts are shared across the LEAF family, not duplicated
-here. Read them as siblings:
+Conduct is shared across the LEAF family, while the Learn gate contract lives
+with `leaf-idea`. **Invoke the `leaf-soul` skill with the Skill tool** at the
+start and follow it — it is shared conduct to run, not just a file to skim. When
+the work needs another LEAF skill — `leaf promote` into `leaf-work` at ③,
+`leaf-press`, or `leaf-fall` — invoke that skill rather than only reading its
+file. Read the gate-contract references below:
 
 | Read | When |
 |---|---|
 | `../leaf-soul/SKILL.md` | the shared conduct/voice: how to report, show rendered work, hand off reviewables, separate fact from guess, and which language to write — follow it |
-| `../leaf-work/references/gates.md` (① Intent, ② Unknowns & Context) | the authoritative pass/fail test for the gate you are in — act by it |
+| `references/learn-gates.md` | the authoritative pass/fail test for ① Intent and ② Unknowns & Context — act by it |
 | `../leaf-work/references/gate-authoring.md` | drafting, grilling, or revising the intent or unknowns artifact |
 | `../leaf-work/references/clarity-ledger.md` | as a lens in ① / ② — glance at its five rows to aim the next question or learning gap |
 | `../leaf-work/references/experiment-log.md` | a ② unknown needs an independent, cheap probe to settle ("is this true?") |
@@ -71,26 +75,30 @@ duplicate. Use lowercase ASCII kebab-case slugs.
 ## Split Check
 
 Run this check before creating a seed, during enrichment when the idea starts to
-branch, and before recommending promotion.
+branch, whenever the user adds a new direction, and before recommending
+promotion.
 
 Use `split now` when bundled parts have independent core nouns, deliverables,
 success checks, reviewers/arbiters, lifecycles, likely-change axes, or
-review/promote paths. If the user asked to capture the work and the split is
-clear, create or resume sibling seeds; otherwise recommend `split` and name the
-seed candidates.
+review/promote paths. Treat a newly introduced CLI command, config surface,
+viewer/editor surface, policy/doc change, data/source pipeline, or separately
+testable user workflow as a split signal unless it clearly serves the same
+outcome.
 
 Use `keep grouped` when parts are sequential concerns inside one outcome: one
-stable core noun, one deliverable, one acceptance check, and one part naturally
-feeds the next. For example, deciding presentation content and then placing that
-content into slides can be one presentation seed.
+stable core noun, one deliverable, one acceptance check, one lifecycle, and one
+part naturally feeds the next. If a part could become its own PR, review, or
+resume path, do not call it grouped just because it is related.
 
 Use `ask first` when splitting would decide the user's intent for them: the core
 noun is drifting, the output form is still exploratory, or the quieter sibling
 is not concrete enough to name. Ask one focused question instead of creating
 several speculative seeds.
 
-Do not promote a known mixed seed as one active leaf. Split it first, or record
-the explicit reason it is one grouped outcome.
+If the user asked to capture the work and the split is clear, create or resume
+sibling seeds. Otherwise recommend `split` and name the seed candidates. Do not
+promote a known mixed seed as one active leaf; split it first, or record the
+explicit reason it is one grouped outcome.
 
 ## Capture
 
@@ -110,8 +118,8 @@ checked and open questions in `01-Learn/02-unknowns.md`. If triage says `kill` o
 ## Gate ① Intent
 
 Lock why the work is needed and, derived from that, what is actually wanted. Read
-`../leaf-work/references/gates.md` ① for the full contract; the moves below are
-what this gate adds in practice.
+`references/learn-gates.md` ① for the full contract; the moves below are what
+this gate adds in practice.
 
 **Surface your guessed facts and ask before locking.** Stating an intent forces
 assumptions — about the purpose, the audience, the output form, the deadline,
@@ -127,11 +135,16 @@ exploratory, or a felt sense deferred to ②); the current one-sentence intent
 stated separately from the raw wording, with any gap from the surface request
 noted; a stable core noun. The work is still allowed to die or change shape.
 
+### Why / What Separation
+
+Why/what separation is mandatory in ①. Use `references/learn-gates.md` as the
+single pass/fail contract for the exact fields, questions, and close check.
+
 ## Gate ② Unknowns & Context
 
 Learn what the work needs until you can say what to choose between and on what
 basis — that point is what ③ Criteria consumes. Read
-`../leaf-work/references/gates.md` ② for the full contract, and use
+`references/learn-gates.md` ② for the full contract, and use
 `../leaf-work/references/clarity-ledger.md` as a lens to aim learning at the
 weakest dimension.
 
@@ -177,9 +190,25 @@ needs (the established fact, the verdict, the convention to follow) back out int
 settle, use the experiment machine (`../leaf-work/references/experiment-log.md`)
 and keep the process in `01-Learn/02-experiments/{name}.md`.
 
-Close the gate when blocking unknowns have sourced answers or flagged
-assumptions, the fact/assumption boundary is visible, and the user can state what
-to choose between and on what basis.
+### Premise Inventory
+
+The Premise Inventory is mandatory in ②. Use `references/learn-gates.md` as the
+single pass/fail contract for the exact tables, labels, assumption rule, and
+close check.
+
+Before closing Learn, always ask the user this explicitly:
+
+> 정말로 이 일을 판단하고 기준화하기 위해 배우고 알아야 하는 사실을 다
+> 알았나요? 아직 확인해야 할 사실, 참고해야 할 사례, 내부 맥락, 또는
+> 검증하지 않은 가정이 남아 있나요?
+
+Treat this as a hard close check, not a nicety. If the user names any remaining
+fact, reference, internal context, or unverified assumption, keep the seed at
+`enriched`, record the gap in `01-Learn/02-unknowns.md`, and continue Learn
+instead of recommending promotion. Close the gate only when blocking unknowns
+have sourced answers or flagged assumptions, the fact/assumption boundary is
+visible, the user has answered the Learn-close question, and the user can state
+what to choose between and on what basis.
 
 ## Review Handoff
 
@@ -208,13 +237,14 @@ End every pass with one recommendation:
 | `defer` | the idea is real but not worth attention until a named condition changes |
 | `enrich` | one or two cheap facts/examples would decide whether it has weight |
 | `split` | several independent future leaves are bundled together and need separate seeds |
-| `promote to leaf-work` | ① and ② have passed and the user commits to Example onward |
+| `promote to leaf-work` | ① and ② have passed, the Learn-close question was asked and cleared, and the user commits to Example onward |
 
 Promotion is the Learn→Example boundary. Recommend it only when ① Intent and ②
-Unknowns & Context have passed here; name what ③ Criteria should consume — what
-the user can now choose between and on what basis. Run `leaf promote <slug>`
-after explicit user approval and continue from `.leaf/02-leaves/<slug>/` in
-`leaf-work`.
+Unknowns & Context have passed here and the user has explicitly confirmed that
+there are no remaining facts, references, internal context, or assumptions Learn
+must settle first. Name what ③ Criteria should consume — what the user can now
+choose between and on what basis. Run `leaf promote <slug>` after explicit user
+approval and continue from `.leaf/02-leaves/<slug>/` in `leaf-work`.
 
 ## Response Shape
 

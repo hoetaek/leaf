@@ -33,8 +33,9 @@ LEAF names the four kinds of uncertainty to close, in order:
 | **Feedback** | Confirm it still holds, then settle what was established and what was learned | ⑨ Review/sync · ⑩ Retrospect |
 
 Learn runs in the `leaf-idea` skill on a seed; `leaf-work` begins at ③ Example
-after `leaf promote <slug>`. The gate contracts in `references/gates.md` cover all
-ten gates and are shared by both skills.
+after `leaf promote <slug>`. Learn's detailed gate contract lives in
+`../leaf-idea/references/learn-gates.md`; `references/gates.md` covers the
+handoff plus ③ onward.
 
 ## Always-on rules
 
@@ -44,7 +45,9 @@ ten gates and are shared by both skills.
   Context) runs first in the `leaf-idea` skill on a seed; `leaf promote <slug>`
   moves that seed to an active leaf and is the boundary into this skill. If the
   work has not been through Learn — no seed exists, or ① and ② have not passed —
-  route to `leaf-idea` first rather than starting gate work here. If an active
+  **invoke the `leaf-idea` skill with the Skill tool** to run Learn first rather
+  than starting gate work here; being entered without Learn is the signal to hand
+  off to `leaf-idea`, not to improvise the missing gates. If an active
   leaf already exists, resume it. Do not create loose `01-Learn/` …
   `04-Feedback/` folders at the repo root.
 - **Inherit Learn; do not redo it.** A promoted leaf arrives with ① Intent locked
@@ -52,13 +55,16 @@ ten gates and are shared by both skills.
   one-sentence intent and its why, the sourced facts and flagged assumptions, the
   references gathered, and what the user can already choose between (the input ③
   Criteria consumes). Trust that work and reopen Learn only on a return.
-- **Conduct and voice are shared — follow `leaf-soul`.** How you report
+- **Conduct and voice are shared — invoke the `leaf-soul` skill.** How you report
   (overview-first, a Verify / Decide list up top), show rendered HTML work (open it
   in Chrome DevTools and screenshot each state — never make the user hunt), hand
   off reviewables (`USER REVIEW NEEDED:` / `ASSUMPTION:`), separate fact from
   guess, and which language you write are defined once for the whole LEAF family in
-  `../leaf-soul/SKILL.md`. Read it and follow it; the rules here are the gate
-  *method* specific to this skill.
+  the `leaf-soul` skill. Invoke the `leaf-soul` skill with the Skill tool at the
+  start and follow it — do not just read its file; the rules here are the gate
+  *method* specific to this skill. Whenever the work needs another LEAF skill —
+  `leaf-idea` for Learn, `leaf-press` to make it citable, `leaf-fall` to retire
+  it — invoke that skill with the Skill tool rather than only referencing its file.
 - **The scaffold is the foundation — so the work stands firm.** Learn, Example,
   and Architect lay that foundation; execution builds only once it is solid, not
   on guesses. A promoted leaf already carries the CLI scaffold — `00-status.md`
@@ -71,11 +77,13 @@ ten gates and are shared by both skills.
 - **Start from `00-status.md` when it exists.** Use it as the project dashboard:
   current phase/gate, first missing gate, next action, and gate progress. It is
   an index, not the source of truth; gate files remain authoritative.
-- **Read `references/gates.md`, tell the user the current gate, and act by it.**
-  With the scaffold and `00-status.md` in hand, open `gates.md`, identify which
-  gate the work is at, name that gate to the user, and then proceed exactly as
-  that gate's entry/exit/return conditions direct. SKILL.md gives the shape;
-  gates.md gives the pass/fail test you act on.
+- **Read the relevant gate reference, tell the user the current gate, and act by it.**
+  With the scaffold and `00-status.md` in hand, identify which gate the work is
+  at, open the reference that owns that gate, name the gate to the user, and then
+  proceed exactly as that gate's entry/exit/return conditions direct. For ①/②
+  returns, use `../leaf-idea/references/learn-gates.md`; for ③ onward, use
+  `references/gates.md`. SKILL.md gives the shape; the relevant gate reference
+  gives the pass/fail test you act on.
 - **Use the gate authoring loop for durable gate files.** When creating or
   revising a gate artifact, draft the smallest useful version, challenge it
   against the gate's foci, revise, and show only the review surface needed for
@@ -90,11 +98,11 @@ ten gates and are shared by both skills.
   discovery overturns — usually ② Unknowns & Context; ① Intent itself when the
   problem definition fell — update it, then resume only the gates that depended
   on what changed. A return into ① or ② reopens Learn; do it in place in the
-  active leaf's `01-Learn/` against the shared `references/gates.md` ①②, since
-  that folder came with the leaf. If the discovery unsettles the whole idea, flag
-  that the seed-level frame needs rethinking, not just a gate edit. Log each
-  return to `04-Feedback/10-retrospective/mid-process-discoveries.md`. Linear
-  one-pass progress through all ten gates is unrealistic for real work.
+  active leaf's `01-Learn/` against `../leaf-idea/references/learn-gates.md`,
+  since that folder came with the leaf. If the discovery unsettles the whole
+  idea, flag that the seed-level frame needs rethinking, not just a gate edit.
+  Log each return to `04-Feedback/10-retrospective/mid-process-discoveries.md`.
+  Linear one-pass progress through all ten gates is unrealistic for real work.
 - **Phase transitions need explicit user approval by default; gate transitions
   inside the current phase are delegated unless they are high-impact.** AI may
   complete and consume ordinary gate artifacts inside the current phase after
