@@ -200,7 +200,7 @@ fn wrapped_text_height(text: &str, width: usize) -> usize {
 }
 
 pub(crate) fn terminal_char_width(ch: char) -> usize {
-    if ch.is_ascii() { 1 } else { 2 }
+    unicode_width::UnicodeWidthChar::width(ch).unwrap_or(0)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -952,7 +952,7 @@ fn review_table_lines(line: &ReviewLine, width: usize) -> Option<Vec<HyperlinkLi
         return None;
     };
     let (prefix, table_line) = blockquote_context(line);
-    let prefix_width = prefix.len();
+    let prefix_width = blockquote_display_prefix_width(prefix);
     let table_width = width.saturating_sub(prefix_width).max(1);
     let table_lines = crate::preview::wrapped_table_line_texts(table_line, table_width)?;
     let style = match table_line {
@@ -973,7 +973,7 @@ fn review_blockquote_lines(line: &ReviewLine, width: usize) -> Option<Vec<Hyperl
     let ReviewLine::Markdown(PreviewLine::BlockQuote { prefix, line, .. }) = line else {
         return None;
     };
-    let prefix_width = prefix.len();
+    let prefix_width = blockquote_display_prefix_width(prefix);
     let inner_width = width.saturating_sub(prefix_width).max(1);
     Some(
         wrap_preview_line(line, inner_width)
@@ -1019,14 +1019,26 @@ fn prepend_blockquote_prefix(prefix: &str, mut line: HyperlinkLine) -> Hyperlink
     if prefix.is_empty() {
         return line;
     }
-    let shift = text_width(prefix);
-    let mut spans = vec![Span::styled(prefix.to_string(), quote_style())];
+    let display_prefix = blockquote_display_prefix(prefix);
+    let shift = text_width(&display_prefix);
+    let mut spans = vec![Span::styled(display_prefix, quote_style())];
     spans.extend(line.line.spans);
     line.line = Line::from(spans);
     for hyperlink in &mut line.hyperlinks {
         hyperlink.columns = hyperlink.columns.start + shift..hyperlink.columns.end + shift;
     }
     line
+}
+
+fn blockquote_display_prefix_width(prefix: &str) -> usize {
+    text_width(&blockquote_display_prefix(prefix))
+}
+
+fn blockquote_display_prefix(prefix: &str) -> String {
+    prefix
+        .chars()
+        .map(|ch| if ch == '>' { '│' } else { ch })
+        .collect()
 }
 
 fn wrap_hyperlink_line(line: HyperlinkLine, width: usize) -> Vec<HyperlinkLine> {
@@ -2467,6 +2479,36 @@ mod tests {
     }
 
     #[test]
+    fn blockquote_prefix_renders_as_quote_gutter() {
+        let quoted = review_blockquote_lines(
+            &ReviewLine::Markdown(PreviewLine::BlockQuote {
+                depth: 1,
+                prefix: "> ".to_string(),
+                line: Box::new(PreviewLine::Plain("quoted".to_string())),
+            }),
+            80,
+        )
+        .expect("blockquote lines");
+
+        assert_eq!(line_text(&quoted[0].line), "│ quoted");
+    }
+
+    #[test]
+    fn nested_blockquote_prefix_renders_as_nested_quote_gutter() {
+        let quoted = review_blockquote_lines(
+            &ReviewLine::Markdown(PreviewLine::BlockQuote {
+                depth: 2,
+                prefix: "> > ".to_string(),
+                line: Box::new(PreviewLine::Plain("quoted".to_string())),
+            }),
+            80,
+        )
+        .expect("blockquote lines");
+
+        assert_eq!(line_text(&quoted[0].line), "│ │ quoted");
+    }
+
+    #[test]
     fn review_separator_renders_as_prominent_file_boundary() {
         let line = review_line(&ReviewLine::Separator {
             relative_path: ".leaf/02-leaves/demo/01-Learn/01-intent.md".to_string(),
@@ -2693,7 +2735,7 @@ mod tests {
             .map(|line| line_text(&line.content.line))
             .collect::<Vec<_>>();
 
-        assert_eq!(text, vec!["• first second", "   third fourth"]);
+        assert_eq!(text, vec!["• first second", "  third fourth"]);
     }
 
     #[test]
@@ -2721,7 +2763,7 @@ mod tests {
 
         assert_eq!(
             text,
-            vec!["  • [x] first", "         second", "         third"]
+            vec!["  • [x] first", "        second", "        third"]
         );
     }
 
@@ -2905,25 +2947,25 @@ mod tests {
         assert_eq!(
             text,
             vec![
-                "> • see",
-                ">    README.md",
-                ">    :10",
-                ">   fn main()",
-                "> {}"
+                "│ • see",
+                "│   README.md:",
+                "│   10",
+                "│   fn main()",
+                "│ {}"
             ]
         );
         assert_eq!(linked_lines.len(), 2);
         assert_eq!(
             linked_lines[0].content.hyperlinks,
             vec![TerminalHyperlink {
-                columns: 5..14,
+                columns: 4..14,
                 destination: destination.to_string(),
             }]
         );
         assert_eq!(
             linked_lines[1].content.hyperlinks,
             vec![TerminalHyperlink {
-                columns: 5..8,
+                columns: 4..6,
                 destination: destination.to_string(),
             }]
         );
@@ -3563,13 +3605,13 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
         assert!(text.contains("┌"), "{text}");
         assert!(line_contains_text(&buffer, width, height, "Intent"));
         assert!(text.contains("Intro with bold, code, and docs"), "{text}");
-        assert!(text.contains("> Quote ./notes/guide.md:3:2-4:8"), "{text}");
+        assert!(text.contains("│ Quote ./notes/guide.md:3:2-4:8"), "{text}");
         assert!(
-            text.contains("> • nested web (https://example.com/a)"),
+            text.contains("│ • nested web (https://example.com/a)"),
             "{text}"
         );
-        assert!(text.contains("> fn main() {}"), "{text}");
-        assert!(text.contains("> Plain check"), "{text}");
+        assert!(text.contains("│ fn main() {}"), "{text}");
+        assert!(text.contains("│ Plain check"), "{text}");
         assert!(text.contains("fallen reason"), "{text}");
         assert!(text.contains("WHEN an item enters fallen"), "{text}");
         assert!(!text.contains("**bold**"), "{text}");
