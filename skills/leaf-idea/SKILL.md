@@ -44,17 +44,17 @@ leaves, or one unstable frame that needs a question before it can be split.
 
 ## Reference map
 
-Conduct and the gate contracts are shared across the LEAF family, not duplicated
-here. **Invoke the `leaf-soul` skill with the Skill tool** at the start and follow
-it — it is shared conduct to run, not just a file to skim. When the work needs
-another LEAF skill — `leaf promote` into `leaf-work` at ③, `leaf-press`, or
-`leaf-fall` — invoke that skill rather than only reading its file. Read the
-gate-contract references below as siblings:
+Conduct is shared across the LEAF family, while the Learn gate contract lives
+with `leaf-idea`. **Invoke the `leaf-soul` skill with the Skill tool** at the
+start and follow it — it is shared conduct to run, not just a file to skim. When
+the work needs another LEAF skill — `leaf promote` into `leaf-work` at ③,
+`leaf-press`, or `leaf-fall` — invoke that skill rather than only reading its
+file. Read the gate-contract references below:
 
 | Read | When |
 |---|---|
 | `../leaf-soul/SKILL.md` | the shared conduct/voice: how to report, show rendered work, hand off reviewables, separate fact from guess, and which language to write — follow it |
-| `../leaf-work/references/gates.md` (① Intent, ② Unknowns & Context) | the authoritative pass/fail test for the gate you are in — act by it |
+| `references/learn-gates.md` | the authoritative pass/fail test for ① Intent and ② Unknowns & Context — act by it |
 | `../leaf-work/references/gate-authoring.md` | drafting, grilling, or revising the intent or unknowns artifact |
 | `../leaf-work/references/clarity-ledger.md` | as a lens in ① / ② — glance at its five rows to aim the next question or learning gap |
 | `../leaf-work/references/experiment-log.md` | a ② unknown needs an independent, cheap probe to settle ("is this true?") |
@@ -118,8 +118,8 @@ checked and open questions in `01-Learn/02-unknowns.md`. If triage says `kill` o
 ## Gate ① Intent
 
 Lock why the work is needed and, derived from that, what is actually wanted. Read
-`../leaf-work/references/gates.md` ① for the full contract; the moves below are
-what this gate adds in practice.
+`references/learn-gates.md` ① for the full contract; the moves below are what
+this gate adds in practice.
 
 **Surface your guessed facts and ask before locking.** Stating an intent forces
 assumptions — about the purpose, the audience, the output form, the deadline,
@@ -135,11 +135,16 @@ exploratory, or a felt sense deferred to ②); the current one-sentence intent
 stated separately from the raw wording, with any gap from the surface request
 noted; a stable core noun. The work is still allowed to die or change shape.
 
+### Why / What Separation
+
+Why/what separation is mandatory in ①. Use `references/learn-gates.md` as the
+single pass/fail contract for the exact fields, questions, and close check.
+
 ## Gate ② Unknowns & Context
 
 Learn what the work needs until you can say what to choose between and on what
 basis — that point is what ③ Criteria consumes. Read
-`../leaf-work/references/gates.md` ② for the full contract, and use
+`references/learn-gates.md` ② for the full contract, and use
 `../leaf-work/references/clarity-ledger.md` as a lens to aim learning at the
 weakest dimension.
 
@@ -184,6 +189,12 @@ needs (the established fact, the verdict, the convention to follow) back out int
 `02-unknowns.md`, with its source. When an unknown needs an independent probe to
 settle, use the experiment machine (`../leaf-work/references/experiment-log.md`)
 and keep the process in `01-Learn/02-experiments/{name}.md`.
+
+### Premise Inventory
+
+The Premise Inventory is mandatory in ②. Use `references/learn-gates.md` as the
+single pass/fail contract for the exact tables, labels, assumption rule, and
+close check.
 
 Before closing Learn, always ask the user this explicitly:
 

@@ -91,7 +91,9 @@ LEAF closes uncertainty in order:
 | Architect | The passed instance can become reusable structure |
 | Feedback | The result still holds, and the lessons carry forward |
 
-The detailed gate model lives in [`skills/leaf-work`](skills/leaf-work/SKILL.md).
+The Learn gate contract lives in
+[`skills/leaf-idea`](skills/leaf-idea/SKILL.md); Example onward lives in
+[`skills/leaf-work`](skills/leaf-work/SKILL.md).
 
 ## Concepts
 

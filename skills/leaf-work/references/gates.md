@@ -20,239 +20,26 @@ falsification, merge rule) live in `engine.md`. For per-domain templates, see
 
 ## ① Intent
 
-**What ① locks: you can state why this work is needed and, derived from
-that, what is actually wanted.** The why is the problem definition; the what
-is the *end* the work serves; ② covers everything that must be learned to
-reach it well.
+① belongs to `leaf-idea`. Its detailed contract lives in
+`../../leaf-idea/references/learn-gates.md`; use that file as the pass/fail test
+for raw wording, why/what separation, provisional what, locked intent, split
+checks, and return conditions.
 
-Preserve what the user initially said, then refine the underlying intent. The
-user may not know the purpose, success criteria, or output form yet; intent can
-start as a hunch, curiosity, taste direction, discomfort, or "something like
-this."
-
-**Ask why before locking what.** The why is the question furthest from any
-solution, so it carries the least solution-contamination (the authoring-order
-principle in `engine.md`) — while the surface request is often a means already
-dressed as an end ("build filter groups" when the need is "stop rebuilding the
-same query by hand"). Stating the why derives or corrects the what; when the
-derived intent differs from the surface request, that gap is ①'s first
-discovery. Record both.
-
-**Follow the why to where it actually lands — not every answer is a problem
-definition.** An external trigger ("it's a course assignment") is a real why
-but defines no problem: it fixes the arbiter and caps the investment, and the
-problem-defining why sits one level deeper — ask for it. Curiosity or taste is
-a legitimate endpoint: lock the intent as exploratory and stop digging —
-interrogating curiosity kills it. A felt sense ("this bothers me, I can't say
-why") marks a problem that exists but cannot be articulated yet: keep the
-user's exact words, state the what negatively ("a structure without this
-discomfort"), and hand the articulation to ② as an unknown — pressing for
-reasons here yields confabulated ones that look like problem definitions but
-are not; prefer observation questions ("where does it bother you?") over
-reason questions ("why?"). When no problem, obligation, curiosity, or felt
-sense holds up, this is the cheapest possible kill — let the work die here.
-
-**Competing whys derive competing whats.** Several motives at once may point
-at different deliverables — the split-or-group rule applies to whys too. A why
-that embeds a diagnosis ("churn is up because of the price change") splits
-into the problem (verify at ②) and the hypothesis, which must stay out of the
-what: "prove it was pricing" bakes the conclusion in; "find out why churn
-rose" survives the hypothesis failing.
-
-**The derivation runs on answer quality, so earn the answer.** A user who
-feels interrogated, or sees no stake in the question, answers perfunctorily —
-and everything downstream inherits that. Make answering serve the user: open
-by offering to sharpen the problem together ("a problem well stated is half
-solved" — Kettering), give each question its reason — the fork the answer
-decides, a quick example, an analogy, whatever shows the answer matters — and
-before asking a deeper why, show what the previous answer already changed. A
-half-hearted answer means the question failed, not the user.
-
-Ask or infer:
-
-- What was the original request or impulse?
-- Why is this needed — what problem, obligation, curiosity, or discomfort sits
-  underneath?
-- Is it a topic, a problem, a claim, a deliverable, or a deadline?
-- What wording should not be lost?
-- What one-sentence intent best captures what the user appears to want now?
-
-Gate to continue:
-
-- Raw wording is captured.
-- The why has been asked or inferred and followed to where it lands — a
-  problem definition, an external obligation (with the deeper why asked),
-  curiosity locked as exploratory, or a felt sense deferred to ② — or the
-  work was killed here.
-- The current one-sentence intent is stated separately from the raw wording;
-  where the derived intent differs from the surface request, the gap is
-  recorded.
-- Separate ideas are split or explicitly grouped.
-- The core noun (essay / report / spec / proposal / video / config …) is named
-  and stable; if it drifts across answers, halt and ask which noun is the
-  actual work item before continuing.
-- When the request has multiple possible outcomes, the top-level topology is
-  named: outcomes, surfaces, integrations, or deliverables that can succeed or
-  fail independently, including anything explicitly deferred.
-- The work is still allowed to change shape or die.
-- It is clear whether the user already has a purpose/success criterion or needs
-  context exploration to shape one.
-
-The why locked here is itself a hypothesis, and every later gate is an
-experiment that can falsify it. Return here when ② learning articulates a
-deferred felt sense or overturns the stated need, when ④'s concrete instance
-shows the problem was mis-stated, or when ⑧ drafting / ⑨ review reveals the
-work is answering a different question than the one locked. Re-lock the intent
-explicitly, then resume only the gates that depended on what changed.
-Returning is not failure — the failure is silent drift: continuing under an
-intent everyone has quietly stopped believing.
-
-Examples:
-
-- "I want to explain how AI agents change review workflow."
-- "Need a report for leadership about support ticket trends."
-- "논문 초안: spec-driven workflow가 agent output quality에 미치는 영향."
+`leaf-work` consumes ① only after promotion. If ③ or later reveals that the
+intent is wrong, return to `leaf-idea` or revise the promoted leaf's Learn files
+against `../../leaf-idea/references/learn-gates.md` before continuing.
 
 ## ② Unknowns & Context
 
-**What ② builds: you can judge what this needs, having learned it yourself.**
-The subject is the *user*, not the agent. Other frameworks let the
-agent know everything and hand back a finished result; here the user comes out
-of this gate having learned the work. Learning runs as a trajectory: from
-**coming to know** — domain knowledge, conventions, best practices, related
-existing code, how comparable work (benchmarks/prior art) handles it, and
-whether this is even the only way — to **being able to judge**: stating, in
-their own words, what to choose between and on what basis. The gate closes only
-at that second point, and that point is exactly what ③ Criteria consumes.
+② belongs to `leaf-idea`. Its detailed contract lives in
+`../../leaf-idea/references/learn-gates.md`; use that file as the pass/fail test
+for unknown categories, reference exploration, experiment boundaries, fact vs
+assumption labels, the Premise Inventory, and the Learn-close condition.
 
-The experiment at this gate aims at the *world* — *is this true?* — before any
-answer is built: verify what can be verified, the natural home of a hypothesis →
-test → result loop. ④ Wireframe later aims the same scrutiny at your own answer
-instead.
-
-Name what is missing, then answer those entries in the same working file.
-Unknown surfacing and reference exploration are deliberately one gate: in
-practice, the natural move is to write the question, search or ask for the
-answer, then update that same entry with what was found. Splitting them makes the
-agent maintain two files that are really one loop.
-
-Before searching, benchmarking, or researching anything, create the first pass
-of unknowns. Without this, exploration becomes reactive — gaps surface mid-work
-and the team stops to research piecemeal. Repeated detours that should have been
-one upfront sweep are the symptom.
-
-Use the Clarity Ledger as a *lens* here, not a checklist to fill in: glance at
-its five rows (see `references/clarity-ledger.md`) to spot which criteria
-dimension is weakest, and aim *learning* there — domain study, references, or a
-direct question — instead of following conversation order. The ledger is scored
-and locked at ③, not here; ② only uses it to point learning at the right gap.
-
-Categorize unknowns along two axes — *what kind* of knowledge, and *from where*.
-
-**By kind — what you are learning:**
-
-- **Domain concepts** (know-what) — meaning of core terms used by the audience or
-  judge ("what is a 공적서?", "what does this rubric item cover?").
-- **Standards / conventions** (know-how) — accepted tone, format, structural
-  patterns, and best practices for this output form.
-- **Selection criteria** (know-when/why) — what to choose between, the trade-offs
-  in play, and the principle that decides. This conditional knowledge is what
-  turns learning into judgment; it is exactly what ③ Criteria consumes, and an ②
-  that never reaches it has collected facts but still cannot choose.
-
-**By source — where it comes from:**
-
-- **External** — comparable cases, prior art, benchmark examples, authoritative
-  sources, recent domain changes.
-- **Internal** — what the team already has (data, footage, contacts, documents,
-  prior decisions) and may have forgotten to inventory.
-
-**Search the web actively for the convention and external items** — standards,
-best practices, and comparables live outside and shift over time; do not guess
-them. Save what you find under `01-Learn/02-references/`, one file per topic, and
-summarize the useful answer back in `02-unknowns.md`.
-
-Ask or infer:
-
-- What term, standard, fact, or internal context would I currently have to guess?
-- Which guess, if wrong, would unravel later work?
-- Which unknowns block the next gate, and which are useful-later only?
-
-Resolve by updating the same entries:
-
-- **Verified fact** — what is now known, with a source or direct user-provided
-  basis.
-- **Flagged assumption** — what is still being treated as true without proof;
-  mark which assumptions would unravel downstream work.
-- **Inventoried material / condition** — concrete resources and constraints
-  downstream gates will rely on (data held, deadlines, partner agreements,
-  audience limits).
-- **Unresolved** — carried to ③ as an explicit assumption, returned to this gate
-  later, or deferred with a reason.
-
-Record Gate ② experiments as `hypothesis -> test -> result`. They target the
-world, convention, repo, source material, or audience condition before an answer
-is built: "is this true?" Do not use ② experiments to validate a proposed answer
-shape; that scrutiny belongs to ④.
-
-When a ② unknown needs an experiment to settle — an independent, cheap probe
-that turns a guess into a fact you can't doubt — run it with the shared
-experiment machine (the fact/guess boundary, the fact ladder, and the technique
-repertoire) in `references/experiment-log.md`. Keep the probing process in
-`01-Learn/02-experiments/{name}.md` — the third sibling of `02-references/` — and
-summarize only the established fact back in `02-unknowns.md`. ② is that machine's
-entry point ("is this true?"); ④ reuses it aimed at the answer. Verify outside
-the project's own code — re-running the code under suspicion proves nothing.
-
-Common moves: ask direct clarifying questions; inventory user/team-held
-materials before searching externally; gather references/benchmarks/prior art;
-extract patterns; generate 2–4 candidate frames; compare against taste,
-constraints, audience, evidence, risk; name what to copy, adapt, avoid, reject.
-
-Gate to continue:
-
-- Unknowns are grouped by category, not one flat list.
-- Each is marked "blocking now" vs "useful later".
-- The most expensive unknowns (would unravel later work) are identified.
-- Blocking unknowns have sourced answers, explicit assumptions, or owner/user
-  questions.
-- The fact/assumption boundary is visible.
-- The discovery set is bounded enough for the current decision (not exhaustive).
-- 2–4 plausible directions/frames are named when the user needs references to
-  picture the criteria.
-- The user can say what to choose between and on what basis — learning has
-  reached judgment, not just collection. This is the point ③ consumes.
-
-Return here when a new unknown surfaces mid-work (log it to a discoveries note),
-when research detours start interrupting drafting, or when a downstream gate
-reveals a prior assumption was wrong. `01-Learn/02-unknowns.md` evolves
-throughout.
-
-Example:
-
-```text
-Unknowns (writing a public-facing merit report):
-
-Domain concepts (blocking now):
-- What exactly is a "공적서"? How does it differ from a "공적조서"?
-  Answer: <verified answer + source/user basis>
-- What does the judging rubric item "비전&가치" formally cover?
-  Answer: <verified answer + source/user basis>
-
-Standards/conventions (blocking now):
-- 평서체 vs 경어체 for this document?
-- Chronological vs argument-first order — what do reviewers expect?
-
-External facts (useful later):
-- Past winning entries in this category (if accessible).
-
-Internal facts (blocking now):
-- Inventory of our content (videos, partnerships, awards, roster).
-- Existing third-party testimony (blog quotes, interview clips).
-
-Selection criteria (alternatives + what decides):
-- Frame A vs Frame B — <trade-off, and which the purpose favors>
-```
+`leaf-work` consumes ② as the basis for ③ Criteria: what the user can now choose
+between, what facts support the choice, and which explicit assumptions or user
+review items remain. If those are missing, return to Learn instead of inventing
+criteria here.
 
 ## ③ Criteria
 
