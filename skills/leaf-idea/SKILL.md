@@ -75,26 +75,30 @@ duplicate. Use lowercase ASCII kebab-case slugs.
 ## Split Check
 
 Run this check before creating a seed, during enrichment when the idea starts to
-branch, and before recommending promotion.
+branch, whenever the user adds a new direction, and before recommending
+promotion.
 
 Use `split now` when bundled parts have independent core nouns, deliverables,
 success checks, reviewers/arbiters, lifecycles, likely-change axes, or
-review/promote paths. If the user asked to capture the work and the split is
-clear, create or resume sibling seeds; otherwise recommend `split` and name the
-seed candidates.
+review/promote paths. Treat a newly introduced CLI command, config surface,
+viewer/editor surface, policy/doc change, data/source pipeline, or separately
+testable user workflow as a split signal unless it clearly serves the same
+outcome.
 
 Use `keep grouped` when parts are sequential concerns inside one outcome: one
-stable core noun, one deliverable, one acceptance check, and one part naturally
-feeds the next. For example, deciding presentation content and then placing that
-content into slides can be one presentation seed.
+stable core noun, one deliverable, one acceptance check, one lifecycle, and one
+part naturally feeds the next. If a part could become its own PR, review, or
+resume path, do not call it grouped just because it is related.
 
 Use `ask first` when splitting would decide the user's intent for them: the core
 noun is drifting, the output form is still exploratory, or the quieter sibling
 is not concrete enough to name. Ask one focused question instead of creating
 several speculative seeds.
 
-Do not promote a known mixed seed as one active leaf. Split it first, or record
-the explicit reason it is one grouped outcome.
+If the user asked to capture the work and the split is clear, create or resume
+sibling seeds. Otherwise recommend `split` and name the seed candidates. Do not
+promote a known mixed seed as one active leaf; split it first, or record the
+explicit reason it is one grouped outcome.
 
 ## Capture
 
