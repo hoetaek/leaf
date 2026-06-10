@@ -320,7 +320,7 @@ fn draw_preview(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
                 ]),
                 Line::from(""),
             ];
-            lines.extend(preview.lines.iter().map(preview_line));
+            lines.extend(preview_lines_with_rhythm(&preview.lines));
             (format!("Preview {}", row.slug()), lines)
         }
         None => (
@@ -532,6 +532,21 @@ fn bottom_preview_height(area: Rect) -> u16 {
 
 fn preview_line(line: &PreviewLine) -> Line<'static> {
     preview_hyperlink_line(line).line
+}
+
+fn preview_lines_with_rhythm(lines: &[PreviewLine]) -> Vec<Line<'static>> {
+    let mut rendered = Vec::new();
+    let mut previous = None;
+    for line in lines {
+        let current = markdown_block_kind_for_preview(line);
+        if should_insert_markdown_rhythm(previous, current) && !rendered_ends_with_blank(&rendered)
+        {
+            rendered.push(Line::default());
+        }
+        rendered.push(preview_line(line));
+        previous = Some(current);
+    }
+    rendered
 }
 
 fn preview_hyperlink_line(line: &PreviewLine) -> HyperlinkLine {
@@ -783,8 +798,9 @@ fn terminal_hyperlink_text(line: &HyperlinkLine) -> String {
 
 fn wrapped_review_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedReviewLine> {
     let width = usize::from(width.max(1));
-    let mut rendered = Vec::new();
+    let mut rendered: Vec<RenderedReviewLine> = Vec::new();
     let mut section_index = 0;
+    let mut previous_kind = None;
 
     for (line_index, line) in document.lines.iter().enumerate() {
         while section_index + 1 < document.sections.len()
@@ -797,6 +813,18 @@ fn wrapped_review_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedRe
         } else {
             section_index + 1
         };
+        let current = markdown_block_kind_for_review(line);
+        if should_insert_markdown_rhythm(previous_kind, current)
+            && !rendered
+                .last()
+                .is_some_and(|line| line.content.width() == 0)
+        {
+            rendered.push(RenderedReviewLine {
+                source_index,
+                content: HyperlinkLine::default(),
+            });
+        }
+
         if let Some(table_lines) = review_table_lines(line, width) {
             rendered.extend(table_lines.into_iter().map(|content| RenderedReviewLine {
                 source_index,
@@ -826,9 +854,84 @@ fn wrapped_review_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedRe
                     }),
             );
         }
+        previous_kind = Some(current);
     }
 
     rendered
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MarkdownBlockKind {
+    Blank,
+    Boundary,
+    Source,
+    Heading,
+    Code,
+    Table,
+    List,
+    Quote,
+    Paragraph,
+}
+
+fn markdown_block_kind_for_review(line: &ReviewLine) -> MarkdownBlockKind {
+    match line {
+        ReviewLine::Separator { .. } => MarkdownBlockKind::Boundary,
+        ReviewLine::MissingSource { .. } => MarkdownBlockKind::Paragraph,
+        ReviewLine::Markdown(line) => markdown_block_kind_for_preview(line),
+        ReviewLine::Message(text) if text.is_empty() => MarkdownBlockKind::Blank,
+        ReviewLine::Message(_) => MarkdownBlockKind::Paragraph,
+    }
+}
+
+fn markdown_block_kind_for_preview(line: &PreviewLine) -> MarkdownBlockKind {
+    match line {
+        PreviewLine::BlockQuote { line, .. } => match markdown_block_kind_for_preview(line) {
+            MarkdownBlockKind::Code | MarkdownBlockKind::Table => {
+                markdown_block_kind_for_preview(line)
+            }
+            _ => MarkdownBlockKind::Quote,
+        },
+        PreviewLine::Heading { .. } => MarkdownBlockKind::Heading,
+        PreviewLine::Code(_) | PreviewLine::CodeSpans(_) => MarkdownBlockKind::Code,
+        PreviewLine::TableHeader { .. }
+        | PreviewLine::TableDivider { .. }
+        | PreviewLine::TableRow { .. } => MarkdownBlockKind::Table,
+        PreviewLine::Checkbox { .. } | PreviewLine::ListItem { .. } => MarkdownBlockKind::List,
+        PreviewLine::SourceBoundary { .. } => MarkdownBlockKind::Source,
+        PreviewLine::Plain(text) if text.is_empty() => MarkdownBlockKind::Blank,
+        PreviewLine::Plain(_) | PreviewLine::Styled(_) => MarkdownBlockKind::Paragraph,
+    }
+}
+
+fn should_insert_markdown_rhythm(
+    previous: Option<MarkdownBlockKind>,
+    current: MarkdownBlockKind,
+) -> bool {
+    let Some(previous) = previous else {
+        return false;
+    };
+    if previous == MarkdownBlockKind::Blank
+        || current == MarkdownBlockKind::Blank
+        || previous == MarkdownBlockKind::Boundary
+        || current == MarkdownBlockKind::Boundary
+    {
+        return false;
+    }
+    match (previous, current) {
+        (_, MarkdownBlockKind::Source | MarkdownBlockKind::Heading) => true,
+        (MarkdownBlockKind::Source | MarkdownBlockKind::Heading, _) => true,
+        (_, MarkdownBlockKind::Code | MarkdownBlockKind::Table)
+            if previous != current && previous != MarkdownBlockKind::Quote =>
+        {
+            true
+        }
+        (MarkdownBlockKind::Code | MarkdownBlockKind::Table, _) if previous != current => true,
+        _ => false,
+    }
+}
+
+fn rendered_ends_with_blank(lines: &[Line<'_>]) -> bool {
+    lines.last().is_some_and(|line| line_width(line) == 0)
 }
 
 fn visible_review_body_lines(
@@ -2112,6 +2215,50 @@ mod tests {
     }
 
     #[test]
+    fn preview_lines_add_vertical_rhythm_between_markdown_blocks() {
+        let rendered = preview_lines_with_rhythm(&[
+            PreviewLine::SourceBoundary {
+                phase: "Learn".to_string(),
+                gate: "① Intent".to_string(),
+                source: "01-Learn/01-intent.md".to_string(),
+            },
+            PreviewLine::Heading {
+                level: 1,
+                text: "Intent".to_string(),
+            },
+            PreviewLine::Plain("body".to_string()),
+            PreviewLine::Code("fn main() {}".to_string()),
+            PreviewLine::Plain("after".to_string()),
+            PreviewLine::ListItem {
+                marker: "•".to_string(),
+                spans: vec![PreviewSpan::Plain("item".to_string())],
+            },
+            PreviewLine::ListItem {
+                marker: "•".to_string(),
+                spans: vec![PreviewSpan::Plain("next".to_string())],
+            },
+        ]);
+        let text = rendered.iter().map(line_text).collect::<Vec<_>>();
+
+        assert_eq!(
+            text,
+            vec![
+                "Learn / ① Intent  01-Learn/01-intent.md",
+                "",
+                "Intent",
+                "",
+                "body",
+                "",
+                "fn main() {}",
+                "",
+                "after",
+                "• item",
+                "• next",
+            ]
+        );
+    }
+
+    #[test]
     fn preview_line_renders_syntax_span_style() {
         let line = preview_line(&PreviewLine::CodeSpans(vec![PreviewSpan::Syntax {
             text: "fn".to_string(),
@@ -2407,6 +2554,52 @@ mod tests {
         assert_eq!(
             text,
             vec!["This is a simple", "sentence that", "should wrap."]
+        );
+    }
+
+    #[test]
+    fn review_lines_add_vertical_rhythm_without_changing_link_targets() {
+        let destination = "https://example.com/docs";
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/02-leaves/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/02-leaves/demo/00-status.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![
+                ReviewLine::Markdown(PreviewLine::Heading {
+                    level: 1,
+                    text: "Title".to_string(),
+                }),
+                ReviewLine::Markdown(PreviewLine::Styled(vec![PreviewSpan::Link {
+                    text: "docs".to_string(),
+                    target: destination.to_string(),
+                    source_range: crate::preview::PreviewSourceRange { start: 0, end: 4 },
+                    local: false,
+                }])),
+                ReviewLine::Markdown(PreviewLine::Code("fn main() {}".to_string())),
+                ReviewLine::Markdown(PreviewLine::Plain("after".to_string())),
+            ],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 80);
+        let text = rendered
+            .iter()
+            .map(|line| line_text(&line.content.line))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            text,
+            vec!["Title", "", "docs", "", "fn main() {}", "", "after"]
+        );
+        assert_eq!(
+            rendered[2].content.hyperlinks,
+            vec![TerminalHyperlink {
+                columns: 0..4,
+                destination: destination.to_string(),
+            }]
         );
     }
 

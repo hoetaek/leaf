@@ -161,19 +161,27 @@ impl ReviewLine {
 }
 
 pub(crate) fn wrapped_line_count(document: &ReviewDocument, width: usize) -> usize {
-    document
-        .lines
-        .iter()
-        .map(|line| {
-            if let ReviewLine::Markdown(line) = line
-                && let Some(lines) = wrapped_markdown_table_line_texts(line, width)
-            {
-                lines.len()
-            } else {
-                wrapped_text_height(&line.visible_text(), width)
-            }
-        })
-        .sum()
+    let mut count = 0;
+    let mut previous_kind = None;
+    for line in &document.lines {
+        let current = markdown_block_kind_for_review_count(line);
+        if should_count_markdown_rhythm(previous_kind, current) {
+            count += 1;
+        }
+        count += wrapped_review_line_height(line, width);
+        previous_kind = Some(current);
+    }
+    count
+}
+
+fn wrapped_review_line_height(line: &ReviewLine, width: usize) -> usize {
+    if let ReviewLine::Markdown(line) = line
+        && let Some(lines) = wrapped_markdown_table_line_texts(line, width)
+    {
+        lines.len()
+    } else {
+        wrapped_text_height(&line.visible_text(), width)
+    }
 }
 
 fn wrapped_text_height(text: &str, width: usize) -> usize {
@@ -193,6 +201,83 @@ fn wrapped_text_height(text: &str, width: usize) -> usize {
 
 pub(crate) fn terminal_char_width(ch: char) -> usize {
     if ch.is_ascii() { 1 } else { 2 }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MarkdownBlockKind {
+    Blank,
+    Boundary,
+    Source,
+    Heading,
+    Code,
+    Table,
+    List,
+    Quote,
+    Paragraph,
+}
+
+fn markdown_block_kind_for_review_count(line: &ReviewLine) -> MarkdownBlockKind {
+    match line {
+        ReviewLine::Separator { .. } => MarkdownBlockKind::Boundary,
+        ReviewLine::MissingSource { .. } => MarkdownBlockKind::Paragraph,
+        ReviewLine::Markdown(line) => markdown_block_kind_for_preview_count(line),
+        ReviewLine::Message(text) if text.is_empty() => MarkdownBlockKind::Blank,
+        ReviewLine::Message(_) => MarkdownBlockKind::Paragraph,
+    }
+}
+
+fn markdown_block_kind_for_preview_count(line: &crate::preview::PreviewLine) -> MarkdownBlockKind {
+    match line {
+        crate::preview::PreviewLine::BlockQuote { line, .. } => {
+            match markdown_block_kind_for_preview_count(line) {
+                MarkdownBlockKind::Code | MarkdownBlockKind::Table => {
+                    markdown_block_kind_for_preview_count(line)
+                }
+                _ => MarkdownBlockKind::Quote,
+            }
+        }
+        crate::preview::PreviewLine::Heading { .. } => MarkdownBlockKind::Heading,
+        crate::preview::PreviewLine::Code(_) | crate::preview::PreviewLine::CodeSpans(_) => {
+            MarkdownBlockKind::Code
+        }
+        crate::preview::PreviewLine::TableHeader { .. }
+        | crate::preview::PreviewLine::TableDivider { .. }
+        | crate::preview::PreviewLine::TableRow { .. } => MarkdownBlockKind::Table,
+        crate::preview::PreviewLine::Checkbox { .. }
+        | crate::preview::PreviewLine::ListItem { .. } => MarkdownBlockKind::List,
+        crate::preview::PreviewLine::SourceBoundary { .. } => MarkdownBlockKind::Source,
+        crate::preview::PreviewLine::Plain(text) if text.is_empty() => MarkdownBlockKind::Blank,
+        crate::preview::PreviewLine::Plain(_) | crate::preview::PreviewLine::Styled(_) => {
+            MarkdownBlockKind::Paragraph
+        }
+    }
+}
+
+fn should_count_markdown_rhythm(
+    previous: Option<MarkdownBlockKind>,
+    current: MarkdownBlockKind,
+) -> bool {
+    let Some(previous) = previous else {
+        return false;
+    };
+    if previous == MarkdownBlockKind::Blank
+        || current == MarkdownBlockKind::Blank
+        || previous == MarkdownBlockKind::Boundary
+        || current == MarkdownBlockKind::Boundary
+    {
+        return false;
+    }
+    match (previous, current) {
+        (_, MarkdownBlockKind::Source | MarkdownBlockKind::Heading) => true,
+        (MarkdownBlockKind::Source | MarkdownBlockKind::Heading, _) => true,
+        (_, MarkdownBlockKind::Code | MarkdownBlockKind::Table)
+            if previous != current && previous != MarkdownBlockKind::Quote =>
+        {
+            true
+        }
+        (MarkdownBlockKind::Code | MarkdownBlockKind::Table, _) if previous != current => true,
+        _ => false,
+    }
 }
 
 pub(crate) fn build(source: &ReviewSource) -> Result<ReviewDocument> {
