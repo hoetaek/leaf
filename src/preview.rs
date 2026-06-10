@@ -1,5 +1,6 @@
 use crate::inventory::PreviewSource;
 use anyhow::Result;
+use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 use std::fs;
 use std::path::Path;
 
@@ -38,8 +39,10 @@ pub(crate) enum PreviewLine {
     },
     TableDivider {
         widths: Vec<usize>,
+        kind: TableDividerKind,
     },
     TableRow {
+        headers: Vec<String>,
         cells: Vec<String>,
         widths: Vec<usize>,
     },
@@ -47,6 +50,14 @@ pub(crate) enum PreviewLine {
 }
 
 pub(crate) const TABLE_COLUMN_GAP: usize = 4;
+const TABLE_HEADER_SEPARATOR_CHAR: char = '━';
+const TABLE_BODY_SEPARATOR_CHAR: char = '─';
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TableDividerKind {
+    Header,
+    Body,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum PreviewSpan {
@@ -100,6 +111,7 @@ pub(crate) fn build_from_source(slug: &str, source: &PreviewSource) -> Result<Pr
     }
 }
 
+#[cfg(test)]
 pub(crate) fn markup_line(line: &str, in_code_block: &mut bool) -> PreviewLine {
     if line.trim_start().starts_with("```") {
         *in_code_block = !*in_code_block;
@@ -189,23 +201,298 @@ fn append_gate_file(
 }
 
 pub(crate) fn marked_lines(lines: Vec<String>) -> Vec<PreviewLine> {
-    let mut in_code_block = false;
-    let mut marked = Vec::new();
-    let mut index = 0;
+    render_markdown(&lines.join("\n"))
+}
 
-    while index < lines.len() {
-        if !in_code_block && is_table_start(&lines, index) {
-            let (table_lines, next_index) = table_lines(&lines, index);
-            marked.extend(render_table_lines(&table_lines));
-            index = next_index;
-            continue;
+#[derive(Debug, Default)]
+struct MarkdownState {
+    output: Vec<PreviewLine>,
+    inline_spans: Vec<PreviewSpan>,
+    heading: Option<String>,
+    strong: usize,
+    code_block: bool,
+    list_stack: Vec<ListState>,
+    item: Option<ItemState>,
+    table: Option<TableParseState>,
+}
+
+#[derive(Debug)]
+struct ListState {
+    next: Option<u64>,
+}
+
+#[derive(Debug)]
+struct ItemState {
+    marker: String,
+    spans: Vec<PreviewSpan>,
+    checkbox: Option<bool>,
+}
+
+#[derive(Debug, Default)]
+struct TableParseState {
+    rows: Vec<Vec<String>>,
+    current_row: Option<Vec<String>>,
+    current_cell: Option<String>,
+}
+
+fn render_markdown(content: &str) -> Vec<PreviewLine> {
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_TABLES);
+    options.insert(Options::ENABLE_TASKLISTS);
+    options.insert(Options::ENABLE_STRIKETHROUGH);
+
+    let mut state = MarkdownState::default();
+    for event in Parser::new_ext(content, options) {
+        state.event(event);
+    }
+    state.finish();
+    state.output
+}
+
+impl MarkdownState {
+    fn event(&mut self, event: Event<'_>) {
+        match event {
+            Event::Start(tag) => self.start_tag(tag),
+            Event::End(tag) => self.end_tag(tag),
+            Event::Text(text) => self.text(text.as_ref()),
+            Event::Code(code) => self.code(code.as_ref()),
+            Event::SoftBreak | Event::HardBreak => self.soft_break(),
+            Event::Rule => self.output.push(PreviewLine::Plain("─".repeat(24))),
+            Event::Html(html) | Event::InlineHtml(html) => self.text(html.as_ref()),
+            Event::TaskListMarker(checked) => {
+                if let Some(item) = &mut self.item {
+                    item.checkbox = Some(checked);
+                }
+            }
+            Event::FootnoteReference(_) | Event::InlineMath(_) | Event::DisplayMath(_) => {}
         }
-
-        marked.push(markup_line(&lines[index], &mut in_code_block));
-        index += 1;
     }
 
-    marked
+    fn start_tag(&mut self, tag: Tag<'_>) {
+        match tag {
+            Tag::Heading { .. } => self.heading = Some(String::new()),
+            Tag::CodeBlock(_kind) => self.code_block = true,
+            Tag::List(start) => self.list_stack.push(ListState { next: start }),
+            Tag::Item => self.start_item(),
+            Tag::Strong => self.strong += 1,
+            Tag::Table(_) => self.table = Some(TableParseState::default()),
+            Tag::TableHead | Tag::TableRow => {
+                if let Some(table) = &mut self.table {
+                    table.current_row = Some(Vec::new());
+                }
+            }
+            Tag::TableCell => {
+                if let Some(table) = &mut self.table {
+                    table.current_cell = Some(String::new());
+                }
+            }
+            Tag::Paragraph
+            | Tag::Emphasis
+            | Tag::Strikethrough
+            | Tag::Link { .. }
+            | Tag::BlockQuote(_)
+            | Tag::HtmlBlock
+            | Tag::FootnoteDefinition(_)
+            | Tag::Image { .. }
+            | Tag::MetadataBlock(_)
+            | Tag::DefinitionList
+            | Tag::DefinitionListTitle
+            | Tag::DefinitionListDefinition
+            | Tag::Superscript
+            | Tag::Subscript => {}
+        }
+    }
+
+    fn end_tag(&mut self, tag: TagEnd) {
+        match tag {
+            TagEnd::Heading(_) => {
+                if let Some(heading) = self.heading.take() {
+                    self.output.push(PreviewLine::Heading(heading));
+                }
+            }
+            TagEnd::CodeBlock => self.code_block = false,
+            TagEnd::List(_) => {
+                self.list_stack.pop();
+            }
+            TagEnd::Item => self.end_item(),
+            TagEnd::Paragraph => self.flush_inline_spans(),
+            TagEnd::Strong => {
+                self.strong = self.strong.saturating_sub(1);
+            }
+            TagEnd::Table => {
+                if let Some(table) = self.table.take() {
+                    self.output.extend(render_table_lines(&table.rows));
+                }
+            }
+            TagEnd::TableHead | TagEnd::TableRow => {
+                if let Some(table) = &mut self.table
+                    && let Some(row) = table.current_row.take()
+                {
+                    table.rows.push(row);
+                }
+            }
+            TagEnd::TableCell => {
+                if let Some(table) = &mut self.table
+                    && let Some(cell) = table.current_cell.take()
+                    && let Some(row) = &mut table.current_row
+                {
+                    row.push(cell.trim().to_string());
+                }
+            }
+            TagEnd::Emphasis
+            | TagEnd::Strikethrough
+            | TagEnd::Link
+            | TagEnd::BlockQuote(_)
+            | TagEnd::HtmlBlock
+            | TagEnd::FootnoteDefinition
+            | TagEnd::Image
+            | TagEnd::MetadataBlock(_)
+            | TagEnd::DefinitionList
+            | TagEnd::DefinitionListTitle
+            | TagEnd::DefinitionListDefinition
+            | TagEnd::Superscript
+            | TagEnd::Subscript => {}
+        }
+    }
+
+    fn start_item(&mut self) {
+        let marker = match self
+            .list_stack
+            .last_mut()
+            .and_then(|list| list.next.as_mut())
+        {
+            Some(next) => {
+                let marker = format!("{next}.");
+                *next += 1;
+                marker
+            }
+            None => "•".to_string(),
+        };
+        self.item = Some(ItemState {
+            marker,
+            spans: Vec::new(),
+            checkbox: None,
+        });
+    }
+
+    fn end_item(&mut self) {
+        let Some(item) = self.item.take() else {
+            return;
+        };
+        if let Some(checked) = item.checkbox {
+            self.output.push(PreviewLine::Checkbox {
+                checked,
+                text: span_text(&item.spans),
+            });
+        } else {
+            self.output.push(PreviewLine::ListItem {
+                marker: item.marker,
+                spans: item.spans,
+            });
+        }
+    }
+
+    fn text(&mut self, text: &str) {
+        if let Some(table) = &mut self.table
+            && let Some(cell) = &mut table.current_cell
+        {
+            cell.push_str(text);
+            return;
+        }
+        if self.code_block {
+            self.push_code_text(text);
+            return;
+        }
+        if let Some(heading) = &mut self.heading {
+            heading.push_str(text);
+            return;
+        }
+        if self.item.is_some() {
+            let span = self.text_span(text.to_string());
+            if let Some(item) = &mut self.item {
+                item.spans.push(span);
+            }
+            return;
+        }
+        let span = self.text_span(text.to_string());
+        self.inline_spans.push(span);
+    }
+
+    fn code(&mut self, code: &str) {
+        if let Some(table) = &mut self.table
+            && let Some(cell) = &mut table.current_cell
+        {
+            cell.push_str(code);
+            return;
+        }
+        if let Some(heading) = &mut self.heading {
+            heading.push_str(code);
+            return;
+        }
+        let span = PreviewSpan::Code(code.to_string());
+        if let Some(item) = &mut self.item {
+            item.spans.push(span);
+        } else {
+            self.inline_spans.push(span);
+        }
+    }
+
+    fn soft_break(&mut self) {
+        if self.code_block {
+            self.output.push(PreviewLine::Code(String::new()));
+        } else if let Some(table) = &mut self.table
+            && let Some(cell) = &mut table.current_cell
+        {
+            cell.push(' ');
+        } else if let Some(item) = &mut self.item {
+            item.spans.push(PreviewSpan::Plain(" ".to_string()));
+        } else {
+            self.flush_inline_spans();
+        }
+    }
+
+    fn push_code_text(&mut self, text: &str) {
+        for line in text.split('\n') {
+            self.output.push(PreviewLine::Code(line.to_string()));
+        }
+    }
+
+    fn flush_inline_spans(&mut self) {
+        if self.inline_spans.is_empty() || self.item.is_some() {
+            return;
+        }
+        let spans = std::mem::take(&mut self.inline_spans);
+        if spans.len() == 1
+            && let PreviewSpan::Plain(text) = &spans[0]
+        {
+            self.output.push(PreviewLine::Plain(text.clone()));
+            return;
+        }
+        self.output.push(PreviewLine::Styled(spans));
+    }
+
+    fn finish(&mut self) {
+        self.flush_inline_spans();
+    }
+
+    fn text_span(&self, text: String) -> PreviewSpan {
+        if self.strong > 0 {
+            PreviewSpan::Bold(text)
+        } else {
+            PreviewSpan::Plain(text)
+        }
+    }
+}
+
+fn span_text(spans: &[PreviewSpan]) -> String {
+    spans
+        .iter()
+        .map(|span| match span {
+            PreviewSpan::Plain(text) | PreviewSpan::Bold(text) | PreviewSpan::Code(text) => {
+                text.as_str()
+            }
+        })
+        .collect()
 }
 
 fn useful_lines(content: &str, limit: usize) -> Vec<String> {
@@ -300,6 +587,7 @@ fn heading_text(line: &str) -> Option<&str> {
     }
 }
 
+#[cfg(test)]
 fn checkbox_text(line: &str) -> Option<(bool, &str)> {
     let trimmed = line.trim_start();
     for (prefix, checked) in [("- [ ]", false), ("- [x]", true), ("- [X]", true)] {
@@ -310,6 +598,7 @@ fn checkbox_text(line: &str) -> Option<(bool, &str)> {
     None
 }
 
+#[cfg(test)]
 fn list_item_text(line: &str) -> Option<(&str, &str)> {
     let trimmed = line.trim_start();
     for marker in ["- ", "* ", "+ "] {
@@ -323,27 +612,6 @@ fn list_item_text(line: &str) -> Option<(&str, &str)> {
         return None;
     }
     Some((&trimmed[..=dot_index], &trimmed[dot_index + 2..]))
-}
-
-fn is_table_start(lines: &[String], index: usize) -> bool {
-    index + 1 < lines.len()
-        && parse_table_row(&lines[index]).is_some()
-        && is_table_separator(&lines[index + 1])
-}
-
-fn table_lines(lines: &[String], start: usize) -> (Vec<Vec<String>>, usize) {
-    let mut rows = Vec::new();
-    let header = parse_table_row(&lines[start]).expect("table start has header row");
-    rows.push(header);
-    let mut index = start + 2;
-    while index < lines.len() {
-        let Some(row) = parse_table_row(&lines[index]) else {
-            break;
-        };
-        rows.push(row);
-        index += 1;
-    }
-    (rows, index)
 }
 
 fn render_table_lines(rows: &[Vec<String>]) -> Vec<PreviewLine> {
@@ -371,12 +639,20 @@ fn render_table_lines(rows: &[Vec<String>]) -> Vec<PreviewLine> {
             });
             rendered.push(PreviewLine::TableDivider {
                 widths: widths.clone(),
+                kind: TableDividerKind::Header,
             });
         } else {
             rendered.push(PreviewLine::TableRow {
+                headers: rows[0].clone(),
                 cells: row.clone(),
                 widths: widths.clone(),
             });
+            if index + 1 < rows.len() {
+                rendered.push(PreviewLine::TableDivider {
+                    widths: widths.clone(),
+                    kind: TableDividerKind::Body,
+                });
+            }
         }
     }
     rendered
@@ -397,10 +673,14 @@ pub(crate) fn padded_table_row(row: &[String], widths: &[usize]) -> String {
         .join(&" ".repeat(TABLE_COLUMN_GAP))
 }
 
-pub(crate) fn table_divider(widths: &[usize]) -> String {
+pub(crate) fn table_divider(widths: &[usize], kind: TableDividerKind) -> String {
+    let separator = match kind {
+        TableDividerKind::Header => TABLE_HEADER_SEPARATOR_CHAR,
+        TableDividerKind::Body => TABLE_BODY_SEPARATOR_CHAR,
+    };
     widths
         .iter()
-        .map(|width| "─".repeat((*width).max(3)))
+        .map(|width| separator.to_string().repeat((*width).max(3)))
         .collect::<Vec<_>>()
         .join(&" ".repeat(TABLE_COLUMN_GAP))
 }
@@ -486,10 +766,9 @@ pub(crate) fn wrapped_table_row_texts(
 
 pub(crate) fn table_line_text(line: &PreviewLine) -> Option<String> {
     match line {
-        PreviewLine::TableHeader { cells, widths } | PreviewLine::TableRow { cells, widths } => {
-            Some(padded_table_row(cells, widths))
-        }
-        PreviewLine::TableDivider { widths } => Some(table_divider(widths)),
+        PreviewLine::TableHeader { cells, widths }
+        | PreviewLine::TableRow { cells, widths, .. } => Some(padded_table_row(cells, widths)),
+        PreviewLine::TableDivider { widths, kind } => Some(table_divider(widths, *kind)),
         _ => None,
     }
 }
@@ -499,14 +778,92 @@ pub(crate) fn wrapped_table_line_texts(
     max_width: usize,
 ) -> Option<Vec<String>> {
     match line {
-        PreviewLine::TableHeader { cells, widths } | PreviewLine::TableRow { cells, widths } => {
+        PreviewLine::TableHeader { widths, .. }
+            if should_render_table_records(widths, max_width) =>
+        {
+            Some(Vec::new())
+        }
+        PreviewLine::TableHeader { cells, widths } => {
             Some(wrapped_table_row_texts(cells, widths, max_width))
         }
-        PreviewLine::TableDivider { widths } => {
-            Some(vec![table_divider(&fitted_table_widths(widths, max_width))])
+        PreviewLine::TableRow {
+            headers,
+            cells,
+            widths,
+        } if should_render_table_records(widths, max_width) => {
+            Some(record_table_row_texts(headers, cells, max_width))
         }
+        PreviewLine::TableRow { cells, widths, .. } => {
+            Some(wrapped_table_row_texts(cells, widths, max_width))
+        }
+        PreviewLine::TableDivider { widths, kind }
+            if should_render_table_records(widths, max_width) =>
+        {
+            match kind {
+                TableDividerKind::Header => Some(Vec::new()),
+                TableDividerKind::Body => Some(vec![
+                    TABLE_BODY_SEPARATOR_CHAR
+                        .to_string()
+                        .repeat(max_width.max(1)),
+                ]),
+            }
+        }
+        PreviewLine::TableDivider { widths, kind } => Some(vec![table_divider(
+            &fitted_table_widths(widths, max_width),
+            *kind,
+        )]),
         _ => None,
     }
+}
+
+fn should_render_table_records(widths: &[usize], max_width: usize) -> bool {
+    if widths.len() < 2 {
+        return false;
+    }
+    let original_width =
+        widths.iter().sum::<usize>() + TABLE_COLUMN_GAP.saturating_mul(widths.len() - 1);
+    if original_width <= max_width {
+        return false;
+    }
+    let fitted = fitted_table_widths(widths, max_width);
+    fitted.iter().skip(1).any(|width| *width < 32)
+}
+
+fn record_table_row_texts(headers: &[String], cells: &[String], max_width: usize) -> Vec<String> {
+    let label_width = headers
+        .iter()
+        .map(|header| display_width(header))
+        .max()
+        .unwrap_or(0);
+    let aligned = 1 + label_width + 2 + 12 <= max_width;
+    let mut lines = Vec::new();
+
+    for (header, cell) in headers.iter().zip(cells) {
+        if aligned {
+            let indent = 1 + label_width + 2;
+            let value_width = max_width.saturating_sub(indent).max(1);
+            for (index, value_line) in wrap_text_to_width(cell, value_width)
+                .into_iter()
+                .enumerate()
+            {
+                if index == 0 {
+                    lines.push(format!(
+                        " {header}{}  {value_line}",
+                        " ".repeat(label_width.saturating_sub(display_width(header)))
+                    ));
+                } else {
+                    lines.push(format!("{}{value_line}", " ".repeat(indent)));
+                }
+            }
+        } else {
+            lines.push(format!(" {header}"));
+            for value_line in wrap_text_to_width(cell, max_width.saturating_sub(2).max(1)) {
+                lines.push(format!("  {value_line}"));
+            }
+        }
+    }
+
+    lines
 }
 
 fn wrap_text_to_width(text: &str, width: usize) -> Vec<String> {
@@ -517,11 +874,60 @@ fn wrap_text_to_width(text: &str, width: usize) -> Vec<String> {
 
     let mut lines = Vec::new();
     let mut current = String::new();
+    for word in text.split_whitespace() {
+        append_wrapped_word(&mut lines, &mut current, word, width);
+    }
+    if !current.is_empty() {
+        lines.push(current);
+    }
+    if lines.is_empty() {
+        lines.push(String::new());
+    }
+    lines
+}
+
+fn append_wrapped_word(lines: &mut Vec<String>, current: &mut String, word: &str, width: usize) {
+    let current_width = display_width(current);
+    let word_width = display_width(word);
+    if current.is_empty() && word_width <= width {
+        current.push_str(word);
+        return;
+    }
+    if !current.is_empty() && current_width + 1 + word_width <= width {
+        current.push(' ');
+        current.push_str(word);
+        return;
+    }
+
+    if !current.is_empty() {
+        lines.push(std::mem::take(current));
+    }
+
+    if word_width <= width {
+        current.push_str(word);
+        return;
+    }
+
+    let chunks = split_long_token(word, width);
+    let last_index = chunks.len().saturating_sub(1);
+    for (index, chunk) in chunks.into_iter().enumerate() {
+        if index == last_index {
+            current.push_str(&chunk);
+        } else {
+            lines.push(chunk);
+        }
+    }
+}
+
+fn split_long_token(text: &str, width: usize) -> Vec<String> {
+    let width = width.max(1);
+    let mut chunks = Vec::new();
+    let mut current = String::new();
     let mut current_width = 0;
     for ch in text.chars() {
         let char_width = display_width_char(ch);
         if current_width > 0 && current_width + char_width > width {
-            lines.push(current);
+            chunks.push(current);
             current = String::new();
             current_width = 0;
         }
@@ -529,9 +935,9 @@ fn wrap_text_to_width(text: &str, width: usize) -> Vec<String> {
         current_width += char_width;
     }
     if !current.is_empty() {
-        lines.push(current);
+        chunks.push(current);
     }
-    lines
+    chunks
 }
 
 fn pad_to_width(text: &str, width: usize) -> String {
@@ -539,36 +945,6 @@ fn pad_to_width(text: &str, width: usize) -> String {
         "{text}{}",
         " ".repeat(width.saturating_sub(display_width(text)))
     )
-}
-
-fn parse_table_row(line: &str) -> Option<Vec<String>> {
-    let trimmed = line.trim();
-    if !trimmed.contains('|') || is_table_separator(trimmed) {
-        return None;
-    }
-    let cells = trimmed
-        .trim_matches('|')
-        .split('|')
-        .map(|cell| cell.trim().to_string())
-        .collect::<Vec<_>>();
-    (cells.len() >= 2).then_some(cells)
-}
-
-fn is_table_separator(line: &str) -> bool {
-    let trimmed = line.trim();
-    if !trimmed.contains('|') {
-        return false;
-    }
-    let cells = trimmed.trim_matches('|').split('|').collect::<Vec<_>>();
-    cells.len() >= 2
-        && cells.iter().all(|cell| {
-            let cell = cell.trim();
-            cell.len() >= 3
-                && cell
-                    .chars()
-                    .all(|ch| matches!(ch, '-' | ':') || ch.is_whitespace())
-                && cell.chars().any(|ch| ch == '-')
-        })
 }
 
 pub(crate) fn display_width(text: &str) -> usize {
@@ -579,6 +955,7 @@ fn display_width_char(ch: char) -> usize {
     if ch.is_ascii() { 1 } else { 2 }
 }
 
+#[cfg(test)]
 fn inline_spans(line: &str) -> Option<Vec<PreviewSpan>> {
     let mut spans = Vec::new();
     let mut index = 0;
@@ -635,16 +1012,19 @@ fn inline_spans(line: &str) -> Option<Vec<PreviewSpan>> {
     if found_markup { Some(spans) } else { None }
 }
 
+#[cfg(test)]
 fn inline_or_plain_spans(text: &str) -> Vec<PreviewSpan> {
     inline_spans(text).unwrap_or_else(|| vec![PreviewSpan::Plain(text.to_string())])
 }
 
 #[derive(Clone, Copy)]
+#[cfg(test)]
 enum InlineMarker {
     Bold,
     Code,
 }
 
+#[cfg(test)]
 fn earliest_marker(
     left: Option<(usize, InlineMarker)>,
     right: Option<(usize, InlineMarker)>,
@@ -657,6 +1037,7 @@ fn earliest_marker(
     }
 }
 
+#[cfg(test)]
 fn push_plain(spans: &mut Vec<PreviewSpan>, text: &str) {
     if text.is_empty() {
         return;
@@ -870,11 +1251,13 @@ mod tests {
         assert!(matches!(lines[0], PreviewLine::TableHeader { .. }));
         assert!(matches!(lines[1], PreviewLine::TableDivider { .. }));
         assert!(matches!(lines[2], PreviewLine::TableRow { .. }));
+        assert!(matches!(lines[3], PreviewLine::TableDivider { .. }));
         assert!(text[0].contains("Plain check"));
-        assert!(text[1].contains("───────────"));
+        assert!(text[1].contains("━━━━━━━━━━━"));
         assert!(text[2].contains("사용자가 이해한다"));
         assert!(text[2].contains("    WHEN names render"));
-        assert!(text[3].contains("`fallen` 이유"));
+        assert!(text[3].contains("───────────"));
+        assert!(text[4].contains("fallen 이유"));
     }
 
     #[test]

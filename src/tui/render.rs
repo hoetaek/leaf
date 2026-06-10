@@ -1480,6 +1480,7 @@ mod tests {
 | Plain check | EARS |
 | --- | --- |
 | fallen needs narrow reason | WHEN an item enters fallen, THE MODEL SHALL record a narrowly scoped removal reason. |
+| active leaf keeps source | WHEN an item is active, THE MODEL SHALL keep source documents reviewable. |
 ",
         )
         .expect("criteria");
@@ -1505,6 +1506,9 @@ mod tests {
             text.contains(
                 "fallen needs narrow reason    WHEN an item enters fallen, THE MODEL SHALL"
             )
+        );
+        assert!(
+            text.contains("active leaf keeps source      WHEN an item is active, THE MODEL SHALL")
         );
         assert!(!text.contains("| Plain check | EARS |"));
     }
@@ -1557,19 +1561,73 @@ mod tests {
                 line.contains("fallen reason")
                     || line.contains("WHEN an item")
                     || line.contains("SHALL record")
-                    || line.contains("lifecycl")
+                    || line.contains("lifecycle")
             })
             .collect::<Vec<_>>();
 
         assert!(table_lines.len() >= 3, "{text}");
         assert!(text.contains("WHEN an item"));
-        assert!(text.contains("lifecycl"));
+        assert!(text.contains("lifecycle outcome"));
+        assert!(!text.contains("lifecycl\n"));
         assert!(
             table_lines
                 .iter()
                 .all(|line| crate::preview::display_width(line.trim_end()) <= usize::from(width)),
             "{text}"
         );
+    }
+
+    #[test]
+    fn review_mode_switches_cramped_markdown_table_to_records() {
+        let fixture = RenderFixture::new();
+        let slug = "record-table";
+        let root = fixture.root.path();
+        let leaf_path = root
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug);
+        std::fs::create_dir_all(leaf_path.join("02-Example")).expect("criteria dir");
+        std::fs::write(
+            leaf_path.join("00-status.md"),
+            "# Status\n\n- current gate: ③ Criteria\n",
+        )
+        .expect("status");
+        std::fs::write(
+            leaf_path.join("02-Example/03-criteria.md"),
+            "\
+# Criteria
+
+| Plain check | EARS |
+| --- | --- |
+| fallen reason | WHEN an item enters fallen, THE MODEL SHALL record a narrowly scoped removal reason instead of a broad lifecycle outcome term. |
+| active source | WHEN an item is active, THE MODEL SHALL keep source documents reviewable. |
+",
+        )
+        .expect("criteria");
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            slug,
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Example"),
+                Some("③ Criteria"),
+            ),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        let width = 46;
+        let buffer = render_buffer(width, 40, &app);
+        let text = buffer_to_text(&buffer, width, 40);
+
+        assert!(text.contains(" Plain check  fallen reason"), "{text}");
+        assert!(
+            text.contains(" EARS         WHEN an item enters fallen"),
+            "{text}"
+        );
+        assert!(text.contains(" active source"), "{text}");
+        assert!(!text.contains("Plain check    EARS"), "{text}");
     }
 
     #[test]

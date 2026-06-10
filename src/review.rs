@@ -715,7 +715,7 @@ mod tests {
         let text = visible_text(&document);
 
         assert!(text.contains("Plain check"));
-        assert!(text.contains("───────────"));
+        assert!(text.contains("━━━━━━━━━━━"));
         assert!(text.contains("사용자가 이해한다"));
         assert!(text.contains("    WHEN names render"));
     }
