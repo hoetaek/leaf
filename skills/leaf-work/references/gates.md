@@ -297,6 +297,21 @@ Gate to continue:
   locked is surfaced as an explicit risk or assumption, not hidden inside vague
   requirements.
 
+Write acceptance checks in a two-column form when EARS helps but raw EARS would
+be hard to scan. The left side is the human-readable check; the right side keeps
+the testable EARS-style form:
+
+```markdown
+| Plain check | EARS |
+|---|---|
+| <reader-friendly acceptance check> | WHEN <trigger>, THE SYSTEM SHALL <observable behavior>. |
+```
+
+Use the EARS column for behavior, trigger, condition, preserved behavior, or
+regression-sensitive checks. Keep a plain check even when the EARS sentence is
+precise; criteria must be readable by the reviewer, not only testable by the
+implementer.
+
 Writing-friendly criteria forms:
 
 ```text

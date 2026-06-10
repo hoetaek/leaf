@@ -164,7 +164,15 @@ pub(crate) fn wrapped_line_count(document: &ReviewDocument, width: usize) -> usi
     document
         .lines
         .iter()
-        .map(|line| wrapped_text_height(&line.visible_text(), width))
+        .map(|line| {
+            if let ReviewLine::Markdown(line) = line
+                && let Some(lines) = crate::preview::wrapped_table_line_texts(line, width)
+            {
+                lines.len()
+            } else {
+                wrapped_text_height(&line.visible_text(), width)
+            }
+        })
         .sum()
 }
 
@@ -241,11 +249,10 @@ fn build_leaf_work(root_path: PathBuf, root_relative_path: String) -> Result<Rev
 }
 
 fn append_markdown_lines(lines: &mut Vec<ReviewLine>, content: &str) {
-    let mut in_code_block = false;
     lines.extend(
-        content.lines().map(|line| {
-            ReviewLine::Markdown(crate::preview::markup_line(line, &mut in_code_block))
-        }),
+        crate::preview::marked_lines(content.lines().map(str::to_string).collect())
+            .into_iter()
+            .map(ReviewLine::Markdown),
     );
 }
 
@@ -481,6 +488,11 @@ fn preview_visible_text(line: &crate::preview::PreviewLine) -> String {
         crate::preview::PreviewLine::Heading(text)
         | crate::preview::PreviewLine::Code(text)
         | crate::preview::PreviewLine::Plain(text) => text.clone(),
+        crate::preview::PreviewLine::TableHeader { .. }
+        | crate::preview::PreviewLine::TableDivider { .. }
+        | crate::preview::PreviewLine::TableRow { .. } => {
+            crate::preview::table_line_text(line).expect("table line text")
+        }
         crate::preview::PreviewLine::Checkbox { checked, text } => {
             let marker = if *checked { "[x]" } else { "[ ]" };
             format!("{marker} {text}")
@@ -678,6 +690,34 @@ mod tests {
             section_paths(&document).contains(&".leaf/02-leaves/demo/03-Architect/05-design.md")
         );
         assert!(visible_text(&document).contains("미리 작성됨"));
+    }
+
+    #[test]
+    fn review_build_renders_markdown_tables_as_padded_lines() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_file(
+            &root,
+            slug,
+            "00-status.md",
+            "# Status\n\n- current gate: ③ Criteria\n",
+        );
+        write_file(
+            &root,
+            slug,
+            "01-Learn/01-intent.md",
+            "| Plain check | EARS |\n\
+             |---|---|\n\
+             | 사용자가 이해한다 | WHEN names render, THE MODEL SHALL be clear. |\n",
+        );
+
+        let document = build(&source(&root, slug)).expect("review document");
+        let text = visible_text(&document);
+
+        assert!(text.contains("Plain check"));
+        assert!(text.contains("───────────"));
+        assert!(text.contains("사용자가 이해한다"));
+        assert!(text.contains("    WHEN names render"));
     }
 
     #[test]

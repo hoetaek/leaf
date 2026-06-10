@@ -149,6 +149,8 @@ fn mouse_input(area: Rect, app: &AppState, mouse: MouseEvent) -> Option<MouseInp
                 .map(|visible_index| MouseInput::Drag { visible_index })
         }
         MouseEventKind::Up(MouseButton::Left) => Some(MouseInput::Up),
+        MouseEventKind::ScrollUp if app.mode() == Mode::Review => Some(MouseInput::ScrollUp),
+        MouseEventKind::ScrollDown if app.mode() == Mode::Review => Some(MouseInput::ScrollDown),
         _ => None,
     }
 }
@@ -763,6 +765,40 @@ mod tests {
                 mouse(MouseEventKind::Down(MouseButton::Left), 20, 3)
             ),
             None
+        );
+    }
+
+    #[test]
+    fn maps_mouse_wheel_to_review_scroll_input() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "alpha";
+        let leaf_path = root
+            .path()
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug);
+        fs::create_dir_all(&leaf_path).expect("leaf dir");
+        fs::write(
+            leaf_path.join("00-status.md"),
+            "# Status\n\n- current gate: ① Intent\n",
+        )
+        .expect("status");
+        let inventory = test_inventory(
+            root.path(),
+            vec![test_item(root.path(), Bucket::Leaves, slug)],
+        );
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::Review);
+        let area = Rect::new(0, 0, 80, 10);
+
+        assert_eq!(
+            mouse_input(area, &app, mouse(MouseEventKind::ScrollDown, 20, 4)),
+            Some(MouseInput::ScrollDown)
+        );
+        assert_eq!(
+            mouse_input(area, &app, mouse(MouseEventKind::ScrollUp, 20, 4)),
+            Some(MouseInput::ScrollUp)
         );
     }
 

@@ -120,7 +120,7 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
 
     frame.render_widget(
         Paragraph::new(Line::styled(
-            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Esc/q back",
+            "↑/↓/wheel scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Esc/q back",
             dim_style(),
         )),
         chunks[4],
@@ -275,7 +275,8 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             app.status_line()
         ),
         Mode::Review => {
-            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Esc/q back".to_string()
+            "↑/↓/wheel scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Esc/q back"
+                .to_string()
         }
         Mode::List if selected_count > 0 => format!(
             "{selected_count} selected  Space toggle  v range  a all  y copy  Esc clear  q quit  {}",
@@ -480,6 +481,17 @@ fn preview_line(line: &PreviewLine) -> Line<'static> {
             gate,
             source,
         } => source_boundary_line(None, phase, gate, source),
+        PreviewLine::TableHeader { .. } => Line::styled(
+            crate::preview::table_line_text(line).expect("table line text"),
+            strong_style(),
+        ),
+        PreviewLine::TableDivider { .. } => Line::styled(
+            crate::preview::table_line_text(line).expect("table line text"),
+            chrome_style(),
+        ),
+        PreviewLine::TableRow { .. } => {
+            Line::from(crate::preview::table_line_text(line).expect("table line text"))
+        }
         PreviewLine::Plain(text) => Line::from(text.clone()),
     }
 }
@@ -531,14 +543,41 @@ fn wrapped_review_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedRe
         } else {
             section_index + 1
         };
-        rendered.extend(
-            wrap_line(review_line(line), width)
-                .into_iter()
-                .map(|line| RenderedReviewLine { source_index, line }),
-        );
+        if let Some(table_lines) = review_table_lines(line, width) {
+            rendered.extend(
+                table_lines
+                    .into_iter()
+                    .map(|line| RenderedReviewLine { source_index, line }),
+            );
+        } else {
+            rendered.extend(
+                wrap_line(review_line(line), width)
+                    .into_iter()
+                    .map(|line| RenderedReviewLine { source_index, line }),
+            );
+        }
     }
 
     rendered
+}
+
+fn review_table_lines(line: &ReviewLine, width: usize) -> Option<Vec<Line<'static>>> {
+    let ReviewLine::Markdown(line) = line else {
+        return None;
+    };
+    let table_lines = crate::preview::wrapped_table_line_texts(line, width)?;
+    let style = match line {
+        PreviewLine::TableHeader { .. } => strong_style(),
+        PreviewLine::TableDivider { .. } => chrome_style(),
+        PreviewLine::TableRow { .. } => Style::default(),
+        _ => return None,
+    };
+    Some(
+        table_lines
+            .into_iter()
+            .map(|line| Line::styled(line, style))
+            .collect(),
+    )
 }
 
 fn wrap_line(line: Line<'static>, width: usize) -> Vec<Line<'static>> {
@@ -1416,6 +1455,121 @@ mod tests {
         assert!(line_contains_text(&buffer, 120, 18, "Leaf 상태"));
         assert!(text.contains("• rendered item"));
         assert!(!text.contains("# Intent"));
+    }
+
+    #[test]
+    fn review_mode_renders_markdown_table_as_aligned_terminal_lines() {
+        let fixture = RenderFixture::new();
+        let slug = "table-demo";
+        let root = fixture.root.path();
+        let leaf_path = root
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug);
+        std::fs::create_dir_all(leaf_path.join("02-Example")).expect("criteria dir");
+        std::fs::write(
+            leaf_path.join("00-status.md"),
+            "# Status\n\n- current gate: ③ Criteria\n",
+        )
+        .expect("status");
+        std::fs::write(
+            leaf_path.join("02-Example/03-criteria.md"),
+            "\
+# Criteria
+
+| Plain check | EARS |
+| --- | --- |
+| fallen needs narrow reason | WHEN an item enters fallen, THE MODEL SHALL record a narrowly scoped removal reason. |
+",
+        )
+        .expect("criteria");
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            slug,
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Example"),
+                Some("③ Criteria"),
+            ),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        let buffer = render_buffer(150, 30, &app);
+        let text = buffer_to_text(&buffer, 150, 30);
+
+        assert!(text.contains("Plain check                   EARS"));
+        assert!(text.contains("─────────────────────────────"));
+        assert!(
+            text.contains(
+                "fallen needs narrow reason    WHEN an item enters fallen, THE MODEL SHALL"
+            )
+        );
+        assert!(!text.contains("| Plain check | EARS |"));
+    }
+
+    #[test]
+    fn review_mode_wraps_markdown_table_cells_to_terminal_width() {
+        let fixture = RenderFixture::new();
+        let slug = "narrow-table";
+        let root = fixture.root.path();
+        let leaf_path = root
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug);
+        std::fs::create_dir_all(leaf_path.join("02-Example")).expect("criteria dir");
+        std::fs::write(
+            leaf_path.join("00-status.md"),
+            "# Status\n\n- current gate: ③ Criteria\n",
+        )
+        .expect("status");
+        std::fs::write(
+            leaf_path.join("02-Example/03-criteria.md"),
+            "\
+# Criteria
+
+| Plain check | EARS |
+| --- | --- |
+| fallen reason is narrow | WHEN an item enters fallen, THE MODEL SHALL record a narrowly scoped removal reason instead of a broad lifecycle outcome term. |
+",
+        )
+        .expect("criteria");
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            slug,
+            status(
+                ParseState::Ok,
+                Some("active"),
+                Some("Example"),
+                Some("③ Criteria"),
+            ),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        let width = 64;
+        let buffer = render_buffer(width, 34, &app);
+        let text = buffer_to_text(&buffer, width, 34);
+        let table_lines = text
+            .lines()
+            .filter(|line| {
+                line.contains("fallen reason")
+                    || line.contains("WHEN an item")
+                    || line.contains("SHALL record")
+                    || line.contains("lifecycl")
+            })
+            .collect::<Vec<_>>();
+
+        assert!(table_lines.len() >= 3, "{text}");
+        assert!(text.contains("WHEN an item"));
+        assert!(text.contains("lifecycl"));
+        assert!(
+            table_lines
+                .iter()
+                .all(|line| crate::preview::display_width(line.trim_end()) <= usize::from(width)),
+            "{text}"
+        );
     }
 
     #[test]

@@ -32,8 +32,21 @@ pub(crate) enum PreviewLine {
         gate: String,
         source: String,
     },
+    TableHeader {
+        cells: Vec<String>,
+        widths: Vec<usize>,
+    },
+    TableDivider {
+        widths: Vec<usize>,
+    },
+    TableRow {
+        cells: Vec<String>,
+        widths: Vec<usize>,
+    },
     Plain(String),
 }
+
+pub(crate) const TABLE_COLUMN_GAP: usize = 4;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum PreviewSpan {
@@ -175,12 +188,24 @@ fn append_gate_file(
     }
 }
 
-fn marked_lines(lines: Vec<String>) -> Vec<PreviewLine> {
+pub(crate) fn marked_lines(lines: Vec<String>) -> Vec<PreviewLine> {
     let mut in_code_block = false;
-    lines
-        .iter()
-        .map(|line| markup_line(line, &mut in_code_block))
-        .collect()
+    let mut marked = Vec::new();
+    let mut index = 0;
+
+    while index < lines.len() {
+        if !in_code_block && is_table_start(&lines, index) {
+            let (table_lines, next_index) = table_lines(&lines, index);
+            marked.extend(render_table_lines(&table_lines));
+            index = next_index;
+            continue;
+        }
+
+        marked.push(markup_line(&lines[index], &mut in_code_block));
+        index += 1;
+    }
+
+    marked
 }
 
 fn useful_lines(content: &str, limit: usize) -> Vec<String> {
@@ -300,6 +325,260 @@ fn list_item_text(line: &str) -> Option<(&str, &str)> {
     Some((&trimmed[..=dot_index], &trimmed[dot_index + 2..]))
 }
 
+fn is_table_start(lines: &[String], index: usize) -> bool {
+    index + 1 < lines.len()
+        && parse_table_row(&lines[index]).is_some()
+        && is_table_separator(&lines[index + 1])
+}
+
+fn table_lines(lines: &[String], start: usize) -> (Vec<Vec<String>>, usize) {
+    let mut rows = Vec::new();
+    let header = parse_table_row(&lines[start]).expect("table start has header row");
+    rows.push(header);
+    let mut index = start + 2;
+    while index < lines.len() {
+        let Some(row) = parse_table_row(&lines[index]) else {
+            break;
+        };
+        rows.push(row);
+        index += 1;
+    }
+    (rows, index)
+}
+
+fn render_table_lines(rows: &[Vec<String>]) -> Vec<PreviewLine> {
+    let column_count = rows.iter().map(Vec::len).max().unwrap_or(0);
+    if column_count == 0 {
+        return Vec::new();
+    }
+
+    let widths = (0..column_count)
+        .map(|column| {
+            rows.iter()
+                .filter_map(|row| row.get(column))
+                .map(|cell| display_width(cell))
+                .max()
+                .unwrap_or(0)
+        })
+        .collect::<Vec<_>>();
+
+    let mut rendered = Vec::new();
+    for (index, row) in rows.iter().enumerate() {
+        if index == 0 {
+            rendered.push(PreviewLine::TableHeader {
+                cells: row.clone(),
+                widths: widths.clone(),
+            });
+            rendered.push(PreviewLine::TableDivider {
+                widths: widths.clone(),
+            });
+        } else {
+            rendered.push(PreviewLine::TableRow {
+                cells: row.clone(),
+                widths: widths.clone(),
+            });
+        }
+    }
+    rendered
+}
+
+pub(crate) fn padded_table_row(row: &[String], widths: &[usize]) -> String {
+    widths
+        .iter()
+        .enumerate()
+        .map(|(index, width)| {
+            let cell = row.get(index).map(String::as_str).unwrap_or("");
+            format!(
+                "{cell}{}",
+                " ".repeat(width.saturating_sub(display_width(cell)))
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(&" ".repeat(TABLE_COLUMN_GAP))
+}
+
+pub(crate) fn table_divider(widths: &[usize]) -> String {
+    widths
+        .iter()
+        .map(|width| "─".repeat((*width).max(3)))
+        .collect::<Vec<_>>()
+        .join(&" ".repeat(TABLE_COLUMN_GAP))
+}
+
+pub(crate) fn fitted_table_widths(widths: &[usize], max_width: usize) -> Vec<usize> {
+    if widths.is_empty() {
+        return Vec::new();
+    }
+
+    let gap_width = TABLE_COLUMN_GAP.saturating_mul(widths.len().saturating_sub(1));
+    let target = max_width.max(1).saturating_sub(gap_width).max(widths.len());
+    let mut fitted = widths
+        .iter()
+        .map(|width| (*width).max(1))
+        .collect::<Vec<_>>();
+    if fitted.iter().sum::<usize>() <= target {
+        return fitted;
+    }
+
+    let min_column_width = if target >= widths.len() * 3 { 3 } else { 1 };
+    let floors = fitted
+        .iter()
+        .map(|width| (*width).min(16).max(min_column_width))
+        .collect::<Vec<_>>();
+    shrink_widths_to_target(&mut fitted, &floors, target);
+    if fitted.iter().sum::<usize>() > target {
+        let hard_floors = vec![min_column_width; fitted.len()];
+        shrink_widths_to_target(&mut fitted, &hard_floors, target);
+    }
+    fitted
+}
+
+fn shrink_widths_to_target(widths: &mut [usize], floors: &[usize], target: usize) {
+    while widths.iter().sum::<usize>() > target {
+        let Some(index) = widths
+            .iter()
+            .enumerate()
+            .filter(|(index, width)| **width > floors[*index])
+            .max_by_key(|(_, width)| **width)
+            .map(|(index, _)| index)
+        else {
+            break;
+        };
+        widths[index] -= 1;
+    }
+}
+
+pub(crate) fn wrapped_table_row_texts(
+    cells: &[String],
+    widths: &[usize],
+    max_width: usize,
+) -> Vec<String> {
+    let fitted_widths = fitted_table_widths(widths, max_width);
+    let wrapped_cells = fitted_widths
+        .iter()
+        .enumerate()
+        .map(|(index, width)| {
+            wrap_text_to_width(cells.get(index).map(String::as_str).unwrap_or(""), *width)
+        })
+        .collect::<Vec<_>>();
+    let row_height = wrapped_cells.iter().map(Vec::len).max().unwrap_or(1);
+
+    (0..row_height)
+        .map(|line_index| {
+            let row = fitted_widths
+                .iter()
+                .enumerate()
+                .map(|(index, width)| {
+                    let line = wrapped_cells
+                        .get(index)
+                        .and_then(|lines| lines.get(line_index))
+                        .cloned()
+                        .unwrap_or_default();
+                    pad_to_width(&line, *width)
+                })
+                .collect::<Vec<_>>();
+            row.join(&" ".repeat(TABLE_COLUMN_GAP))
+                .trim_end()
+                .to_string()
+        })
+        .collect()
+}
+
+pub(crate) fn table_line_text(line: &PreviewLine) -> Option<String> {
+    match line {
+        PreviewLine::TableHeader { cells, widths } | PreviewLine::TableRow { cells, widths } => {
+            Some(padded_table_row(cells, widths))
+        }
+        PreviewLine::TableDivider { widths } => Some(table_divider(widths)),
+        _ => None,
+    }
+}
+
+pub(crate) fn wrapped_table_line_texts(
+    line: &PreviewLine,
+    max_width: usize,
+) -> Option<Vec<String>> {
+    match line {
+        PreviewLine::TableHeader { cells, widths } | PreviewLine::TableRow { cells, widths } => {
+            Some(wrapped_table_row_texts(cells, widths, max_width))
+        }
+        PreviewLine::TableDivider { widths } => {
+            Some(vec![table_divider(&fitted_table_widths(widths, max_width))])
+        }
+        _ => None,
+    }
+}
+
+fn wrap_text_to_width(text: &str, width: usize) -> Vec<String> {
+    let width = width.max(1);
+    if text.is_empty() {
+        return vec![String::new()];
+    }
+
+    let mut lines = Vec::new();
+    let mut current = String::new();
+    let mut current_width = 0;
+    for ch in text.chars() {
+        let char_width = display_width_char(ch);
+        if current_width > 0 && current_width + char_width > width {
+            lines.push(current);
+            current = String::new();
+            current_width = 0;
+        }
+        current.push(ch);
+        current_width += char_width;
+    }
+    if !current.is_empty() {
+        lines.push(current);
+    }
+    lines
+}
+
+fn pad_to_width(text: &str, width: usize) -> String {
+    format!(
+        "{text}{}",
+        " ".repeat(width.saturating_sub(display_width(text)))
+    )
+}
+
+fn parse_table_row(line: &str) -> Option<Vec<String>> {
+    let trimmed = line.trim();
+    if !trimmed.contains('|') || is_table_separator(trimmed) {
+        return None;
+    }
+    let cells = trimmed
+        .trim_matches('|')
+        .split('|')
+        .map(|cell| cell.trim().to_string())
+        .collect::<Vec<_>>();
+    (cells.len() >= 2).then_some(cells)
+}
+
+fn is_table_separator(line: &str) -> bool {
+    let trimmed = line.trim();
+    if !trimmed.contains('|') {
+        return false;
+    }
+    let cells = trimmed.trim_matches('|').split('|').collect::<Vec<_>>();
+    cells.len() >= 2
+        && cells.iter().all(|cell| {
+            let cell = cell.trim();
+            cell.len() >= 3
+                && cell
+                    .chars()
+                    .all(|ch| matches!(ch, '-' | ':') || ch.is_whitespace())
+                && cell.chars().any(|ch| ch == '-')
+        })
+}
+
+pub(crate) fn display_width(text: &str) -> usize {
+    text.chars().map(display_width_char).sum()
+}
+
+fn display_width_char(ch: char) -> usize {
+    if ch.is_ascii() { 1 } else { 2 }
+}
+
 fn inline_spans(line: &str) -> Option<Vec<PreviewSpan>> {
     let mut spans = Vec::new();
     let mut index = 0;
@@ -400,6 +679,9 @@ mod tests {
             PreviewLine::Heading(text) | PreviewLine::Code(text) | PreviewLine::Plain(text) => {
                 text.clone()
             }
+            PreviewLine::TableHeader { .. }
+            | PreviewLine::TableDivider { .. }
+            | PreviewLine::TableRow { .. } => table_line_text(line).expect("table line text"),
             PreviewLine::Checkbox { text, .. } => text.clone(),
             PreviewLine::ListItem { marker, spans } => {
                 format!("{marker} {}", span_text(spans))
@@ -572,6 +854,27 @@ mod tests {
             rendered.contains("`dangling"),
             "missing malformed code marker in {rendered:?}"
         );
+    }
+
+    #[test]
+    fn preview_markup_table_becomes_padded_table_lines() {
+        let lines = marked_lines(vec![
+            "| Plain check | EARS |".to_string(),
+            "|---|---|".to_string(),
+            "| 사용자가 이해한다 | WHEN names render, THE MODEL SHALL be clear. |".to_string(),
+            "| `fallen` 이유 | WHEN an item enters `fallen`, THE MODEL SHALL record why. |"
+                .to_string(),
+        ]);
+        let text = lines.iter().map(line_text).collect::<Vec<_>>();
+
+        assert!(matches!(lines[0], PreviewLine::TableHeader { .. }));
+        assert!(matches!(lines[1], PreviewLine::TableDivider { .. }));
+        assert!(matches!(lines[2], PreviewLine::TableRow { .. }));
+        assert!(text[0].contains("Plain check"));
+        assert!(text[1].contains("───────────"));
+        assert!(text[2].contains("사용자가 이해한다"));
+        assert!(text[2].contains("    WHEN names render"));
+        assert!(text[3].contains("`fallen` 이유"));
     }
 
     #[test]
