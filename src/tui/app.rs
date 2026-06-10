@@ -85,6 +85,7 @@ pub(crate) struct AppState {
     mouse_anchor: Option<usize>,
     preview_cache: RefCell<HashMap<String, Preview>>,
     review_body_height: Cell<usize>,
+    review_body_width: Cell<usize>,
     review_state: Option<ReviewState>,
 }
 
@@ -104,6 +105,7 @@ const BUCKET_FILTERS: [BucketFilter; 5] = [
     BucketFilter::Bucket(Bucket::Pressed),
 ];
 const DEFAULT_REVIEW_BODY_HEIGHT: usize = 10;
+const DEFAULT_REVIEW_BODY_WIDTH: usize = 80;
 
 impl ListRow {
     fn from_item(inventory: &Inventory, item: &InventoryItem) -> Self {
@@ -205,6 +207,7 @@ impl AppState {
             mouse_anchor: None,
             preview_cache: RefCell::new(HashMap::new()),
             review_body_height: Cell::new(DEFAULT_REVIEW_BODY_HEIGHT),
+            review_body_width: Cell::new(DEFAULT_REVIEW_BODY_WIDTH),
             review_state: None,
         };
         state.refresh_visibility_state();
@@ -258,8 +261,9 @@ impl AppState {
         self.review_state.as_ref()
     }
 
-    pub(crate) fn set_review_body_height(&self, height: usize) {
+    pub(crate) fn set_review_body_size(&self, height: usize, width: usize) {
         self.review_body_height.set(height);
+        self.review_body_width.set(width);
     }
 
     pub(crate) fn selected_preview(&self) -> Option<Preview> {
@@ -456,11 +460,13 @@ impl AppState {
         };
         let source = state.source.clone();
         let body_height = self.review_body_height.get();
+        let body_width = self.review_body_width.get();
         match review::build(&source) {
             Ok(document) => {
-                let scroll_offset = state
-                    .scroll_offset
-                    .min(max_review_scroll(&document, body_height));
+                let scroll_offset =
+                    state
+                        .scroll_offset
+                        .min(max_review_scroll(&document, body_height, body_width));
                 self.review_state = Some(ReviewState {
                     source,
                     document,
@@ -484,10 +490,14 @@ impl AppState {
         let current_document = state.document.clone();
         let current_scroll_offset = state.scroll_offset;
         let body_height = self.review_body_height.get();
+        let body_width = self.review_body_width.get();
         match review::build(&source) {
             Ok(document) if document != current_document => {
-                let scroll_offset =
-                    current_scroll_offset.min(max_review_scroll(&document, body_height));
+                let scroll_offset = current_scroll_offset.min(max_review_scroll(
+                    &document,
+                    body_height,
+                    body_width,
+                ));
                 self.review_state = Some(ReviewState {
                     source,
                     document,
@@ -516,8 +526,9 @@ impl AppState {
 
     fn scroll_review_down(&mut self, amount: usize) {
         let body_height = self.review_body_height.get();
+        let body_width = self.review_body_width.get();
         if let Some(state) = &mut self.review_state {
-            let max_scroll = max_review_scroll(&state.document, body_height);
+            let max_scroll = max_review_scroll(&state.document, body_height, body_width);
             let current_scroll = state.scroll_offset.min(max_scroll);
             state.scroll_offset = current_scroll.saturating_add(amount).min(max_scroll);
         }
@@ -525,8 +536,9 @@ impl AppState {
 
     fn scroll_review_up(&mut self, amount: usize) {
         let body_height = self.review_body_height.get();
+        let body_width = self.review_body_width.get();
         if let Some(state) = &mut self.review_state {
-            let max_scroll = max_review_scroll(&state.document, body_height);
+            let max_scroll = max_review_scroll(&state.document, body_height, body_width);
             state.scroll_offset = state.scroll_offset.min(max_scroll).saturating_sub(amount);
         }
     }
@@ -539,8 +551,9 @@ impl AppState {
 
     fn scroll_review_bottom(&mut self) {
         let body_height = self.review_body_height.get();
+        let body_width = self.review_body_width.get();
         if let Some(state) = &mut self.review_state {
-            state.scroll_offset = max_review_scroll(&state.document, body_height);
+            state.scroll_offset = max_review_scroll(&state.document, body_height, body_width);
         }
     }
 
@@ -948,8 +961,8 @@ fn row_word(count: usize) -> &'static str {
     if count == 1 { "row" } else { "rows" }
 }
 
-fn max_review_scroll(document: &ReviewDocument, body_height: usize) -> usize {
-    document.lines.len().saturating_sub(body_height)
+fn max_review_scroll(document: &ReviewDocument, body_height: usize, body_width: usize) -> usize {
+    review::wrapped_line_count(document, body_width).saturating_sub(body_height)
 }
 
 #[cfg(test)]
@@ -1407,7 +1420,7 @@ mod tests {
         let mut app = AppState::from_inventory(&inventory);
 
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
-        app.set_review_body_height(8);
+        app.set_review_body_size(8, DEFAULT_REVIEW_BODY_WIDTH);
         assert!(
             app.review_state()
                 .unwrap()
@@ -1451,7 +1464,7 @@ mod tests {
         let mut app = AppState::from_inventory(&inventory);
 
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
-        app.set_review_body_height(4);
+        app.set_review_body_size(4, DEFAULT_REVIEW_BODY_WIDTH);
         assert_eq!(app.handle_key(KeyInput::PageDown), Outcome::Continue);
 
         assert_eq!(app.review_state().unwrap().scroll_offset, 4);
@@ -1487,7 +1500,7 @@ mod tests {
         let mut app = AppState::from_inventory(&inventory);
 
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
-        app.set_review_body_height(7);
+        app.set_review_body_size(7, DEFAULT_REVIEW_BODY_WIDTH);
         assert_eq!(app.handle_key(KeyInput::Char('d')), Outcome::Continue);
         assert_eq!(app.review_state().unwrap().scroll_offset, 3);
 

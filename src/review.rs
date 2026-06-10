@@ -144,7 +144,13 @@ impl ReviewLine {
     #[allow(dead_code)]
     pub(crate) fn visible_text(&self) -> String {
         match self {
-            ReviewLine::Separator { relative_path, .. } => relative_path.clone(),
+            ReviewLine::Separator {
+                relative_path,
+                phase,
+                gate,
+            } => {
+                format!("FILE {phase} / {gate}  {relative_path}")
+            }
             ReviewLine::MissingSource { relative_path } => {
                 format!("MISSING SOURCE {relative_path}")
             }
@@ -152,6 +158,33 @@ impl ReviewLine {
             ReviewLine::Message(text) => text.clone(),
         }
     }
+}
+
+pub(crate) fn wrapped_line_count(document: &ReviewDocument, width: usize) -> usize {
+    document
+        .lines
+        .iter()
+        .map(|line| wrapped_text_height(&line.visible_text(), width))
+        .sum()
+}
+
+fn wrapped_text_height(text: &str, width: usize) -> usize {
+    let width = width.max(1);
+    let mut line_count = 1;
+    let mut current_width = 0;
+    for ch in text.chars() {
+        let char_width = terminal_char_width(ch);
+        if current_width > 0 && current_width + char_width > width {
+            line_count += 1;
+            current_width = 0;
+        }
+        current_width += char_width;
+    }
+    line_count
+}
+
+pub(crate) fn terminal_char_width(ch: char) -> usize {
+    if ch.is_ascii() { 1 } else { 2 }
 }
 
 pub(crate) fn build(source: &ReviewSource) -> Result<ReviewDocument> {

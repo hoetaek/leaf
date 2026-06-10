@@ -78,7 +78,7 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         Constraint::Length(1),
     ])
     .split(area);
-    app.set_review_body_height(chunks[3].height as usize);
+    app.set_review_body_size(chunks[3].height as usize, chunks[3].width as usize);
 
     let document = &review.document;
     let header = Line::from(vec![
@@ -98,22 +98,23 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         chunks[1],
     );
 
+    let rendered_body_lines = wrapped_review_lines(document, chunks[3].width);
     let scroll_offset =
-        clamped_review_scroll_offset(document, chunks[3].height, review.scroll_offset);
-    let current_source = current_source_index(document, scroll_offset);
-    let scroll_percent = review_scroll_percent(document, chunks[3].height, scroll_offset);
+        clamped_review_scroll_offset(&rendered_body_lines, chunks[3].height, review.scroll_offset);
+    let current_source = current_source_index(&rendered_body_lines, scroll_offset);
+    let scroll_percent =
+        review_scroll_percent(&rendered_body_lines, chunks[3].height, scroll_offset);
     let meta = format!(
         "source {}/{}  scroll {}%  {}",
         current_source, document.source_count, scroll_percent, review.status_message
     );
     frame.render_widget(Paragraph::new(Line::styled(meta, dim_style())), chunks[2]);
 
-    let body_lines = document
-        .lines
+    let body_lines = rendered_body_lines
         .iter()
         .skip(scroll_offset)
         .take(chunks[3].height as usize)
-        .map(review_line)
+        .map(|line| line.line.clone())
         .collect::<Vec<_>>();
     frame.render_widget(Paragraph::new(body_lines), chunks[3]);
 
@@ -508,6 +509,68 @@ fn review_line(line: &ReviewLine) -> Line<'static> {
     }
 }
 
+#[derive(Debug, Clone)]
+struct RenderedReviewLine {
+    source_index: usize,
+    line: Line<'static>,
+}
+
+fn wrapped_review_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedReviewLine> {
+    let width = usize::from(width.max(1));
+    let mut rendered = Vec::new();
+    let mut section_index = 0;
+
+    for (line_index, line) in document.lines.iter().enumerate() {
+        while section_index + 1 < document.sections.len()
+            && document.sections[section_index + 1].start_line <= line_index
+        {
+            section_index += 1;
+        }
+        let source_index = if document.sections.is_empty() {
+            0
+        } else {
+            section_index + 1
+        };
+        rendered.extend(
+            wrap_line(review_line(line), width)
+                .into_iter()
+                .map(|line| RenderedReviewLine { source_index, line }),
+        );
+    }
+
+    rendered
+}
+
+fn wrap_line(line: Line<'static>, width: usize) -> Vec<Line<'static>> {
+    let width = width.max(1);
+    let mut lines = Vec::new();
+    let mut current = Vec::new();
+    let mut current_width = 0;
+
+    for span in line.spans {
+        let style = span.style;
+        let mut chunk = String::new();
+        for ch in span.content.chars() {
+            let char_width = crate::review::terminal_char_width(ch);
+            if current_width > 0 && current_width + char_width > width {
+                if !chunk.is_empty() {
+                    current.push(Span::styled(std::mem::take(&mut chunk), style));
+                }
+                lines.push(Line::from(std::mem::take(&mut current)));
+                current_width = 0;
+            }
+            chunk.push(ch);
+            current_width += char_width;
+        }
+        if !chunk.is_empty() {
+            current.push(Span::styled(chunk, style));
+        }
+    }
+
+    lines.push(Line::from(current));
+    lines
+}
+
 fn source_boundary_line(
     prefix: Option<&str>,
     phase: &str,
@@ -543,21 +606,20 @@ fn phase_style(phase: &str) -> Style {
     Style::default().fg(color).add_modifier(Modifier::BOLD)
 }
 
-fn current_source_index(document: &ReviewDocument, scroll_offset: usize) -> usize {
-    document
-        .sections
-        .iter()
-        .rposition(|section| section.start_line <= scroll_offset)
-        .map(|index| index + 1)
+fn current_source_index(lines: &[RenderedReviewLine], scroll_offset: usize) -> usize {
+    lines
+        .get(scroll_offset)
+        .or_else(|| lines.last())
+        .map(|line| line.source_index)
         .unwrap_or(0)
 }
 
 fn review_scroll_percent(
-    document: &ReviewDocument,
+    lines: &[RenderedReviewLine],
     body_height: u16,
     scroll_offset: usize,
 ) -> usize {
-    let max_scroll = max_review_scroll_for_body(document, body_height);
+    let max_scroll = max_review_scroll_for_body(lines, body_height);
     scroll_offset
         .min(max_scroll)
         .saturating_mul(100)
@@ -566,15 +628,15 @@ fn review_scroll_percent(
 }
 
 fn clamped_review_scroll_offset(
-    document: &ReviewDocument,
+    lines: &[RenderedReviewLine],
     body_height: u16,
     scroll_offset: usize,
 ) -> usize {
-    scroll_offset.min(max_review_scroll_for_body(document, body_height))
+    scroll_offset.min(max_review_scroll_for_body(lines, body_height))
 }
 
-fn max_review_scroll_for_body(document: &ReviewDocument, body_height: u16) -> usize {
-    document.lines.len().saturating_sub(body_height as usize)
+fn max_review_scroll_for_body(lines: &[RenderedReviewLine], body_height: u16) -> usize {
+    lines.len().saturating_sub(body_height as usize)
 }
 
 fn chrome_block() -> Block<'static> {
@@ -1049,6 +1111,39 @@ mod tests {
                 .iter()
                 .any(|span| span.style.add_modifier.contains(Modifier::BOLD))
         );
+    }
+
+    #[test]
+    fn review_body_wraps_long_lines_to_terminal_width() {
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/02-leaves/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/02-leaves/demo/00-status.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![ReviewLine::Markdown(PreviewLine::Plain(
+                "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".to_string(),
+            ))],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 20);
+        let text = rendered
+            .iter()
+            .map(|line| {
+                line.line
+                    .spans
+                    .iter()
+                    .map(|span| span.content.as_ref())
+                    .collect::<String>()
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(text.len(), 4);
+        assert_eq!(text[0], "abcdefghijklmnopqrst");
+        assert_eq!(text[1], "uvwxyz0123456789ABCD");
+        assert_eq!(text[3], "YZ");
     }
 
     #[test]
