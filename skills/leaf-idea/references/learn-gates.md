@@ -147,6 +147,25 @@ By source:
 - **Internal**: what the team already has, such as data, footage, contacts,
   documents, prior decisions, and forgotten constraints.
 
+### Big-Picture Map
+
+For structurally complex or brownfield work, learn by drawing the current shape.
+Create a compact ASCII map under `01-Learn/02-references/` when the work touches
+an existing system, product architecture, workflow, domain model, multiple
+actors/surfaces, or a reference set large enough that the shape is easy to lose.
+
+The map is a study artifact, not a design artifact. It should show the current
+known topology and problem space: actors, surfaces, components, data/content
+flow, ownership boundaries, external dependencies, preserved constraints, and
+gaps marked `UNKNOWN` or `ASSUMPTION`. It may compare reference models or
+existing alternatives when that helps judgment, but it must not silently choose
+the after architecture; ⑤ Design owns the generator and the future structure.
+
+Keep the map cheap and inspectable. ASCII boxes/arrows, a small state-flow, or a
+component table is enough. Summarize the learned facts, split signals, candidate
+choices, and unresolved gaps back into `02-unknowns.md`; do not make later gates
+read a diagram to discover the facts.
+
 Search the web actively for convention and external items when the domain can
 shift over time. Save what you find under `01-Learn/02-references/`, one file per
 topic, and summarize the useful answer back in `02-unknowns.md`.
@@ -237,6 +256,12 @@ Gate to continue:
   questions.
 - The fact/assumption boundary is visible.
 - The key candidate judgments for ③ Criteria or ⑤ Design are named.
+- For structurally complex or brownfield work, a current-state / problem-space
+  ASCII map exists under `01-Learn/02-references/`, or the reason it was not
+  needed is stated.
+- The map labels facts, `UNKNOWN`s, and `ASSUMPTION`s clearly enough to expose
+  missing context, split signals, and candidate choices without drifting into
+  after-design.
 - The premises required for each key judgment are listed with a source or cheap
   verification path and one of `FACT`, `VERIFIED`, `ASSUMPTION`, or
   `USER REVIEW NEEDED`.

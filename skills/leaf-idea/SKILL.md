@@ -1,6 +1,6 @@
 ---
 name: leaf-idea
-description: Use when capturing, triaging, or running the LEAF Learn phase (① Intent and ② Unknowns & Context) on a seed — the entry point for a new piece of work before it is promoted to leaf-work; trigger on idea backlog, "save this idea", "maybe later", brainstorm fragments, early document/product/research topics, locking intent, surfacing unknowns, reference/benchmark exploration (자료 조사, 레퍼런스 벤치마킹, 아이디어 발산), starting a substantial writing or knowledge task (글쓰기 프로세스, 문서 작성 순서, 논문 작성, 발표 자료, 초안 구조, "어떤 순서"), bundled ideas that may need separate seeds, or requests to decide whether an idea should die, defer, enrich, split, learn, or become structured LEAF work.
+description: Use when capturing, triaging, or running the LEAF Learn phase (① Intent and ② Unknowns & Context) on a seed — the entry point for a new piece of work before it is promoted to leaf-work; trigger on idea backlog, "save this idea", "maybe later", brainstorm fragments, early document/product/research topics, locking intent, surfacing unknowns, reference/benchmark exploration (자료 조사, 레퍼런스 벤치마킹, 아이디어 발산), big-picture or architecture mapping for understanding, starting a substantial writing or knowledge task (글쓰기 프로세스, 문서 작성 순서, 논문 작성, 발표 자료, 초안 구조, "어떤 순서"), bundled ideas that may need separate seeds, or requests to decide whether an idea should die, defer, enrich, split, learn, or become structured LEAF work.
 ---
 
 # LEAF Idea
@@ -152,6 +152,17 @@ Categorize unknowns by kind (domain concepts / standards & conventions /
 selection criteria) and by source — **external** (comparable cases, prior art,
 benchmarks, authoritative sources, recent domain changes) and **internal** (what
 the user or team already holds).
+
+**Sketch the big picture as study material.** When the work touches an existing
+system, product architecture, workflow, domain model, multiple actors/surfaces,
+or enough references that the shape is easy to lose, create a compact ASCII map
+under `01-Learn/02-references/` (for example `architecture-map.md`). Map the
+current known topology: actors, surfaces, components, data/content flow,
+ownership boundaries, external dependencies, preserved constraints, and the
+places marked `UNKNOWN` or `ASSUMPTION`. This is a learning artifact, not ⑤
+Design: do not invent the after architecture here. Use the map to find missing
+facts, split signals, and candidate choices; summarize only those distilled
+facts and gaps back into `01-Learn/02-unknowns.md`.
 
 **Drive the external facts: find what to search, then ask the user.** Standards,
 conventions, and comparables live outside and shift over time — do not guess

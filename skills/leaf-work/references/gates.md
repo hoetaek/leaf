@@ -215,9 +215,13 @@ alternatives; (for product artifacts) component boundaries, state model,
 interaction rules, responsive rules, accessibility/focus rules, visual system
 rules. Data/state contracts are *consumed* from the ④ contract, not decided here.
 
-**Brownfield designs** can open with a model of the existing system before the
-new design: a **Static Model** (Purpose, Components, Business Rules) and a
-**Dynamic Model** (workflow or behavior). Check brownfield assumptions —
+**Brownfield designs** open with an explicit before/after architecture sketch
+when structure, workflow, ownership, or component boundaries change. Draw the
+current architecture first, then the intended architecture: a **Static Model**
+(Purpose, Components, Business Rules) and a **Dynamic Model** (workflow or
+behavior) for both before and after. The sketch may be ASCII, Mermaid, boxes and
+arrows, or a compact table, but it must show what is preserved, what is replaced
+or extended, and where responsibility moves. Check brownfield assumptions —
 which existing component is extended vs replaced, whether the stated current
 structure is actually true — against local code, docs, or current rendered
 behavior where the check is cheap; do not design against a remembered system.
@@ -235,6 +239,9 @@ Gate to continue:
 - The design matches audience, criteria, and the validated wireframe.
 - It explains how the validated case generalizes to realistic data volume,
   breakpoints, states, and edge cases.
+- For brownfield structural change, the before/after architecture sketch is
+  present and cheap-checks the current model against the actual system before
+  committing to the after model.
 - Public terminology and model terms pass a project glossary / canonical
   terminology check: when a term conflicts with existing docs or the project
   glossary, the conflict is called out and the canonical term proposed before
@@ -276,6 +283,9 @@ Gate to continue:
 
 - Verdict is `APPROVE`, **or** `ITERATE` revisions have been applied and the
   design re-reviewed.
+- The critic explicitly checks whether the design is the best available answer
+  to the necessity / why locked at ① Intent, not merely whether it satisfies the
+  currently drafted ③ Criteria.
 - `REJECT` returns to ⑤ Design (and possibly to ② Unknowns when an
   assumption was overturned).
 - Even a quick self-pass leaves a one-line record of what was checked, so the
