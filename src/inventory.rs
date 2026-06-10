@@ -187,8 +187,56 @@ fn load_bucket(leaf_root: &Path, bucket: Bucket) -> Result<BucketInventory> {
         }
     }
 
-    items.sort_by(|left, right| left.slug.cmp(&right.slug));
+    items.sort_by(item_display_order);
     Ok(BucketInventory { bucket, items })
+}
+
+fn item_display_order(left: &InventoryItem, right: &InventoryItem) -> std::cmp::Ordering {
+    gate_order(left.status.current_gate.as_deref())
+        .cmp(&gate_order(right.status.current_gate.as_deref()))
+        .then_with(|| left.slug.cmp(&right.slug))
+}
+
+fn gate_order(gate: Option<&str>) -> (usize, String) {
+    match gate.and_then(parse_gate_index) {
+        Some(index) => (index, String::new()),
+        None => (
+            usize::MAX,
+            gate.unwrap_or("").trim().to_lowercase().to_string(),
+        ),
+    }
+}
+
+fn parse_gate_index(value: &str) -> Option<usize> {
+    let first = value.trim_start().chars().next()?;
+    match first {
+        '①' => Some(1),
+        '②' => Some(2),
+        '③' => Some(3),
+        '④' => Some(4),
+        '⑤' => Some(5),
+        '⑥' => Some(6),
+        '⑦' => Some(7),
+        '⑧' => Some(8),
+        '⑨' => Some(9),
+        '⑩' => Some(10),
+        ch if ch.is_ascii_digit() => value
+            .trim_start()
+            .chars()
+            .take_while(|ch| ch.is_ascii_digit())
+            .collect::<String>()
+            .parse::<usize>()
+            .ok(),
+        'g' | 'G' => value
+            .trim_start()
+            .strip_prefix(['g', 'G'])?
+            .chars()
+            .take_while(|ch| ch.is_ascii_digit())
+            .collect::<String>()
+            .parse::<usize>()
+            .ok(),
+        _ => None,
+    }
 }
 
 fn project_entry(bucket: Bucket, file_type: fs::FileType, path: PathBuf) -> Option<InventoryItem> {
@@ -463,14 +511,48 @@ mod tests {
     }
 
     #[test]
-    fn inventory_load_lists_only_directories_in_seeds_sorted_by_slug() {
+    fn inventory_load_lists_only_directories_in_seeds_sorted_by_gate_then_slug() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        root.child(".leaf/01-seeds/zebra/00-status.md")
-            .write_str(full_status())
-            .expect("zebra");
-        root.child(".leaf/01-seeds/apple/00-status.md")
-            .write_str(full_status())
-            .expect("apple");
+        root.child(".leaf/01-seeds/third/00-status.md")
+            .write_str(
+                "# Leaf Status\n\n\
+                 - state: seed\n\
+                 - current phase: Example\n\
+                 - current gate: ③ Criteria\n\
+                 - first missing gate: ④ Wireframe\n\
+                 - next action: write criteria\n",
+            )
+            .expect("third");
+        root.child(".leaf/01-seeds/second-zebra/00-status.md")
+            .write_str(
+                "# Leaf Status\n\n\
+                 - state: seed\n\
+                 - current phase: Learn\n\
+                 - current gate: ② Unknowns\n\
+                 - first missing gate: ③ Criteria\n\
+                 - next action: resolve unknowns\n",
+            )
+            .expect("second zebra");
+        root.child(".leaf/01-seeds/second-apple/00-status.md")
+            .write_str(
+                "# Leaf Status\n\n\
+                 - state: seed\n\
+                 - current phase: Learn\n\
+                 - current gate: G2\n\
+                 - first missing gate: G3\n\
+                 - next action: resolve unknowns\n",
+            )
+            .expect("second apple");
+        root.child(".leaf/01-seeds/first/00-status.md")
+            .write_str(
+                "# Leaf Status\n\n\
+                 - state: seed\n\
+                 - current phase: Learn\n\
+                 - current gate: 1 Intent\n\
+                 - first missing gate: ② Unknowns\n\
+                 - next action: clarify intent\n",
+            )
+            .expect("first");
         root.child(".leaf/01-seeds/loose.md")
             .write_str("stray file\n")
             .expect("loose file");
@@ -482,7 +564,10 @@ mod tests {
             .iter()
             .map(|item| item.slug.as_str())
             .collect();
-        assert_eq!(slugs, vec!["apple", "zebra"]);
+        assert_eq!(
+            slugs,
+            vec!["first", "second-apple", "second-zebra", "third"]
+        );
     }
 
     #[test]
