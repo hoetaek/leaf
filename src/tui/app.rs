@@ -9,7 +9,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
-const MOUSE_SCROLL_LINES: usize = 1;
+const MOUSE_SCROLL_LINES: usize = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ListRow {
