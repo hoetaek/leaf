@@ -19,6 +19,8 @@ const HEADER_SUMMARY_WIDTH: u16 = 24;
 const RIGHT_PREVIEW_RATIO: f32 = 0.45;
 const BOTTOM_PREVIEW_RATIO: f32 = 0.40;
 const MIN_TABLE_WIDTH_FOR_RIGHT_PREVIEW: u16 = 80;
+const REVIEW_BODY_HORIZONTAL_PADDING: u16 = 1;
+const MIN_REVIEW_BODY_WIDTH_FOR_HORIZONTAL_PADDING: u16 = 48;
 
 static MARKDOWN_STYLE_PROFILE: OnceLock<MarkdownStyleProfile> = OnceLock::new();
 
@@ -96,20 +98,12 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         layout.notice,
     );
 
-    let rendered_body_lines = wrapped_review_lines(document, layout.body.width);
+    let rendered_body_lines = review.rendered_body_lines(document, layout.body.width);
     let scroll_offset = clamped_review_scroll_offset(
         &rendered_body_lines,
         layout.body.height,
         review.scroll_offset,
     );
-    let current_source = current_source_index(&rendered_body_lines, scroll_offset);
-    let scroll_percent =
-        review_scroll_percent(&rendered_body_lines, layout.body.height, scroll_offset);
-    let meta = format!(
-        "source {}/{}  scroll {}%  {}",
-        current_source, document.source_count, scroll_percent, review.status_message
-    );
-    frame.render_widget(Paragraph::new(Line::styled(meta, dim_style())), layout.meta);
 
     frame.render_widget(review_body_block(), layout.body_shell);
 
@@ -122,7 +116,7 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
 
     frame.render_widget(
         Paragraph::new(Line::styled(
-            "↑/↓/wheel scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Esc/q back",
+            "↑/↓/wheel scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Shift/Opt-drag copy  Esc/q back",
             dim_style(),
         )),
         layout.footer,
@@ -133,7 +127,6 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
 struct ReviewLayout {
     header: Rect,
     notice: Rect,
-    meta: Rect,
     body_shell: Rect,
     body: Rect,
     footer: Rect,
@@ -143,24 +136,36 @@ fn review_layout(area: Rect) -> ReviewLayout {
     let chunks = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),
-        Constraint::Length(1),
         Constraint::Min(1),
         Constraint::Length(1),
     ])
     .split(area);
-    let body_shell = chunks[3];
+    let body_shell = chunks[2];
     ReviewLayout {
         header: chunks[0],
         notice: chunks[1],
-        meta: chunks[2],
         body_shell,
         body: review_body_inner(body_shell),
-        footer: chunks[4],
+        footer: chunks[3],
     }
 }
 
 fn review_body_inner(area: Rect) -> Rect {
-    review_body_block().inner(area)
+    let inner = review_body_block().inner(area);
+    padded_content_inner(inner)
+}
+
+fn padded_content_inner(inner: Rect) -> Rect {
+    if inner.width < MIN_REVIEW_BODY_WIDTH_FOR_HORIZONTAL_PADDING {
+        return inner;
+    }
+    Rect {
+        x: inner.x.saturating_add(REVIEW_BODY_HORIZONTAL_PADDING),
+        width: inner
+            .width
+            .saturating_sub(REVIEW_BODY_HORIZONTAL_PADDING.saturating_mul(2)),
+        ..inner
+    }
 }
 
 fn rect_contains(rect: Rect, column: u16, row: u16) -> bool {
@@ -185,7 +190,7 @@ pub(crate) fn review_hyperlink_target(
         return None;
     }
 
-    let rendered = wrapped_review_lines(&review.document, layout.body.width);
+    let rendered = review.rendered_body_lines(&review.document, layout.body.width);
     let scroll_offset =
         clamped_review_scroll_offset(&rendered, layout.body.height, review.scroll_offset);
     let relative_row = usize::from(row.saturating_sub(layout.body.y));
@@ -279,15 +284,18 @@ fn draw_table(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         return;
     }
 
+    let block = chrome_block().title("Inventory");
+    frame.render_widget(block.clone(), area);
+    let content_area = padded_content_inner(block.inner(area));
+
     let visible_rows = app.visible_rows();
     if visible_rows.is_empty() {
-        let empty = Paragraph::new("No leaf items match the current view.")
-            .block(chrome_block().title("Inventory"));
-        frame.render_widget(empty, area);
+        let empty = Paragraph::new("No leaf items match the current view.");
+        frame.render_widget(empty, content_area);
         return;
     }
 
-    let row_capacity = table_row_capacity(area);
+    let row_capacity = table_row_capacity(content_area);
     let offset = row_viewport_offset(app.selected_index(), row_capacity);
     let rows = visible_rows
         .into_iter()
@@ -298,9 +306,8 @@ fn draw_table(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
 
     let table = Table::new(rows, table_constraints())
         .header(Row::new(table_header()).style(chrome_style()))
-        .column_spacing(1)
-        .block(chrome_block().title("Inventory"));
-    frame.render_widget(table, area);
+        .column_spacing(1);
+    frame.render_widget(table, content_area);
 }
 
 fn draw_preview(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
@@ -329,9 +336,11 @@ fn draw_preview(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         ),
     };
 
+    let block = chrome_block().title(title);
+    frame.render_widget(block.clone(), area);
     frame.render_widget(
-        Paragraph::new(lines).block(chrome_block().title(title)),
-        area,
+        Paragraph::new(lines),
+        padded_content_inner(block.inner(area)),
     );
 }
 
@@ -454,19 +463,21 @@ pub(crate) fn table_mouse_target(
     if table.height == 0 || table.width < 2 {
         return None;
     }
-
-    let inner_left = table.x + 1;
-    let inner_right = table.x + table.width - 2;
-    if column < inner_left || column > inner_right {
+    let table_content = padded_content_inner(chrome_block().inner(table));
+    if table_content.height == 0 || table_content.width == 0 {
         return None;
     }
 
-    let first_data_row = table.y + 2;
+    if column < table_content.x || column >= table_content.x.saturating_add(table_content.width) {
+        return None;
+    }
+
+    let first_data_row = table_content.y + 1;
     if row < first_data_row {
         return None;
     }
     let data_row_index = (row - first_data_row) as usize;
-    let row_capacity = table_row_capacity(table);
+    let row_capacity = table_row_capacity(table_content);
     if data_row_index >= row_capacity {
         return None;
     }
@@ -481,7 +492,7 @@ pub(crate) fn table_mouse_target(
 }
 
 fn table_row_capacity(area: Rect) -> usize {
-    area.height.saturating_sub(3) as usize
+    area.height.saturating_sub(1) as usize
 }
 
 fn row_viewport_offset(selected_index: usize, row_capacity: usize) -> usize {
@@ -554,9 +565,10 @@ fn preview_hyperlink_line(line: &PreviewLine) -> HyperlinkLine {
         PreviewLine::BlockQuote { prefix, line, .. } => {
             prepend_blockquote_prefix(prefix, preview_hyperlink_line(line))
         }
-        PreviewLine::Heading { level, text } => {
-            HyperlinkLine::new(Line::styled(text.clone(), heading_style(*level)))
-        }
+        PreviewLine::Heading { level, text } => HyperlinkLine::new(Line::from(Span::styled(
+            heading_display_text(*level, text),
+            heading_style(*level),
+        ))),
         PreviewLine::Checkbox {
             marker,
             checked,
@@ -720,9 +732,39 @@ fn review_hyperlink_line(line: &ReviewLine) -> HyperlinkLine {
 }
 
 #[derive(Debug, Clone)]
-struct RenderedReviewLine {
-    source_index: usize,
+pub(crate) struct RenderedReviewLine {
     content: HyperlinkLine,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ReviewRenderCache {
+    width: u16,
+    lines: Vec<RenderedReviewLine>,
+}
+
+impl ReviewRenderCache {
+    pub(crate) fn line_count(&self) -> usize {
+        self.lines.len()
+    }
+
+    pub(crate) fn lines(&self) -> &[RenderedReviewLine] {
+        &self.lines
+    }
+}
+
+pub(crate) fn build_review_render_cache(
+    document: &ReviewDocument,
+    width: usize,
+) -> ReviewRenderCache {
+    let width = width.try_into().unwrap_or(u16::MAX);
+    ReviewRenderCache {
+        width,
+        lines: review_body_lines(document, width),
+    }
+}
+
+pub(crate) fn review_render_cache_matches(cache: &ReviewRenderCache, width: usize) -> bool {
+    cache.width == width.try_into().unwrap_or(u16::MAX)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -799,20 +841,9 @@ fn terminal_hyperlink_text(line: &HyperlinkLine) -> String {
 fn wrapped_review_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedReviewLine> {
     let width = usize::from(width.max(1));
     let mut rendered: Vec<RenderedReviewLine> = Vec::new();
-    let mut section_index = 0;
     let mut previous_kind = None;
 
-    for (line_index, line) in document.lines.iter().enumerate() {
-        while section_index + 1 < document.sections.len()
-            && document.sections[section_index + 1].start_line <= line_index
-        {
-            section_index += 1;
-        }
-        let source_index = if document.sections.is_empty() {
-            0
-        } else {
-            section_index + 1
-        };
+    for line in &document.lines {
         let current = markdown_block_kind_for_review(line);
         if should_insert_markdown_rhythm(previous_kind, current)
             && !rendered
@@ -820,38 +851,33 @@ fn wrapped_review_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedRe
                 .is_some_and(|line| line.content.width() == 0)
         {
             rendered.push(RenderedReviewLine {
-                source_index,
                 content: HyperlinkLine::default(),
             });
         }
 
         if let Some(table_lines) = review_table_lines(line, width) {
-            rendered.extend(table_lines.into_iter().map(|content| RenderedReviewLine {
-                source_index,
-                content,
-            }));
+            rendered.extend(
+                table_lines
+                    .into_iter()
+                    .map(|content| RenderedReviewLine { content }),
+            );
         } else if let Some(blockquote_lines) = review_blockquote_lines(line, width) {
             rendered.extend(
                 blockquote_lines
                     .into_iter()
-                    .map(|content| RenderedReviewLine {
-                        source_index,
-                        content,
-                    }),
+                    .map(|content| RenderedReviewLine { content }),
             );
         } else if let Some(list_lines) = review_list_lines(line, width) {
-            rendered.extend(list_lines.into_iter().map(|content| RenderedReviewLine {
-                source_index,
-                content,
-            }));
+            rendered.extend(
+                list_lines
+                    .into_iter()
+                    .map(|content| RenderedReviewLine { content }),
+            );
         } else {
             rendered.extend(
                 wrap_hyperlink_line(review_hyperlink_line(line), width)
                     .into_iter()
-                    .map(|content| RenderedReviewLine {
-                        source_index,
-                        content,
-                    }),
+                    .map(|content| RenderedReviewLine { content }),
             );
         }
         previous_kind = Some(current);
@@ -860,11 +886,40 @@ fn wrapped_review_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedRe
     rendered
 }
 
+fn review_body_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedReviewLine> {
+    let mut rendered = wrapped_review_lines(document, width);
+    if rendered.is_empty() {
+        return rendered;
+    }
+    if !rendered
+        .last()
+        .is_some_and(|line| line.content.width() == 0)
+    {
+        rendered.push(RenderedReviewLine {
+            content: HyperlinkLine::default(),
+        });
+    }
+    rendered.push(RenderedReviewLine {
+        content: review_end_marker_line(usize::from(width.max(1))),
+    });
+    rendered
+}
+
+fn review_end_marker_line(width: usize) -> HyperlinkLine {
+    let marker = "-- END --";
+    let padding = width.saturating_sub(text_width(marker)) / 2;
+    HyperlinkLine::new(Line::from(vec![
+        Span::raw(" ".repeat(padding)),
+        Span::styled(marker, dim_style()),
+    ]))
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum MarkdownBlockKind {
     Blank,
     Boundary,
     Source,
+    Heading1,
     Heading,
     Code,
     Table,
@@ -891,6 +946,7 @@ fn markdown_block_kind_for_preview(line: &PreviewLine) -> MarkdownBlockKind {
             }
             _ => MarkdownBlockKind::Quote,
         },
+        PreviewLine::Heading { level: 1, .. } => MarkdownBlockKind::Heading1,
         PreviewLine::Heading { .. } => MarkdownBlockKind::Heading,
         PreviewLine::Code(_) | PreviewLine::CodeSpans(_) => MarkdownBlockKind::Code,
         PreviewLine::TableHeader { .. }
@@ -912,14 +968,24 @@ fn should_insert_markdown_rhythm(
     };
     if previous == MarkdownBlockKind::Blank
         || current == MarkdownBlockKind::Blank
-        || previous == MarkdownBlockKind::Boundary
         || current == MarkdownBlockKind::Boundary
     {
         return false;
     }
+    if previous == MarkdownBlockKind::Boundary && current != MarkdownBlockKind::Heading1 {
+        return false;
+    }
     match (previous, current) {
-        (_, MarkdownBlockKind::Source | MarkdownBlockKind::Heading) => true,
-        (MarkdownBlockKind::Source | MarkdownBlockKind::Heading, _) => true,
+        (
+            _,
+            MarkdownBlockKind::Source | MarkdownBlockKind::Heading1 | MarkdownBlockKind::Heading,
+        ) => true,
+        (
+            MarkdownBlockKind::Source | MarkdownBlockKind::Heading1 | MarkdownBlockKind::Heading,
+            _,
+        ) => true,
+        (_, MarkdownBlockKind::Quote) if previous != current => true,
+        (MarkdownBlockKind::Quote, _) if previous != current => true,
         (_, MarkdownBlockKind::Code | MarkdownBlockKind::Table)
             if previous != current && previous != MarkdownBlockKind::Quote =>
         {
@@ -1152,7 +1218,7 @@ fn hyperlink_line_units(line: &HyperlinkLine) -> Vec<HyperlinkUnit> {
             units.push(HyperlinkUnit {
                 ch,
                 width,
-                style: span.style,
+                style: line.line.style.patch(span.style),
                 destination,
             });
             source_column += width;
@@ -1520,27 +1586,6 @@ fn phase_style(phase: &str) -> Style {
     Style::default().fg(color).add_modifier(Modifier::BOLD)
 }
 
-fn current_source_index(lines: &[RenderedReviewLine], scroll_offset: usize) -> usize {
-    lines
-        .get(scroll_offset)
-        .or_else(|| lines.last())
-        .map(|line| line.source_index)
-        .unwrap_or(0)
-}
-
-fn review_scroll_percent(
-    lines: &[RenderedReviewLine],
-    body_height: u16,
-    scroll_offset: usize,
-) -> usize {
-    let max_scroll = max_review_scroll_for_body(lines, body_height);
-    scroll_offset
-        .min(max_scroll)
-        .saturating_mul(100)
-        .checked_div(max_scroll)
-        .unwrap_or(0)
-}
-
 fn clamped_review_scroll_offset(
     lines: &[RenderedReviewLine],
     body_height: u16,
@@ -1606,17 +1651,19 @@ fn strong_style() -> Style {
 }
 
 fn heading_style(level: u8) -> Style {
-    let base = Style::default().fg(markdown_style_profile().heading);
+    let base = strong_style();
     match level {
-        1 => base
-            .add_modifier(Modifier::BOLD)
-            .add_modifier(Modifier::UNDERLINED),
-        2 => base.add_modifier(Modifier::BOLD),
-        3 => base
-            .add_modifier(Modifier::BOLD)
-            .add_modifier(Modifier::ITALIC),
+        1 => base.add_modifier(Modifier::UNDERLINED),
+        2 => base,
+        3 => base.add_modifier(Modifier::ITALIC),
         _ => Style::default().add_modifier(Modifier::ITALIC),
     }
+}
+
+fn heading_display_text(level: u8, text: &str) -> String {
+    let level = level.clamp(1, 6);
+    let prefix = "#".repeat(level as usize);
+    format!("{prefix} {text}")
 }
 
 fn table_header_style() -> Style {
@@ -1837,6 +1884,39 @@ mod tests {
             })
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    #[test]
+    fn review_body_inner_adds_horizontal_padding_when_roomy() {
+        let body_shell = Rect::new(0, 0, 80, 10);
+        let body = review_body_inner(body_shell);
+
+        assert_eq!(body.x, 2);
+        assert_eq!(body.width, 76);
+        assert_eq!(body.y, 1);
+        assert_eq!(body.height, 8);
+    }
+
+    #[test]
+    fn review_body_inner_omits_horizontal_padding_when_cramped() {
+        let body_shell = Rect::new(0, 0, 40, 10);
+        let body = review_body_inner(body_shell);
+
+        assert_eq!(body.x, 1);
+        assert_eq!(body.width, 38);
+        assert_eq!(body.y, 1);
+        assert_eq!(body.height, 8);
+    }
+
+    #[test]
+    fn padded_content_inner_adds_horizontal_padding_when_roomy() {
+        let inner = Rect::new(1, 1, 78, 8);
+        let padded = padded_content_inner(inner);
+
+        assert_eq!(padded.x, 2);
+        assert_eq!(padded.width, 76);
+        assert_eq!(padded.y, 1);
+        assert_eq!(padded.height, 8);
     }
 
     fn strip_osc8(text: &str) -> String {
@@ -2257,7 +2337,7 @@ mod tests {
             vec![
                 "Learn / ① Intent  01-Learn/01-intent.md",
                 "",
-                "Intent",
+                "# Intent",
                 "",
                 "body",
                 "",
@@ -2267,6 +2347,30 @@ mod tests {
                 "• item",
                 "• next",
             ]
+        );
+    }
+
+    #[test]
+    fn preview_lines_add_vertical_rhythm_around_quote_blocks() {
+        let rendered = preview_lines_with_rhythm(&[
+            PreviewLine::Plain("before".to_string()),
+            PreviewLine::BlockQuote {
+                depth: 1,
+                prefix: "> ".to_string(),
+                line: Box::new(PreviewLine::Plain("quoted one".to_string())),
+            },
+            PreviewLine::BlockQuote {
+                depth: 1,
+                prefix: "> ".to_string(),
+                line: Box::new(PreviewLine::Plain("quoted two".to_string())),
+            },
+            PreviewLine::Plain("after".to_string()),
+        ]);
+        let text = rendered.iter().map(line_text).collect::<Vec<_>>();
+
+        assert_eq!(
+            text,
+            vec!["before", "", "│ quoted one", "│ quoted two", "", "after"]
         );
     }
 
@@ -2312,12 +2416,20 @@ mod tests {
             text: "Minor".to_string(),
         });
 
-        assert!(h1.style.add_modifier.contains(Modifier::BOLD));
-        assert!(h1.style.add_modifier.contains(Modifier::UNDERLINED));
-        assert!(h3.style.add_modifier.contains(Modifier::BOLD));
-        assert!(h3.style.add_modifier.contains(Modifier::ITALIC));
-        assert!(!h6.style.add_modifier.contains(Modifier::BOLD));
-        assert!(h6.style.add_modifier.contains(Modifier::ITALIC));
+        assert_eq!(line_text(&h1), "# Title");
+        assert_eq!(line_text(&h3), "### Subhead");
+        assert_eq!(line_text(&h6), "###### Minor");
+        assert!(h1.spans[0].style.add_modifier.contains(Modifier::BOLD));
+        assert!(
+            h1.spans[0]
+                .style
+                .add_modifier
+                .contains(Modifier::UNDERLINED)
+        );
+        assert!(h3.spans[0].style.add_modifier.contains(Modifier::BOLD));
+        assert!(h3.spans[0].style.add_modifier.contains(Modifier::ITALIC));
+        assert!(!h6.spans[0].style.add_modifier.contains(Modifier::BOLD));
+        assert!(h6.spans[0].style.add_modifier.contains(Modifier::ITALIC));
     }
 
     #[test]
@@ -2634,7 +2746,19 @@ mod tests {
 
         assert_eq!(
             text,
-            vec!["Title", "", "docs", "", "fn main() {}", "", "after"]
+            vec!["# Title", "", "docs", "", "fn main() {}", "", "after"]
+        );
+        assert!(
+            rendered[0].content.line.spans[0]
+                .style
+                .add_modifier
+                .contains(Modifier::BOLD)
+        );
+        assert!(
+            rendered[0].content.line.spans[0]
+                .style
+                .add_modifier
+                .contains(Modifier::UNDERLINED)
         );
         assert_eq!(
             rendered[2].content.hyperlinks,
@@ -2643,6 +2767,105 @@ mod tests {
                 destination: destination.to_string(),
             }]
         );
+    }
+
+    #[test]
+    fn review_lines_add_vertical_rhythm_around_quote_blocks() {
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/02-leaves/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/02-leaves/demo/00-status.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![
+                ReviewLine::Markdown(PreviewLine::Plain("before".to_string())),
+                ReviewLine::Markdown(PreviewLine::BlockQuote {
+                    depth: 1,
+                    prefix: "> ".to_string(),
+                    line: Box::new(PreviewLine::Plain("quoted one".to_string())),
+                }),
+                ReviewLine::Markdown(PreviewLine::BlockQuote {
+                    depth: 1,
+                    prefix: "> ".to_string(),
+                    line: Box::new(PreviewLine::Plain("quoted two".to_string())),
+                }),
+                ReviewLine::Markdown(PreviewLine::Plain("after".to_string())),
+            ],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 80);
+        let text = rendered
+            .iter()
+            .map(|line| line_text(&line.content.line))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            text,
+            vec!["before", "", "│ quoted one", "│ quoted two", "", "after"]
+        );
+    }
+
+    #[test]
+    fn review_lines_add_vertical_rhythm_before_h1_after_file_boundary() {
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/02-leaves/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/02-leaves/demo/00-status.md".to_string(),
+                start_line: 1,
+            }],
+            lines: vec![
+                ReviewLine::Separator {
+                    relative_path: ".leaf/02-leaves/demo/00-status.md".to_string(),
+                    phase: "Status".to_string(),
+                    gate: "Status".to_string(),
+                },
+                ReviewLine::Markdown(PreviewLine::Heading {
+                    level: 1,
+                    text: "Leaf Status".to_string(),
+                }),
+                ReviewLine::Markdown(PreviewLine::Plain("body".to_string())),
+            ],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 80);
+        let text = rendered
+            .iter()
+            .map(|line| line_text(&line.content.line))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            text,
+            vec![
+                "FILE Status / Status  .leaf/02-leaves/demo/00-status.md",
+                "",
+                "# Leaf Status",
+                "",
+                "body"
+            ]
+        );
+    }
+
+    #[test]
+    fn review_body_lines_add_centered_end_marker() {
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/02-leaves/demo".to_string(),
+            sections: Vec::new(),
+            lines: vec![ReviewLine::Markdown(PreviewLine::Plain("body".to_string()))],
+            source_count: 1,
+        };
+
+        let rendered = review_body_lines(&document, 20);
+        let text = rendered
+            .iter()
+            .map(|line| line_text(&line.content.line))
+            .collect::<Vec<_>>();
+
+        assert_eq!(text, vec!["body", "", "     -- END --"]);
     }
 
     #[test]
@@ -2950,6 +3173,7 @@ mod tests {
                 "│ • see",
                 "│   README.md:",
                 "│   10",
+                "",
                 "│   fn main()",
                 "│ {}"
             ]
@@ -3341,12 +3565,12 @@ mod tests {
         ]));
 
         // Terminal Rect(0,0,80,10): header y=0..1, table y=2 height=7, status y=9.
-        // Data rows begin at table.y + 2 = 4.
+        // Data rows begin below the table border/header, and roomy tables add 1ch content padding.
         let area = Rect::new(0, 0, 80, 10);
 
         assert_eq!(table_mouse_target(area, &app, 20, 4), Some(0));
         assert_eq!(table_mouse_target(area, &app, 2, 5), Some(1));
-        assert_eq!(table_mouse_target(area, &app, 1, 6), Some(2));
+        assert_eq!(table_mouse_target(area, &app, 1, 6), None);
         assert_eq!(table_mouse_target(area, &app, 3, 6), Some(2));
         assert_eq!(table_mouse_target(area, &app, 4, 6), Some(2));
     }
@@ -3451,8 +3675,19 @@ mod tests {
         assert!(text.contains("READ ONLY - edit originals"));
         assert!(text.contains(".leaf/02-leaves/demo/00-status.md"));
         assert!(line_contains_text(&buffer, 120, 18, "Leaf 상태"));
+        assert!(text.contains("# Intent"));
         assert!(text.contains("• rendered item"));
-        assert!(!text.contains("# Intent"));
+
+        let (heading_x, heading_y) =
+            text_position(&buffer, 120, 18, "# Leaf").expect("h1 heading position");
+        let heading_cell = &buffer[(heading_x, heading_y)];
+        assert!(heading_cell.style().add_modifier.contains(Modifier::BOLD));
+        assert!(
+            heading_cell
+                .style()
+                .add_modifier
+                .contains(Modifier::UNDERLINED)
+        );
     }
 
     #[test]
@@ -3729,8 +3964,9 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
 
         let width = 64;
-        let buffer = render_buffer(width, 34, &app);
-        let text = buffer_to_text(&buffer, width, 34);
+        let height = 35;
+        let buffer = render_buffer(width, height, &app);
+        let text = buffer_to_text(&buffer, width, height);
         let table_lines = text
             .lines()
             .filter(|line| {
@@ -3848,7 +4084,9 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
 
         let text = buffer_text(140, 18, &app);
 
+        assert!(text.contains("-- END --"));
         assert!(text.contains("r refresh"));
+        assert!(text.contains("Shift/Opt-drag copy"));
         assert!(text.contains("Esc/q back"));
         assert!(!text.contains("q quit"));
         assert!(!text.contains("auto-watch"));
