@@ -42,6 +42,7 @@ fn help_lists_init_and_new() {
         .stdout(predicate::str::contains("promote").not())
         .stdout(predicate::str::contains("fall"))
         .stdout(predicate::str::contains("list"))
+        .stdout(predicate::str::contains("review"))
         .stdout(predicate::str::contains("doctor"));
 }
 
@@ -430,6 +431,54 @@ fn list_missing_leaf_root_fails_without_bootstrapping() {
 
     repo.child(".leaf").assert(predicate::path::missing());
     assert_eq!(exclude_contents(repo.path()), exclude_before);
+}
+
+#[test]
+fn review_writes_selected_leaf_work_for_captured_stdout() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_status(
+        &repo,
+        ".leaf/02-leaves/demo/00-status.md",
+        "- stage: leaf\n\
+         - current phase: Learn\n\
+         - current gate: ① Intent\n\
+         - first missing gate: none\n\
+         - next action: review\n",
+    );
+    repo.child(".leaf/02-leaves/demo/01-Learn/01-intent.md")
+        .write_str("# Intent\n\nopen this reader directly\n")
+        .expect("intent");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["review", "demo"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            ".leaf/02-leaves/demo/00-status.md",
+        ))
+        .stdout(predicate::str::contains("open this reader directly"));
+}
+
+#[test]
+fn review_rejects_missing_slug() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["review", "missing"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "leaf work does not exist: missing",
+        ));
 }
 
 #[test]

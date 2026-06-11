@@ -1,6 +1,7 @@
-use anyhow::Result;
+use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use std::io::IsTerminal;
+use std::io::Write;
 use std::path::Path;
 use std::process::ExitCode;
 
@@ -35,6 +36,11 @@ enum Commands {
         /// Write machine-readable JSON.
         #[arg(long)]
         json: bool,
+    },
+    /// Open the review reader for one leaf-work slug.
+    Review {
+        /// Leaf-work slug to review.
+        slug: String,
     },
     /// Diagnose .leaf readiness for leaf list.
     Doctor {
@@ -97,6 +103,22 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             }
             Ok(ExitCode::SUCCESS)
         }
+        Commands::Review { slug } => {
+            let slug = crate::slug::validate(&slug)?;
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            let inventory = crate::inventory::load(&paths.root)?;
+            let source = review_source_for_slug(&inventory, &slug)?;
+            if std::io::stdin().is_terminal() && std::io::stdout().is_terminal() {
+                crate::tui::run_review(&inventory, source)?;
+            } else {
+                let document = crate::review::build(&source)?;
+                let stdout = std::io::stdout();
+                let mut stdout = stdout.lock();
+                crate::review::write_text(&mut stdout, &document)?;
+                stdout.flush().context("flush leaf review text")?;
+            }
+            Ok(ExitCode::SUCCESS)
+        }
         Commands::Doctor { json } => {
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             let report = crate::doctor::check(&paths.root)?;
@@ -112,6 +134,40 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             } else {
                 Ok(ExitCode::SUCCESS)
             }
+        }
+    }
+}
+
+fn review_source_for_slug(
+    inventory: &crate::inventory::Inventory,
+    slug: &str,
+) -> Result<crate::review::ReviewSource> {
+    let matches = inventory
+        .stages
+        .iter()
+        .flat_map(|stage| stage.items.iter())
+        .filter(|item| {
+            item.kind == crate::inventory::ItemKind::LeafWork && item.slug.as_str() == slug
+        })
+        .collect::<Vec<_>>();
+
+    match matches.as_slice() {
+        [] => bail!("leaf work does not exist: {slug}"),
+        [item] => item
+            .review
+            .clone()
+            .context("review is only available for leaf work rows"),
+        items => {
+            let repo_root = inventory
+                .leaf_root
+                .parent()
+                .context("inventory leaf root has no parent")?;
+            let locations = items
+                .iter()
+                .map(|item| repo_relative(repo_root, &item.path))
+                .collect::<Vec<_>>()
+                .join(", ");
+            bail!("leaf work slug is ambiguous: {slug} ({locations})");
         }
     }
 }

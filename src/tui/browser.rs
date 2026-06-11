@@ -1,4 +1,5 @@
 use crate::inventory::Inventory;
+use crate::review::ReviewSource;
 use crate::tui::app::{AppState, KeyInput, Mode, MouseInput, Outcome};
 use crate::tui::render::draw;
 use crate::tui::session::TerminalSession;
@@ -43,10 +44,20 @@ impl TuiAdapter for RealTuiAdapter {
 }
 
 pub(crate) fn run(inventory: &Inventory) -> Result<()> {
+    run_app(inventory, AppState::from_inventory(inventory))
+}
+
+pub(crate) fn run_review(inventory: &Inventory, source: ReviewSource) -> Result<()> {
+    let app = AppState::from_inventory_with_review_source(inventory, source)
+        .context("open leaf review reader")?;
+    run_app(inventory, app)
+}
+
+fn run_app(inventory: &Inventory, mut app: AppState) -> Result<()> {
     let repo_root = repo_root_from_inventory(inventory)?;
     let adapter = RealTuiAdapter { repo_root };
-    let mut app = AppState::from_inventory(inventory);
     let mut session = TerminalSession::enter()?;
+    sync_mouse_capture(&mut session, app.mode())?;
     let backend = CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend).context("open leaf list TUI terminal")?;
 

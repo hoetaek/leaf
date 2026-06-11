@@ -5,6 +5,7 @@ use crate::list_columns::{
 use crate::preview::{self, Preview, PreviewLine};
 use crate::review::{self, ReviewDocument, ReviewSource};
 use crate::tui::render;
+use anyhow::Result;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -265,6 +266,16 @@ impl AppState {
         state
     }
 
+    pub(crate) fn from_inventory_with_review_source(
+        inventory: &Inventory,
+        source: ReviewSource,
+    ) -> Result<Self> {
+        let mut state = Self::from_inventory(inventory);
+        state.select_review_source(&source);
+        state.open_review_source(source)?;
+        Ok(state)
+    }
+
     pub(crate) fn rows(&self) -> &[ListRow] {
         &self.rows
     }
@@ -487,15 +498,19 @@ impl AppState {
             return;
         };
 
-        match review::build(&source) {
-            Ok(document) => {
-                self.review_state = Some(ReviewState::new(source, document, 0, String::new()));
-                self.mode = Mode::Review;
-            }
+        match self.open_review_source(source) {
+            Ok(()) => {}
             Err(err) => {
                 self.status_line = format!("review failed: {err}");
             }
         }
+    }
+
+    fn open_review_source(&mut self, source: ReviewSource) -> Result<()> {
+        let document = review::build(&source)?;
+        self.review_state = Some(ReviewState::new(source, document, 0, String::new()));
+        self.mode = Mode::Review;
+        Ok(())
     }
 
     fn refresh_review(&mut self) {
@@ -892,7 +907,6 @@ impl AppState {
         self.refresh_visibility_state();
     }
 
-    #[cfg(test)]
     pub(crate) fn select_stage_slug(&mut self, stage_dir: StageDir, slug: &str) -> bool {
         self.active_stage = StageFilter::Stage(stage_dir);
         self.refresh_visibility_state();
@@ -908,6 +922,20 @@ impl AppState {
             }
             None => false,
         }
+    }
+
+    fn select_review_source(&mut self, source: &ReviewSource) -> bool {
+        let Some((stage_dir, slug)) = self.rows.iter().find_map(|row| {
+            if row.review_source.as_ref() == Some(source) {
+                Some((row.stage_dir, row.slug.clone()))
+            } else {
+                None
+            }
+        }) else {
+            return false;
+        };
+
+        self.select_stage_slug(stage_dir, &slug)
     }
 
     pub(crate) fn set_status_message(&mut self, message: impl Into<String>) {
@@ -1340,6 +1368,47 @@ mod tests {
         let review = app.review_state().expect("review state");
         assert_eq!(review.document.root_relative_path, ".leaf/02-leaves/demo");
         assert!(review.document.visible_text().contains("00-status.md"));
+    }
+
+    #[test]
+    fn tui_app_can_start_directly_in_review_mode_for_source() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_preview_status(
+            root.path(),
+            StageDir::Leaves,
+            slug,
+            "- current gate: ① Intent\n",
+        );
+        std::fs::create_dir_all(
+            root.path()
+                .join(".leaf")
+                .join(StageDir::Leaves.dir_name())
+                .join(slug)
+                .join("01-Learn"),
+        )
+        .expect("learn dir");
+        std::fs::write(
+            root.path()
+                .join(".leaf")
+                .join(StageDir::Leaves.dir_name())
+                .join(slug)
+                .join("01-Learn/01-intent.md"),
+            "# Intent\n\n- direct reader\n",
+        )
+        .expect("intent");
+        let item = leaf_item_at(root.path(), StageDir::Leaves, slug, complete_leaf_status());
+        let source = item.review.clone().expect("review source");
+        let inventory = inventory_with_root(root.path(), vec![item]);
+
+        let app = AppState::from_inventory_with_review_source(&inventory, source)
+            .expect("direct review app");
+
+        assert_eq!(app.mode(), Mode::Review);
+        assert_eq!(app.selected_row().map(ListRow::slug), Some(slug));
+        let review = app.review_state().expect("review state");
+        assert_eq!(review.document.root_relative_path, ".leaf/02-leaves/demo");
+        assert!(review.document.visible_text().contains("direct reader"));
     }
 
     #[test]

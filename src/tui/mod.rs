@@ -3,4 +3,4 @@ mod browser;
 mod render;
 mod session;
 
-pub(crate) use browser::run;
+pub(crate) use browser::{run, run_review};
