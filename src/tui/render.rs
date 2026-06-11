@@ -733,6 +733,72 @@ fn review_hyperlink_line(line: &ReviewLine) -> HyperlinkLine {
     }
 }
 
+const USER_REVIEW_MARKER: &str = "USER REVIEW NEEDED";
+
+fn highlight_user_review_markers(line: HyperlinkLine) -> HyperlinkLine {
+    let text = line_text(&line.line);
+    let ranges = text
+        .match_indices(USER_REVIEW_MARKER)
+        .map(|(start, marker)| {
+            let mut end = start + marker.len();
+            if text.as_bytes().get(end) == Some(&b':') {
+                end += 1;
+            }
+            start..end
+        })
+        .collect::<Vec<_>>();
+    if ranges.is_empty() {
+        return line;
+    }
+
+    let mut highlighted_spans = Vec::new();
+    let mut span_start = 0;
+    for span in line.line.spans {
+        let content = span.content.into_owned();
+        let span_end = span_start + content.len();
+        let mut offset = 0;
+        while offset < content.len() {
+            let absolute = span_start + offset;
+            let range = ranges
+                .iter()
+                .find(|range| range.start <= absolute && absolute < range.end);
+            let next_boundary = ranges
+                .iter()
+                .filter_map(|range| {
+                    if range.start > absolute && range.start < span_end {
+                        Some(range.start)
+                    } else if range.end > absolute && range.end < span_end {
+                        Some(range.end)
+                    } else {
+                        None
+                    }
+                })
+                .min()
+                .unwrap_or(span_end);
+            let relative_end = next_boundary - span_start;
+            let mut style = span.style;
+            if range.is_some() {
+                style = style.patch(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
+            }
+            highlighted_spans.push(Span::styled(
+                content[offset..relative_end].to_string(),
+                style,
+            ));
+            offset = relative_end;
+        }
+        span_start = span_end;
+    }
+
+    HyperlinkLine {
+        line: Line {
+            style: line.line.style,
+            alignment: line.line.alignment,
+            spans: highlighted_spans,
+        },
+        hyperlinks: line.hyperlinks,
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct RenderedReviewLine {
     content: HyperlinkLine,
@@ -874,8 +940,17 @@ fn wrapped_review_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedRe
                     .map(|content| RenderedReviewLine { content }),
             );
         } else {
+            let content = review_hyperlink_line(line);
+            let content = if matches!(
+                line,
+                ReviewLine::Markdown(PreviewLine::Code(_) | PreviewLine::CodeSpans(_))
+            ) {
+                content
+            } else {
+                highlight_user_review_markers(content)
+            };
             rendered.extend(
-                wrap_hyperlink_line(review_hyperlink_line(line), width)
+                wrap_hyperlink_line(content, width)
                     .into_iter()
                     .map(|content| RenderedReviewLine { content }),
             );
@@ -1027,6 +1102,7 @@ fn review_table_lines(line: &ReviewLine, width: usize) -> Option<Vec<HyperlinkLi
     Some(
         annotate_table_link_fragments(table_line, table_lines, style)
             .into_iter()
+            .map(highlight_user_review_markers)
             .map(|line| prepend_blockquote_prefix(prefix, line))
             .collect(),
     )
@@ -1053,11 +1129,20 @@ fn review_list_lines(line: &ReviewLine, width: usize) -> Option<Vec<HyperlinkLin
     preview_list_lines(line, width)
 }
 
+// Review-only caller; preview panel rendering goes through preview_line/preview_lines_with_rhythm.
 fn wrap_preview_line(line: &PreviewLine, width: usize) -> Vec<HyperlinkLine> {
-    preview_list_lines(line, width)
-        .unwrap_or_else(|| wrap_hyperlink_line(preview_hyperlink_line(line), width))
+    preview_list_lines(line, width).unwrap_or_else(|| {
+        let content = preview_hyperlink_line(line);
+        let content = if matches!(line, PreviewLine::Code(_) | PreviewLine::CodeSpans(_)) {
+            content
+        } else {
+            highlight_user_review_markers(content)
+        };
+        wrap_hyperlink_line(content, width)
+    })
 }
 
+// Review-only caller; preview panel rendering goes through preview_line/preview_lines_with_rhythm.
 fn preview_list_lines(line: &PreviewLine, width: usize) -> Option<Vec<HyperlinkLine>> {
     let continuation_width = match line {
         PreviewLine::ListItem { marker, .. } => text_width(marker) + 1,
@@ -1065,7 +1150,7 @@ fn preview_list_lines(line: &PreviewLine, width: usize) -> Option<Vec<HyperlinkL
         _ => return None,
     };
     Some(wrap_hyperlink_line_with_continuation(
-        preview_hyperlink_line(line),
+        highlight_user_review_markers(preview_hyperlink_line(line)),
         width,
         continuation_width,
     ))
@@ -2610,6 +2695,240 @@ mod tests {
             line.spans
                 .iter()
                 .any(|span| span.style.add_modifier.contains(Modifier::BOLD))
+        );
+    }
+
+    #[test]
+    fn highlight_user_review_markers_styles_marker_span_red_bold() {
+        let line = HyperlinkLine::new(Line::from(
+            "USER REVIEW NEEDED: 강조 marker 범위를 정해야 한다.",
+        ));
+
+        let highlighted = highlight_user_review_markers(line.clone());
+
+        assert_eq!(line_text(&highlighted.line), line_text(&line.line));
+        let marker_span = &highlighted.line.spans[0];
+        assert_eq!(marker_span.content.as_ref(), "USER REVIEW NEEDED:");
+        assert_eq!(marker_span.style.fg, Some(Color::Red));
+        assert!(marker_span.style.add_modifier.contains(Modifier::BOLD));
+        let rest = &highlighted.line.spans[1];
+        assert_ne!(rest.style.fg, Some(Color::Red));
+    }
+
+    #[test]
+    fn highlight_user_review_markers_highlights_every_occurrence() {
+        let line = HyperlinkLine::new(Line::from(
+            "USER REVIEW NEEDED: surface와 USER REVIEW NEEDED 강조 방식",
+        ));
+
+        let highlighted = highlight_user_review_markers(line);
+
+        let red: Vec<&str> = highlighted
+            .line
+            .spans
+            .iter()
+            .filter(|span| span.style.fg == Some(Color::Red))
+            .map(|span| span.content.as_ref())
+            .collect();
+        assert_eq!(red, vec!["USER REVIEW NEEDED:", "USER REVIEW NEEDED"]);
+    }
+
+    #[test]
+    fn highlight_user_review_markers_matches_across_span_boundaries() {
+        let line = HyperlinkLine::new(Line::from(vec![
+            Span::raw("USER REVIEW "),
+            Span::styled("NEEDED", strong_style()),
+            Span::raw(" 확인"),
+        ]));
+
+        let highlighted = highlight_user_review_markers(line);
+
+        let red_text: String = highlighted
+            .line
+            .spans
+            .iter()
+            .filter(|span| {
+                span.style.fg == Some(Color::Red)
+                    && span.style.add_modifier.contains(Modifier::BOLD)
+            })
+            .map(|span| span.content.as_ref())
+            .collect();
+        assert_eq!(red_text, "USER REVIEW NEEDED");
+    }
+
+    #[test]
+    fn highlight_user_review_markers_no_marker_is_identity() {
+        let line = HyperlinkLine::new(Line::from("일반 본문 줄입니다."));
+        assert_eq!(highlight_user_review_markers(line.clone()), line);
+    }
+
+    #[test]
+    fn highlight_user_review_markers_ignores_lowercase() {
+        let line = HyperlinkLine::new(Line::from("user review needed: 소문자"));
+        assert_eq!(highlight_user_review_markers(line.clone()), line);
+    }
+
+    #[test]
+    fn highlight_user_review_markers_preserves_hyperlinks() {
+        let mut line = HyperlinkLine::new(Line::from(vec![
+            Span::raw("USER REVIEW NEEDED: see "),
+            Span::styled("docs", link_style()),
+        ]));
+        line.hyperlinks.push(TerminalHyperlink {
+            columns: 24..28,
+            destination: "https://example.com".to_string(),
+        });
+
+        let highlighted = highlight_user_review_markers(line.clone());
+
+        assert_eq!(highlighted.hyperlinks, line.hyperlinks);
+        assert_eq!(line_text(&highlighted.line), line_text(&line.line));
+    }
+
+    #[test]
+    fn wrapped_review_lines_keep_marker_highlight_across_wrap() {
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/01-sprouts/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/01-sprouts/demo/00-status.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![ReviewLine::Markdown(PreviewLine::Plain(
+                "aaaa aaaa aaaa USER REVIEW NEEDED: tail".to_string(),
+            ))],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 20);
+
+        let red_chars: String = rendered
+            .iter()
+            .flat_map(|line| line.content.line.spans.iter())
+            .filter(|span| {
+                span.style.fg == Some(Color::Red)
+                    && span.style.add_modifier.contains(Modifier::BOLD)
+            })
+            .map(|span| span.content.as_ref().to_string())
+            .collect();
+        assert_eq!(red_chars.replace(' ', ""), "USERREVIEWNEEDED:");
+    }
+
+    #[test]
+    fn wrapped_review_lines_do_not_highlight_markers_in_code_blocks() {
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/01-sprouts/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/01-sprouts/demo/00-status.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![ReviewLine::Markdown(PreviewLine::Code(
+                "USER REVIEW NEEDED: code sample".to_string(),
+            ))],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 80);
+
+        assert!(
+            rendered
+                .iter()
+                .flat_map(|line| line.content.line.spans.iter())
+                .all(|span| span.style.fg != Some(Color::Red))
+        );
+    }
+
+    #[test]
+    fn review_table_lines_highlight_marker_cells() {
+        let line = ReviewLine::Markdown(PreviewLine::TableRow {
+            headers: vec!["Status".to_string()],
+            cells: vec!["USER REVIEW NEEDED".to_string()],
+            links: vec![],
+            widths: vec![18],
+            alignments: vec![crate::preview::TableAlignment::None],
+        });
+
+        let rendered = review_table_lines(&line, 80).expect("table row");
+
+        assert!(rendered[0].line.spans.iter().any(|span| {
+            span.content.as_ref() == "USER REVIEW NEEDED"
+                && span.style.fg == Some(Color::Red)
+                && span.style.add_modifier.contains(Modifier::BOLD)
+        }));
+    }
+
+    #[test]
+    fn review_blockquote_lines_highlight_marker_but_not_inner_code() {
+        let quoted = ReviewLine::Markdown(PreviewLine::BlockQuote {
+            depth: 1,
+            prefix: "> ".to_string(),
+            line: Box::new(PreviewLine::Plain(
+                "USER REVIEW NEEDED: 인용 본문".to_string(),
+            )),
+        });
+        let rendered = review_blockquote_lines(&quoted, 80).expect("blockquote");
+        let red_text: String = rendered[0]
+            .line
+            .spans
+            .iter()
+            .filter(|span| {
+                span.style.fg == Some(Color::Red)
+                    && span.style.add_modifier.contains(Modifier::BOLD)
+            })
+            .map(|span| span.content.as_ref())
+            .collect();
+        assert_eq!(red_text, "USER REVIEW NEEDED:");
+
+        let quoted_code = ReviewLine::Markdown(PreviewLine::BlockQuote {
+            depth: 1,
+            prefix: "> ".to_string(),
+            line: Box::new(PreviewLine::Code("USER REVIEW NEEDED: code".to_string())),
+        });
+        let rendered = review_blockquote_lines(&quoted_code, 80).expect("blockquote");
+        assert!(
+            rendered
+                .iter()
+                .flat_map(|line| line.line.spans.iter())
+                .all(|span| span.style.fg != Some(Color::Red))
+        );
+    }
+
+    #[test]
+    fn review_list_lines_highlight_marker_items() {
+        let line = ReviewLine::Markdown(PreviewLine::ListItem {
+            marker: "-".to_string(),
+            spans: vec![PreviewSpan::Plain(
+                "USER REVIEW NEEDED: 항목 판단".to_string(),
+            )],
+        });
+
+        let rendered = review_list_lines(&line, 80).expect("list item");
+
+        let red_text: String = rendered[0]
+            .line
+            .spans
+            .iter()
+            .filter(|span| {
+                span.style.fg == Some(Color::Red)
+                    && span.style.add_modifier.contains(Modifier::BOLD)
+            })
+            .map(|span| span.content.as_ref())
+            .collect();
+        assert_eq!(red_text, "USER REVIEW NEEDED:");
+    }
+
+    #[test]
+    fn preview_line_does_not_highlight_user_review_marker() {
+        let line = PreviewLine::Plain("USER REVIEW NEEDED: preview는 불변".to_string());
+
+        let rendered = preview_line(&line);
+
+        assert!(
+            rendered
+                .spans
+                .iter()
+                .all(|span| span.style.fg != Some(Color::Red))
         );
     }
 
