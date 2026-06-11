@@ -120,9 +120,11 @@ lessons into the repo-local acquired profile `.leaf/PROFILE.md` per the
   small or low-risk that this feels wasteful, do not invoke leaf-work.
 - **Stay in the same sprout until completion.** ③ Criteria, ④ Wireframe,
   Architect, execution, and Feedback continue in the same project folder that
-  Learn created. When the work closes, decide explicitly whether it becomes a
-  reference-worthy leaf or a fallen archive. That final stage choice is not a
-  prerequisite for starting ③.
+  Learn created. Immediately after ⑩ Retrospect passes, decide explicitly with
+  the user whether the leaf becomes a reference-worthy **pressed** leaf or a
+  **fallen** archive, then invoke the `leaf-clean` skill with the Skill tool to
+  execute it — the work is not closed while the sprout still sits in the
+  workspace. That final stage choice is not a prerequisite for starting ③.
 - **Persistent files live inside one project folder.** Keep the four phase
   folders and two-digit gate prefixes inside the sprout project folder. For all
   naming and file-vs-folder-by-count, read `references/layout.md`.
