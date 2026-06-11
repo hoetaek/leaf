@@ -414,6 +414,46 @@ Gate to future work:
 - The ② checklist for similar future work is updated with the categories or
   example questions the team kept missing.
 
+### Profile update
+
+After the retrospect is written, update the repo-local acquired profile at
+`.leaf/PROFILE.md`. If the file is missing in a pre-PROFILE workspace, create it
+with the same fixed header scaffolded by `leaf init`.
+
+Extract candidates from this leaf's episode: the retrospect, review notes, and
+user corrections. Keep only behavior traits phrased as "when X, do Y", or
+recurring facts prefixed `(사실)` that are needed across leaves and cannot be
+cheaply derived from the repo.
+
+Filter every candidate with this test question: "Would the next leaf's agent
+behave differently, or re-ask the same question, for not knowing this?" Drop the
+candidate when the answer is no.
+
+Consolidate against existing entries:
+
+- Same meaning: increment ×N, append this leaf's `leaf:{slug}` handle, keep up
+  to the 3 most recent handles, and promote to `## Settled` at ×2 or higher.
+- Contradiction: replace the old entry, restart at ×1, and place it under
+  `## Provisional`.
+- New: add it at ×1 under `## Provisional`.
+
+Count at most one observation per leaf. Use this entry format:
+`- [(사실) ]<sentence> ×<count> — <leaf:slug[, ...]>`.
+
+Move new and re-observed entries to the bottom of their section; order encodes
+recency without dates. When the file exceeds 30 lines, evict from the top of
+`## Provisional` first.
+
+Preserve hand-edited content: never reformat the whole file. Leave lines that
+do not match the entry format untouched and name them in the report.
+
+Show the profile update as a diff in the report — what was added, promoted,
+replaced, or removed — so the user can review every profile change.
+
+A profile entry may specialize `leaf-soul` conduct but never negate it. When an
+episode repeatedly demands a negation, surface it as a `leaf-soul` change signal
+instead of writing the entry.
+
 ---
 
 ## Anti-Patterns
