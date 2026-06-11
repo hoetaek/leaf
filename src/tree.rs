@@ -738,16 +738,13 @@ fn push_leaf_sections(output: &mut String, model: &TreeModel, color: bool, width
     let ordinary_count = model.leaf_count().saturating_sub(pressed_count);
     let pressed_values = marker_leaves
         .iter()
-        .filter_map(|(index, leaf)| {
-            leaf.pressed
-                .then(|| format!("{} {}", marker_char(*index), leaf.slug))
-        })
+        .filter(|(_, leaf)| leaf.pressed)
+        .map(|(index, leaf)| format!("{} {}", marker_char(*index), leaf.slug))
         .collect::<Vec<_>>();
     let ordinary_values = marker_leaves
         .iter()
-        .filter_map(|(index, leaf)| {
-            (!leaf.pressed).then(|| format!("{} {}", marker_char(*index), leaf.slug))
-        })
+        .filter(|(_, leaf)| !leaf.pressed)
+        .map(|(index, leaf)| format!("{} {}", marker_char(*index), leaf.slug))
         .collect::<Vec<_>>();
     let hidden_pressed = pressed_count.saturating_sub(pressed_values.len());
     let hidden_ordinary = ordinary_count.saturating_sub(ordinary_values.len());
