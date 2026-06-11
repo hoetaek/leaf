@@ -8,6 +8,10 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+- `leaf init` now scaffolds `.leaf/PROFILE.md`; leaf-work ⑩ Retrospect
+  consolidates behavior traits and recurring facts into it with
+  strengthen/replace/evict rules and a 30-line cap; and `leaf-soul` recalls it
+  at the start of LEAF work.
 - The `leaf-idea` Learn-close question now shows the `01-Learn/02-references/`
   file tree first, with a one-line note per file, so the user judges whether
   enough material was gathered from the files rather than from memory.
