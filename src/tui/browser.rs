@@ -51,11 +51,11 @@ pub(crate) fn run(inventory: &Inventory) -> Result<()> {
     let repo_root = repo_root_from_inventory(inventory)?;
     let adapter = RealTuiAdapter { repo_root };
     let mut app = AppState::from_inventory(inventory);
-    let session = TerminalSession::enter()?;
+    let mut session = TerminalSession::enter()?;
     let backend = CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend).context("open leaf list TUI terminal")?;
 
-    let loop_result = event_loop(&mut terminal, &mut app, &adapter);
+    let loop_result = event_loop(&mut terminal, &mut app, &adapter, &mut session);
 
     let cursor_result = terminal
         .show_cursor()
@@ -71,6 +71,7 @@ fn event_loop<A: TuiAdapter>(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     app: &mut AppState,
     adapter: &A,
+    session: &mut TerminalSession,
 ) -> Result<()> {
     let mut last_review_auto_refresh = Instant::now();
     loop {
@@ -99,6 +100,7 @@ fn event_loop<A: TuiAdapter>(
                     break;
                 }
                 handle_outcome(app, adapter, outcome)?;
+                sync_mouse_capture(session, app.mode())?;
             }
             Event::Mouse(mouse) => {
                 let size = terminal
@@ -114,12 +116,23 @@ fn event_loop<A: TuiAdapter>(
                     break;
                 }
                 handle_outcome(app, adapter, outcome)?;
+                sync_mouse_capture(session, app.mode())?;
             }
             Event::Resize(_, _) => {}
             _ => {}
         }
     }
     Ok(())
+}
+
+fn mode_wants_mouse_capture(mode: Mode) -> bool {
+    mode != Mode::Review
+}
+
+fn sync_mouse_capture(session: &mut TerminalSession, mode: Mode) -> Result<()> {
+    session
+        .set_mouse_capture(mode_wants_mouse_capture(mode))
+        .context("sync leaf list TUI mouse capture")
 }
 
 fn maybe_auto_refresh_review(
@@ -139,11 +152,11 @@ fn maybe_auto_refresh_review(
 }
 
 fn mouse_input(area: Rect, app: &AppState, mouse: MouseEvent) -> Option<MouseInput> {
+    if app.mode() == Mode::Review {
+        return None;
+    }
+
     match mouse.kind {
-        MouseEventKind::Down(MouseButton::Left) if app.mode() == Mode::Review => {
-            crate::tui::render::review_hyperlink_target(area, app, mouse.column, mouse.row)
-                .map(|target| MouseInput::Link { target })
-        }
         MouseEventKind::Down(MouseButton::Left) => {
             crate::tui::render::table_mouse_target(area, app, mouse.column, mouse.row)
                 .map(|visible_index| MouseInput::Down { visible_index })
@@ -153,8 +166,6 @@ fn mouse_input(area: Rect, app: &AppState, mouse: MouseEvent) -> Option<MouseInp
                 .map(|visible_index| MouseInput::Drag { visible_index })
         }
         MouseEventKind::Up(MouseButton::Left) => Some(MouseInput::Up),
-        MouseEventKind::ScrollUp if app.mode() == Mode::Review => Some(MouseInput::ScrollUp),
-        MouseEventKind::ScrollDown if app.mode() == Mode::Review => Some(MouseInput::ScrollDown),
         _ => None,
     }
 }
@@ -168,10 +179,6 @@ fn handle_outcome<A: TuiAdapter>(app: &mut AppState, adapter: &A, outcome: Outco
         },
         Outcome::CopyRows { count, text } => match adapter.copy_to_clipboard(&text) {
             Ok(()) => app.set_status_message(format!("copied {count} {}", row_word(count))),
-            Err(err) => app.set_status_message(format!("copy failed: {err}")),
-        },
-        Outcome::CopyLink { target } => match adapter.copy_to_clipboard(&target) {
-            Ok(()) => app.set_status_message("copied link target"),
             Err(err) => app.set_status_message(format!("copy failed: {err}")),
         },
         Outcome::Refresh => match adapter.load_inventory() {
@@ -508,29 +515,6 @@ mod tests {
     }
 
     #[test]
-    fn copy_link_outcome_writes_target_to_clipboard() {
-        let root = assert_fs::TempDir::new().expect("temp repo");
-        let leaf = test_item(root.path(), Bucket::Leaves, "alpha");
-        let mut app = AppState::from_inventory(&test_inventory(root.path(), vec![leaf]));
-        let adapter = RecordingTuiAdapter::new(root.path().to_path_buf());
-
-        handle_outcome(
-            &mut app,
-            &adapter,
-            Outcome::CopyLink {
-                target: "https://example.com/docs".to_string(),
-            },
-        )
-        .expect("copy link outcome");
-
-        assert_eq!(
-            adapter.copied_texts(),
-            vec!["https://example.com/docs".to_string()]
-        );
-        assert!(app.status_line().contains("copied link target"));
-    }
-
-    #[test]
     fn copy_outcome_reports_clipboard_failure_without_exit() {
         let root = assert_fs::TempDir::new().expect("temp repo");
         let leaf = test_item(root.path(), Bucket::Leaves, "alpha");
@@ -800,7 +784,16 @@ mod tests {
     }
 
     #[test]
-    fn maps_mouse_wheel_to_review_scroll_input() {
+    fn mode_wants_mouse_capture_only_outside_review() {
+        assert!(mode_wants_mouse_capture(Mode::List));
+        assert!(mode_wants_mouse_capture(Mode::RangeSelect));
+        assert!(mode_wants_mouse_capture(Mode::FilterInput));
+        assert!(mode_wants_mouse_capture(Mode::ConfirmPromote));
+        assert!(!mode_wants_mouse_capture(Mode::Review));
+    }
+
+    #[test]
+    fn review_mode_mouse_input_is_ignored_for_native_terminal_selection() {
         let root = assert_fs::TempDir::new().expect("temp repo");
         let slug = "alpha";
         let leaf_path = root
@@ -821,66 +814,27 @@ mod tests {
         let mut app = AppState::from_inventory(&inventory);
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
         assert_eq!(app.mode(), Mode::Review);
-        let area = Rect::new(0, 0, 80, 10);
+        let area = Rect::new(0, 0, 80, 12);
 
         assert_eq!(
             mouse_input(area, &app, mouse(MouseEventKind::ScrollDown, 20, 4)),
-            Some(MouseInput::ScrollDown)
+            None
         );
-        assert_eq!(
-            mouse_input(area, &app, mouse(MouseEventKind::ScrollUp, 20, 4)),
-            Some(MouseInput::ScrollUp)
-        );
-    }
-
-    #[test]
-    fn maps_review_link_click_to_copy_link_input() {
-        let root = assert_fs::TempDir::new().expect("temp repo");
-        let slug = "link";
-        let leaf_path = root
-            .path()
-            .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
-            .join(slug);
-        fs::create_dir_all(leaf_path.join("01-Learn")).expect("intent dir");
-        fs::write(
-            leaf_path.join("00-status.md"),
-            "# Status\n\n- current gate: ① Intent\n",
-        )
-        .expect("status");
-        fs::write(
-            leaf_path.join("01-Learn/01-intent.md"),
-            "See [docs](https://example.com/docs).\n",
-        )
-        .expect("intent");
-        let inventory = test_inventory(
-            root.path(),
-            vec![test_item(root.path(), Bucket::Leaves, slug)],
-        );
-        let mut app = AppState::from_inventory(&inventory);
-        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
-        assert_eq!(app.mode(), Mode::Review);
-
-        let area = Rect::new(0, 0, 80, 16);
-        let (column, row) = (0..area.height)
-            .find_map(|row| {
-                (0..area.width).find_map(|column| {
-                    (crate::tui::render::review_hyperlink_target(area, &app, column, row)
-                        .as_deref()
-                        == Some("https://example.com/docs"))
-                    .then_some((column, row))
-                })
-            })
-            .expect("visible link target coordinate");
         assert_eq!(
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Left), column, row)
+                mouse(MouseEventKind::Down(MouseButton::Left), 20, 4)
             ),
-            Some(MouseInput::Link {
-                target: "https://example.com/docs".to_string(),
-            })
+            None
+        );
+        assert_eq!(
+            mouse_input(
+                area,
+                &app,
+                mouse(MouseEventKind::Drag(MouseButton::Left), 20, 4)
+            ),
+            None
         );
     }
 

@@ -9,8 +9,6 @@ use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
-const MOUSE_SCROLL_LINES: usize = 3;
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ListRow {
     bucket: Bucket,
@@ -61,9 +59,6 @@ pub(crate) enum MouseInput {
     Down { visible_index: usize },
     Drag { visible_index: usize },
     Up,
-    ScrollUp,
-    ScrollDown,
-    Link { target: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -74,7 +69,6 @@ pub(crate) enum Outcome {
     Refresh,
     CopyRow { slug: String, text: String },
     CopyRows { count: usize, text: String },
-    CopyLink { target: String },
 }
 
 #[derive(Debug, Clone)]
@@ -368,12 +362,6 @@ impl AppState {
             return Outcome::Continue;
         }
         if self.mode == Mode::Review {
-            match input {
-                MouseInput::ScrollUp => self.scroll_review_up(MOUSE_SCROLL_LINES),
-                MouseInput::ScrollDown => self.scroll_review_down(MOUSE_SCROLL_LINES),
-                MouseInput::Link { target } => return Outcome::CopyLink { target },
-                MouseInput::Down { .. } | MouseInput::Drag { .. } | MouseInput::Up => {}
-            }
             return Outcome::Continue;
         }
         match input {
@@ -395,7 +383,6 @@ impl AppState {
             MouseInput::Up => {
                 self.mouse_anchor = None;
             }
-            MouseInput::ScrollUp | MouseInput::ScrollDown | MouseInput::Link { .. } => {}
         }
         Outcome::Continue
     }
@@ -1579,44 +1566,6 @@ mod tests {
         assert_eq!(app.review_state().unwrap().scroll_offset, 3);
 
         assert_eq!(app.handle_key(KeyInput::HalfPageUp), Outcome::Continue);
-        assert_eq!(app.review_state().unwrap().scroll_offset, 0);
-    }
-
-    #[test]
-    fn tui_app_review_mouse_wheel_scrolls_document() {
-        let root = assert_fs::TempDir::new().expect("temp repo");
-        let slug = "demo";
-        write_preview_status(
-            root.path(),
-            Bucket::Leaves,
-            slug,
-            "- current gate: ① Intent\n",
-        );
-        let intent_path = root
-            .path()
-            .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
-            .join(slug)
-            .join("01-Learn/01-intent.md");
-        std::fs::create_dir_all(intent_path.parent().unwrap()).expect("intent dir");
-        let body = (1..=20)
-            .map(|line| format!("intent line {line:02}"))
-            .collect::<Vec<_>>()
-            .join("\n");
-        std::fs::write(&intent_path, format!("# Intent\n\n{body}\n")).expect("intent");
-        let item = leaf_item_at(root.path(), Bucket::Leaves, slug, complete_leaf_status());
-        let inventory = inventory_with_root(root.path(), vec![item]);
-        let mut app = AppState::from_inventory(&inventory);
-
-        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
-        app.set_review_body_size(4, DEFAULT_REVIEW_BODY_WIDTH);
-        assert_eq!(app.handle_mouse(MouseInput::ScrollDown), Outcome::Continue);
-        assert_eq!(
-            app.review_state().unwrap().scroll_offset,
-            MOUSE_SCROLL_LINES
-        );
-
-        assert_eq!(app.handle_mouse(MouseInput::ScrollUp), Outcome::Continue);
         assert_eq!(app.review_state().unwrap().scroll_offset, 0);
     }
 

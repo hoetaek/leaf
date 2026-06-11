@@ -118,7 +118,7 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
 
     frame.render_widget(
         Paragraph::new(Line::styled(
-            "↑/↓/wheel scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Shift/Opt-drag copy  Esc/q back",
+            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  drag select/copy text  Esc/q back",
             dim_style(),
         )),
         layout.footer,
@@ -170,6 +170,7 @@ fn padded_content_inner(inner: Rect) -> Rect {
     }
 }
 
+#[cfg(test)]
 fn rect_contains(rect: Rect, column: u16, row: u16) -> bool {
     column >= rect.x
         && column < rect.x.saturating_add(rect.width)
@@ -177,6 +178,7 @@ fn rect_contains(rect: Rect, column: u16, row: u16) -> bool {
         && row < rect.y.saturating_add(rect.height)
 }
 
+#[cfg(test)]
 pub(crate) fn review_hyperlink_target(
     area: Rect,
     app: &AppState,
@@ -360,7 +362,7 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             app.status_line()
         ),
         Mode::Review => {
-            "↑/↓/wheel scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  Esc/q back"
+            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  drag select/copy text  Esc/q back"
                 .to_string()
         }
         Mode::List if selected_count > 0 => format!(
@@ -4084,7 +4086,7 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
     }
 
     #[test]
-    fn review_mode_footer_omits_non_interactive_auto_watch_hint() {
+    fn review_mode_footer_renders_native_drag_copy_contract() {
         let fixture = RenderFixture::new();
         let slug = "demo";
         let status_path = fixture
@@ -4111,11 +4113,11 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
 
         let text = buffer_text(140, 18, &app);
 
-        assert!(text.contains("-- END --"));
+        assert!(text.contains("drag select/copy text"));
         assert!(text.contains("r refresh"));
-        assert!(text.contains("Shift/Opt-drag copy"));
         assert!(text.contains("Esc/q back"));
-        assert!(!text.contains("q quit"));
+        assert!(!text.contains("Shift/Opt-drag copy"));
+        assert!(!text.contains("wheel scroll"));
         assert!(!text.contains("auto-watch"));
     }
 

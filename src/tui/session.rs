@@ -8,6 +8,7 @@ use std::io::{self, Write};
 
 pub(crate) trait TerminalEffects {
     fn enter(&self) -> Result<()>;
+    fn set_mouse_capture(&self, enabled: bool) -> Result<()>;
     fn leave(&self) -> Result<()>;
 }
 
@@ -16,6 +17,10 @@ pub(crate) struct CrosstermEffects;
 impl TerminalEffects for CrosstermEffects {
     fn enter(&self) -> Result<()> {
         enter_crossterm_terminal(&RealCrosstermSideEffects)
+    }
+
+    fn set_mouse_capture(&self, enabled: bool) -> Result<()> {
+        set_crossterm_mouse_capture(&RealCrosstermSideEffects, enabled)
     }
 
     fn leave(&self) -> Result<()> {
@@ -90,20 +95,31 @@ fn enter_crossterm_terminal(side_effects: &impl CrosstermSideEffects) -> Result<
     Ok(())
 }
 
+fn set_crossterm_mouse_capture(
+    side_effects: &impl CrosstermSideEffects,
+    enabled: bool,
+) -> Result<()> {
+    if enabled {
+        side_effects.enable_mouse_capture()
+    } else {
+        side_effects.disable_mouse_capture()
+    }
+}
+
 fn leave_crossterm_terminal(side_effects: &impl CrosstermSideEffects) -> Result<()> {
-    let mouse_result = side_effects.disable_mouse_capture();
     let screen_result = side_effects
         .leave_alternate_screen()
         .and_then(|()| side_effects.flush_leave());
     let raw_result = side_effects.disable_raw_mode();
 
     // Attempt every cleanup step, then surface the first failure.
-    mouse_result.and(screen_result).and(raw_result)
+    screen_result.and(raw_result)
 }
 
 pub(crate) struct TerminalSession<E: TerminalEffects = CrosstermEffects> {
     effects: E,
     active: bool,
+    mouse_capture_enabled: bool,
 }
 
 impl TerminalSession<CrosstermEffects> {
@@ -118,13 +134,34 @@ impl<E: TerminalEffects> TerminalSession<E> {
         Ok(Self {
             effects,
             active: true,
+            mouse_capture_enabled: true,
         })
+    }
+
+    pub(crate) fn set_mouse_capture(&mut self, enabled: bool) -> Result<()> {
+        if self.mouse_capture_enabled == enabled {
+            return Ok(());
+        }
+
+        self.effects.set_mouse_capture(enabled)?;
+        self.mouse_capture_enabled = enabled;
+        Ok(())
     }
 
     pub(crate) fn close(mut self) -> Result<()> {
         if self.active {
+            let mouse_result = if self.mouse_capture_enabled {
+                let result = self.effects.set_mouse_capture(false);
+                if result.is_ok() {
+                    self.mouse_capture_enabled = false;
+                }
+                result
+            } else {
+                Ok(())
+            };
             self.active = false;
-            self.effects.leave()
+            let leave_result = self.effects.leave();
+            mouse_result.and(leave_result)
         } else {
             Ok(())
         }
@@ -134,8 +171,12 @@ impl<E: TerminalEffects> TerminalSession<E> {
 impl<E: TerminalEffects> Drop for TerminalSession<E> {
     fn drop(&mut self) {
         if self.active {
-            let _ = self.effects.leave();
+            if self.mouse_capture_enabled {
+                let _ = self.effects.set_mouse_capture(false);
+                self.mouse_capture_enabled = false;
+            }
             self.active = false;
+            let _ = self.effects.leave();
         }
     }
 }
@@ -149,6 +190,7 @@ mod tests {
     #[derive(Default)]
     struct RecordingEffects {
         log: Arc<Mutex<Vec<&'static str>>>,
+        fail_mouse_capture: bool,
         fail_leave: bool,
     }
 
@@ -156,6 +198,19 @@ mod tests {
         fn enter(&self) -> Result<()> {
             self.log.lock().unwrap().push("enter");
             Ok(())
+        }
+
+        fn set_mouse_capture(&self, enabled: bool) -> Result<()> {
+            self.log.lock().unwrap().push(if enabled {
+                "enable_mouse_capture"
+            } else {
+                "disable_mouse_capture"
+            });
+            if self.fail_mouse_capture {
+                Err(anyhow!("mouse capture failed"))
+            } else {
+                Ok(())
+            }
         }
 
         fn leave(&self) -> Result<()> {
@@ -226,7 +281,86 @@ mod tests {
     }
 
     #[test]
-    fn session_enters_on_create_and_leaves_on_drop() {
+    fn session_set_mouse_capture_disables_and_enables_idempotently() {
+        let effects = RecordingEffects::default();
+        let log = Arc::clone(&effects.log);
+        let mut session = TerminalSession::with_effects(effects).unwrap();
+
+        session
+            .set_mouse_capture(false)
+            .expect("disable mouse capture");
+        session
+            .set_mouse_capture(false)
+            .expect("repeat disable is no-op");
+        session
+            .set_mouse_capture(true)
+            .expect("enable mouse capture");
+        session
+            .set_mouse_capture(true)
+            .expect("repeat enable is no-op");
+        session.close().expect("close terminal");
+
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec![
+                "enter",
+                "disable_mouse_capture",
+                "enable_mouse_capture",
+                "disable_mouse_capture",
+                "leave",
+            ]
+        );
+    }
+
+    #[test]
+    fn session_close_after_prior_disable_does_not_disable_mouse_twice() {
+        let effects = RecordingEffects::default();
+        let log = Arc::clone(&effects.log);
+        let mut session = TerminalSession::with_effects(effects).unwrap();
+
+        session
+            .set_mouse_capture(false)
+            .expect("disable mouse capture");
+        session.close().expect("close terminal");
+
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec!["enter", "disable_mouse_capture", "leave"]
+        );
+    }
+
+    #[test]
+    fn session_mouse_capture_failure_keeps_previous_state_for_cleanup() {
+        let effects = RecordingEffects {
+            log: Arc::new(Mutex::new(Vec::new())),
+            fail_mouse_capture: true,
+            fail_leave: false,
+        };
+        let log = Arc::clone(&effects.log);
+        let mut session = TerminalSession::with_effects(effects).unwrap();
+
+        let err = session
+            .set_mouse_capture(false)
+            .expect_err("disable failure should surface");
+        assert_eq!(err.to_string(), "mouse capture failed");
+        let err = session
+            .close()
+            .expect_err("close should surface cleanup failure");
+        assert_eq!(err.to_string(), "mouse capture failed");
+
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec![
+                "enter",
+                "disable_mouse_capture",
+                "disable_mouse_capture",
+                "leave"
+            ]
+        );
+    }
+
+    #[test]
+    fn session_enters_on_create_and_disables_mouse_capture_before_leaving_on_drop() {
         let effects = RecordingEffects::default();
         let log = Arc::clone(&effects.log);
 
@@ -235,13 +369,17 @@ mod tests {
             assert_eq!(*log.lock().unwrap(), vec!["enter"]);
         }
 
-        assert_eq!(*log.lock().unwrap(), vec!["enter", "leave"]);
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec!["enter", "disable_mouse_capture", "leave"]
+        );
     }
 
     #[test]
     fn session_close_reports_cleanup_error_and_drop_does_not_leave_again() {
         let effects = RecordingEffects {
             log: Arc::new(Mutex::new(Vec::new())),
+            fail_mouse_capture: false,
             fail_leave: true,
         };
         let log = Arc::clone(&effects.log);
@@ -253,10 +391,16 @@ mod tests {
                 .expect_err("cleanup error should be returned");
 
             assert_eq!(err.to_string(), "leave failed");
-            assert_eq!(*log.lock().unwrap(), vec!["enter", "leave"]);
+            assert_eq!(
+                *log.lock().unwrap(),
+                vec!["enter", "disable_mouse_capture", "leave"]
+            );
         }
 
-        assert_eq!(*log.lock().unwrap(), vec!["enter", "leave"]);
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec!["enter", "disable_mouse_capture", "leave"]
+        );
     }
 
     #[test]
@@ -329,7 +473,7 @@ mod tests {
     }
 
     #[test]
-    fn leave_disables_mouse_capture_before_leaving_screen_and_raw_mode() {
+    fn leave_restores_screen_and_raw_mode_after_mouse_capture_is_handled_by_session() {
         let effects = RecordingCrosstermSideEffects::default();
         let log = Arc::clone(&effects.log);
 
@@ -337,12 +481,7 @@ mod tests {
 
         assert_eq!(
             *log.lock().unwrap(),
-            vec![
-                "disable_mouse_capture",
-                "leave_alternate_screen",
-                "flush_leave",
-                "disable_raw_mode",
-            ]
+            vec!["leave_alternate_screen", "flush_leave", "disable_raw_mode",]
         );
     }
 }
