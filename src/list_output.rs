@@ -1,8 +1,8 @@
 use crate::inventory::{
-    Bucket, Inventory, InventoryItem, ItemKind, ParseState, StatusField, StatusSummary,
+    Inventory, InventoryItem, ItemKind, ParseState, StageDir, StatusField, StatusSummary,
 };
 use crate::list_columns::{
-    LIST_COLUMNS, ListColumnRow, bucket_label_plural, bucket_label_singular, parse_state_label,
+    LIST_COLUMNS, ListColumnRow, parse_state_label, stage_label_plural, stage_label_singular,
     text_table,
 };
 use anyhow::{Context, Result};
@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 struct ListRow {
-    bucket_label: String,
+    stage_label: String,
     slug: String,
     phase: String,
     gate: String,
@@ -24,15 +24,16 @@ pub(crate) fn write_text(writer: &mut impl Write, inventory: &Inventory) -> Resu
 
     writeln!(writer, "{}", text_table(&LIST_COLUMNS, &rows))?;
 
-    let empty_buckets: Vec<_> = inventory
-        .buckets
+    let empty_stages: Vec<_> = inventory
+        .stages
         .iter()
-        .filter(|bucket| bucket.items.is_empty())
-        .map(|bucket| bucket_label_plural(bucket.bucket))
+        .filter(|stage_dir| stage_dir.stage_dir != StageDir::Pressed)
+        .filter(|stage_dir| stage_dir.items.is_empty())
+        .map(|stage_dir| stage_label_plural(stage_dir.stage_dir))
         .collect();
-    if !empty_buckets.is_empty() {
+    if !empty_stages.is_empty() {
         writeln!(writer)?;
-        writeln!(writer, "empty: {}", empty_buckets.join(", "))?;
+        writeln!(writer, "empty: {}", empty_stages.join(", "))?;
     }
 
     Ok(())
@@ -47,16 +48,17 @@ pub(crate) fn write_json(writer: &mut impl Write, inventory: &Inventory) -> Resu
 
 fn list_rows(inventory: &Inventory) -> Vec<ListRow> {
     inventory
-        .buckets
+        .stages
         .iter()
-        .flat_map(|bucket| bucket.items.iter().map(ListRow::from_item))
+        .filter(|stage_dir| stage_dir.stage_dir != StageDir::Pressed)
+        .flat_map(|stage_dir| stage_dir.items.iter().map(ListRow::from_item))
         .collect()
 }
 
 impl ListRow {
     fn from_item(item: &InventoryItem) -> Self {
         ListRow {
-            bucket_label: bucket_label_singular(item.bucket).to_string(),
+            stage_label: stage_label_singular(item.stage_dir).to_string(),
             slug: item.slug.clone(),
             phase: display_optional(&item.status.current_phase, "-"),
             gate: display_optional(&item.status.current_gate, "-"),
@@ -66,8 +68,8 @@ impl ListRow {
 }
 
 impl ListColumnRow for ListRow {
-    fn bucket_label(&self) -> &str {
-        &self.bucket_label
+    fn stage_label(&self) -> &str {
+        &self.stage_label
     }
 
     fn phase(&self) -> &str {
@@ -94,26 +96,25 @@ fn display_optional(value: &Option<String>, fallback: &str) -> String {
 #[derive(Serialize)]
 struct JsonInventory {
     leaf_root: String,
-    buckets: JsonBuckets,
+    stages: JsonStages,
 }
 
 #[derive(Serialize)]
-struct JsonBuckets {
-    seeds: JsonBucket,
-    leaves: JsonBucket,
-    fallen: JsonBucket,
-    pressed: JsonBucket,
+struct JsonStages {
+    sprouts: JsonStage,
+    leaves: JsonStage,
+    fallen: JsonStage,
 }
 
 #[derive(Serialize)]
-struct JsonBucket {
+struct JsonStage {
     count: usize,
     items: Vec<JsonItem>,
 }
 
 #[derive(Serialize)]
 struct JsonItem {
-    bucket: &'static str,
+    stage: &'static str,
     slug: String,
     kind: &'static str,
     path: String,
@@ -123,7 +124,8 @@ struct JsonItem {
 #[derive(Serialize)]
 struct JsonStatus {
     parse_state: &'static str,
-    state: Option<String>,
+    stage: Option<String>,
+    fallen_reason: Option<String>,
     current_phase: Option<String>,
     current_gate: Option<String>,
     first_missing_gate: Option<String>,
@@ -135,29 +137,28 @@ impl JsonInventory {
     fn from_inventory(inventory: &Inventory) -> Result<Self> {
         Ok(JsonInventory {
             leaf_root: ".leaf".to_string(),
-            buckets: JsonBuckets {
-                seeds: json_bucket(inventory, Bucket::Seeds)?,
-                leaves: json_bucket(inventory, Bucket::Leaves)?,
-                fallen: json_bucket(inventory, Bucket::Fallen)?,
-                pressed: json_bucket(inventory, Bucket::Pressed)?,
+            stages: JsonStages {
+                sprouts: json_stage(inventory, StageDir::Sprouts)?,
+                leaves: json_stage(inventory, StageDir::Leaves)?,
+                fallen: json_stage(inventory, StageDir::Fallen)?,
             },
         })
     }
 }
 
-fn json_bucket(inventory: &Inventory, bucket: Bucket) -> Result<JsonBucket> {
-    let bucket_inventory = inventory
-        .buckets
+fn json_stage(inventory: &Inventory, stage_dir: StageDir) -> Result<JsonStage> {
+    let stage_inventory = inventory
+        .stages
         .iter()
-        .find(|inventory| inventory.bucket == bucket)
-        .with_context(|| format!("missing inventory bucket {}", bucket_label_plural(bucket)))?;
-    let items = bucket_inventory
+        .find(|inventory| inventory.stage_dir == stage_dir)
+        .with_context(|| format!("missing inventory stage {}", stage_label_plural(stage_dir)))?;
+    let items = stage_inventory
         .items
         .iter()
         .map(|item| JsonItem::from_item(inventory, item))
         .collect::<Result<Vec<_>>>()?;
 
-    Ok(JsonBucket {
+    Ok(JsonStage {
         count: items.len(),
         items,
     })
@@ -166,7 +167,7 @@ fn json_bucket(inventory: &Inventory, bucket: Bucket) -> Result<JsonBucket> {
 impl JsonItem {
     fn from_item(inventory: &Inventory, item: &InventoryItem) -> Result<Self> {
         Ok(JsonItem {
-            bucket: bucket_label_plural(item.bucket),
+            stage: stage_label_singular(item.stage_dir),
             slug: item.slug.clone(),
             kind: item_kind_label(item.kind),
             path: relative_leaf_path(inventory, &item.path)?,
@@ -179,7 +180,8 @@ impl JsonStatus {
     fn from_summary(status: &StatusSummary) -> Self {
         JsonStatus {
             parse_state: parse_state_label(status.parse_state),
-            state: status.state.clone(),
+            stage: status.stage.clone(),
+            fallen_reason: status.fallen_reason.clone(),
             current_phase: status.current_phase.clone(),
             current_gate: status.current_gate.clone(),
             first_missing_gate: status.first_missing_gate.clone(),

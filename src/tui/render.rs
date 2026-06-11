@@ -1,8 +1,8 @@
-use crate::inventory::{Bucket, ParseState};
+use crate::inventory::{ParseState, StageDir};
 use crate::list_columns::{ColumnWidth, LIST_COLUMNS, ListColumn};
 use crate::preview::{PreviewColor, PreviewLine, PreviewSpan, PreviewStyle};
 use crate::review::{ReviewDocument, ReviewLine};
-use crate::tui::app::{AppState, BucketFilter, ListRow, Mode};
+use crate::tui::app::{AppState, ListRow, Mode, StageFilter};
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -228,7 +228,7 @@ fn draw_header(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             Span::styled("leaf list", dim_style()),
         ],
         Some(vec![
-            Span::styled(bucket_filter_label(app.active_bucket()), chrome_style()),
+            Span::styled(stage_filter_label(app.active_stage()), chrome_style()),
             Span::raw(format!(" {visible_count}/{total_count}")),
         ]),
     );
@@ -356,7 +356,6 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             app.filter(),
             app.status_line()
         ),
-        Mode::ConfirmPromote => app.status_line().to_string(),
         Mode::RangeSelect => format!(
             "range {selected_count} selected  j/k extend  v/Esc done  y copy  q quit  {}",
             app.status_line()
@@ -370,7 +369,7 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             app.status_line()
         ),
         Mode::List => format!(
-            "j/k up/down  h/l bucket  y copy  P promote  Space select  v range  a all  / filter  p preview  r refresh  q quit  mouse drag  {}",
+            "j/k up/down  h/l stage  y copy  Space select  v range  a all  / filter  p preview  r refresh  q quit  mouse drag  {}",
             app.status_line()
         ),
     };
@@ -410,7 +409,7 @@ fn table_cell(column: ListColumn, row: &ListRow, active: bool) -> Cell<'static> 
         return cell;
     }
     match column {
-        ListColumn::Bucket => cell.style(bucket_style(row.bucket())),
+        ListColumn::Stage => cell.style(stage_style(row.stage_dir())),
         ListColumn::Status => cell.style(parse_state_style(row.parse_state())),
         ListColumn::Phase | ListColumn::Gate | ListColumn::Slug => cell,
     }
@@ -1610,13 +1609,13 @@ fn review_body_block() -> Block<'static> {
         .border_style(chrome_style())
 }
 
-fn bucket_filter_label(filter: BucketFilter) -> &'static str {
+fn stage_filter_label(filter: StageFilter) -> &'static str {
     match filter {
-        BucketFilter::All => "all",
-        BucketFilter::Bucket(Bucket::Seeds) => "seeds",
-        BucketFilter::Bucket(Bucket::Leaves) => "leaves",
-        BucketFilter::Bucket(Bucket::Fallen) => "fallen",
-        BucketFilter::Bucket(Bucket::Pressed) => "pressed",
+        StageFilter::All => "all",
+        StageFilter::Stage(StageDir::Sprouts) => "sprouts",
+        StageFilter::Stage(StageDir::Leaves) => "leaves",
+        StageFilter::Stage(StageDir::Fallen) => "fallen",
+        StageFilter::Stage(StageDir::Pressed) => "pressed",
     }
 }
 
@@ -1628,12 +1627,12 @@ fn parse_state_style(state: ParseState) -> Style {
     }
 }
 
-fn bucket_style(bucket: Bucket) -> Style {
-    match bucket {
-        Bucket::Seeds => Style::default().fg(Color::Cyan),
-        Bucket::Leaves => Style::default().fg(Color::Green),
-        Bucket::Fallen => Style::default().fg(Color::Magenta),
-        Bucket::Pressed => Style::default().fg(Color::Blue),
+fn stage_style(stage_dir: StageDir) -> Style {
+    match stage_dir {
+        StageDir::Sprouts => Style::default().fg(Color::Cyan),
+        StageDir::Leaves => Style::default().fg(Color::Green),
+        StageDir::Fallen => Style::default().fg(Color::Magenta),
+        StageDir::Pressed => Style::default().fg(Color::Blue),
     }
 }
 
@@ -1856,7 +1855,7 @@ fn normalized_theme_name(name: &str) -> String {
 mod tests {
     use super::*;
     use crate::inventory::{
-        Bucket, BucketInventory, Inventory, InventoryItem, ItemKind, ParseState, PreviewSource,
+        Inventory, InventoryItem, ItemKind, ParseState, PreviewSource, StageDir, StageInventory,
         StatusSummary,
     };
     use crate::tui::app::{AppState, KeyInput, Outcome};
@@ -2014,14 +2013,9 @@ mod tests {
     fn renders_header_table_preview_and_status() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             "korean-preview",
-            status(
-                ParseState::Ok,
-                Some("active"),
-                Some("Learn"),
-                Some("intent"),
-            ),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("intent")),
         )]);
         let app = AppState::from_inventory(&inventory);
 
@@ -2029,7 +2023,7 @@ mod tests {
         let text = buffer_to_text(&buffer, 120, 24);
 
         assert!(text.contains("leaf list"));
-        assert!(text.contains("BUCKET"));
+        assert!(text.contains("STAGE"));
         assert!(!text.contains("STATE"));
         assert!(text.contains("korean-preview"));
         assert!(text.contains(".leaf/02-leaves/korean-preview"));
@@ -2046,14 +2040,9 @@ mod tests {
     fn list_header_uses_two_line_section_header() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             "section-header",
-            status(
-                ParseState::Ok,
-                Some("active"),
-                Some("Learn"),
-                Some("intent"),
-            ),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("intent")),
         )]);
         let mut app = AppState::from_inventory(&inventory);
         app.handle_key(KeyInput::Right);
@@ -2074,7 +2063,7 @@ mod tests {
         assert!(first_line.contains("leaves"), "first line: {first_line:?}");
         assert!(first_line.contains("1/1"), "first line: {first_line:?}");
         assert!(
-            !first_line.contains("bucket "),
+            !first_line.contains("stage_dir "),
             "first line: {first_line:?}"
         );
         assert!(
@@ -2109,14 +2098,9 @@ mod tests {
     fn wide_terminal_places_preview_on_the_right() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             "wide-preview",
-            status(
-                ParseState::Ok,
-                Some("active"),
-                Some("Learn"),
-                Some("intent"),
-            ),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("intent")),
         )]);
         let app = AppState::from_inventory(&inventory);
 
@@ -2138,14 +2122,9 @@ mod tests {
     fn medium_terminal_falls_back_to_bottom_preview() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             "bottom-preview",
-            status(
-                ParseState::Ok,
-                Some("active"),
-                Some("Learn"),
-                Some("intent"),
-            ),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("intent")),
         )]);
         let app = AppState::from_inventory(&inventory);
 
@@ -2167,14 +2146,9 @@ mod tests {
     fn small_terminal_hides_preview_without_hiding_rows() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             "compact",
-            status(
-                ParseState::Ok,
-                Some("active"),
-                Some("Learn"),
-                Some("intent"),
-            ),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("intent")),
         )]);
         let app = AppState::from_inventory(&inventory);
 
@@ -2195,14 +2169,9 @@ mod tests {
     fn filter_mode_status_shows_filter_text() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             "alpha",
-            status(
-                ParseState::Ok,
-                Some("active"),
-                Some("Learn"),
-                Some("intent"),
-            ),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("intent")),
         )]);
         let mut app = AppState::from_inventory(&inventory);
         app.handle_key(KeyInput::Char('/'));
@@ -2214,27 +2183,27 @@ mod tests {
     }
 
     #[test]
-    fn normal_status_renders_promote_hint() {
+    fn normal_status_omits_promote_hint() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Seeds,
+            StageDir::Sprouts,
             "draft",
-            status(ParseState::Ok, Some("seed"), Some("Learn"), Some("-")),
+            status(ParseState::Ok, Some("sprout"), Some("Learn"), Some("-")),
         )]);
         let app = AppState::from_inventory(&inventory);
 
         let text = buffer_text(90, 12, &app);
 
-        assert!(text.contains("P promote"));
+        assert!(!text.contains("P promote"));
     }
 
     #[test]
     fn normal_status_renders_refresh_hint() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Seeds,
+            StageDir::Sprouts,
             "draft",
-            status(ParseState::Ok, Some("seed"), Some("Learn"), Some("-")),
+            status(ParseState::Ok, Some("sprout"), Some("Learn"), Some("-")),
         )]);
         let app = AppState::from_inventory(&inventory);
 
@@ -2247,14 +2216,9 @@ mod tests {
     fn normal_status_renders_copy_hint() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             "alpha",
-            status(
-                ParseState::Ok,
-                Some("active"),
-                Some("Learn"),
-                Some("intent"),
-            ),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("intent")),
         )]);
         let app = AppState::from_inventory(&inventory);
 
@@ -3410,14 +3374,9 @@ mod tests {
     fn normal_status_renders_mouse_drag_hint() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             "alpha",
-            status(
-                ParseState::Ok,
-                Some("active"),
-                Some("Learn"),
-                Some("intent"),
-            ),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("intent")),
         )]);
         let app = AppState::from_inventory(&inventory);
 
@@ -3430,14 +3389,9 @@ mod tests {
     fn normal_status_renders_multi_select_hints() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             "alpha",
-            status(
-                ParseState::Ok,
-                Some("active"),
-                Some("Learn"),
-                Some("intent"),
-            ),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("intent")),
         )]);
         let app = AppState::from_inventory(&inventory);
 
@@ -3453,14 +3407,9 @@ mod tests {
     fn marked_rows_use_row_highlight_without_selection_column() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             "alpha",
-            status(
-                ParseState::Ok,
-                Some("active"),
-                Some("Learn"),
-                Some("intent"),
-            ),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("intent")),
         )]);
         let mut app = AppState::from_inventory(&inventory);
 
@@ -3480,14 +3429,9 @@ mod tests {
     fn selected_row_semantic_cells_keep_readable_selected_style() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             "alpha",
-            status(
-                ParseState::Ok,
-                Some("active"),
-                Some("Learn"),
-                Some("intent"),
-            ),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("intent")),
         )]);
         let app = AppState::from_inventory(&inventory);
 
@@ -3515,14 +3459,9 @@ mod tests {
     fn range_mode_status_renders_extend_copy_and_quit_hints() {
         let fixture = RenderFixture::new();
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             "alpha",
-            status(
-                ParseState::Ok,
-                Some("active"),
-                Some("Learn"),
-                Some("intent"),
-            ),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("intent")),
         )]);
         let mut app = AppState::from_inventory(&inventory);
         app.handle_key(KeyInput::Char('v'));
@@ -3534,24 +3473,6 @@ mod tests {
         assert!(text.contains("v/Esc done"));
         assert!(text.contains("y copy"));
         assert!(text.contains("q quit"));
-    }
-
-    #[test]
-    fn confirm_promote_status_renders_selected_seed_and_choices() {
-        let fixture = RenderFixture::new();
-        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Seeds,
-            "draft",
-            status(ParseState::Ok, Some("seed"), Some("Learn"), Some("-")),
-        )]);
-        let mut app = AppState::from_inventory(&inventory);
-        app.handle_key(KeyInput::Char('P'));
-
-        let text = buffer_text(100, 12, &app);
-
-        assert!(text.contains("Promote seed draft?"));
-        assert!(text.contains("y confirm"));
-        assert!(text.contains("n/Esc cancel"));
     }
 
     #[test]
@@ -3642,24 +3563,24 @@ mod tests {
         let root = fixture.root.path();
         let status_path = root
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug)
             .join("00-status.md");
         std::fs::create_dir_all(status_path.parent().unwrap()).expect("leaf dir");
         std::fs::write(&status_path, "# Leaf 상태\n\n- current gate: ① Intent\n").expect("status");
         let intent_path = root
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug)
             .join("01-Learn/01-intent.md");
         std::fs::create_dir_all(intent_path.parent().unwrap()).expect("intent dir");
         std::fs::write(&intent_path, "# Intent\n\n- rendered item\n").expect("intent");
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             slug,
             status(
                 ParseState::Ok,
-                Some("active"),
+                Some("leaf"),
                 Some("Learn"),
                 Some("① Intent"),
             ),
@@ -3697,15 +3618,15 @@ mod tests {
             .root
             .path()
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug);
         let status_path = leaf_path.join("00-status.md");
         std::fs::create_dir_all(&leaf_path).expect("leaf dir");
         std::fs::write(&status_path, "# Status\n\nold status\n").expect("old status");
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             slug,
-            status(ParseState::Ok, Some("active"), Some("Learn"), Some("-")),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("-")),
         )]);
         let mut app = AppState::from_inventory(&inventory);
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
@@ -3726,7 +3647,7 @@ mod tests {
         let root = fixture.root.path();
         let leaf_path = root
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug);
         std::fs::create_dir_all(leaf_path.join("01-Learn")).expect("intent dir");
         std::fs::write(
@@ -3740,11 +3661,11 @@ mod tests {
         )
         .expect("intent");
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             slug,
             status(
                 ParseState::Ok,
-                Some("active"),
+                Some("leaf"),
                 Some("Learn"),
                 Some("① Intent"),
             ),
@@ -3780,7 +3701,7 @@ mod tests {
         let root = fixture.root.path();
         let leaf_path = root
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug);
         std::fs::create_dir_all(leaf_path.join("01-Learn")).expect("intent dir");
         std::fs::write(
@@ -3794,11 +3715,11 @@ mod tests {
         )
         .expect("intent");
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             slug,
             status(
                 ParseState::Ok,
-                Some("active"),
+                Some("leaf"),
                 Some("Learn"),
                 Some("① Intent"),
             ),
@@ -3822,7 +3743,7 @@ mod tests {
         let root = fixture.root.path();
         let leaf_path = root
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug);
         std::fs::create_dir_all(leaf_path.join("01-Learn")).expect("intent dir");
         std::fs::write(
@@ -3848,11 +3769,11 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
         )
         .expect("intent");
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             slug,
             status(
                 ParseState::Ok,
-                Some("active"),
+                Some("leaf"),
                 Some("Learn"),
                 Some("① Intent"),
             ),
@@ -3904,7 +3825,7 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
         let root = fixture.root.path();
         let leaf_path = root
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug);
         std::fs::create_dir_all(leaf_path.join("02-Example")).expect("criteria dir");
         std::fs::write(
@@ -3925,11 +3846,11 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
         )
         .expect("criteria");
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             slug,
             status(
                 ParseState::Ok,
-                Some("active"),
+                Some("leaf"),
                 Some("Example"),
                 Some("③ Criteria"),
             ),
@@ -3960,7 +3881,7 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
         let root = fixture.root.path();
         let leaf_path = root
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug);
         std::fs::create_dir_all(leaf_path.join("02-Example")).expect("criteria dir");
         std::fs::write(
@@ -3980,11 +3901,11 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
         )
         .expect("criteria");
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             slug,
             status(
                 ParseState::Ok,
-                Some("active"),
+                Some("leaf"),
                 Some("Example"),
                 Some("③ Criteria"),
             ),
@@ -4039,7 +3960,7 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
         let root = fixture.root.path();
         let leaf_path = root
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug);
         std::fs::create_dir_all(leaf_path.join("02-Example")).expect("criteria dir");
         std::fs::write(
@@ -4060,11 +3981,11 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
         )
         .expect("criteria");
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             slug,
             status(
                 ParseState::Ok,
-                Some("active"),
+                Some("leaf"),
                 Some("Example"),
                 Some("③ Criteria"),
             ),
@@ -4093,17 +4014,17 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             .root
             .path()
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug)
             .join("00-status.md");
         std::fs::create_dir_all(status_path.parent().unwrap()).expect("leaf dir");
         std::fs::write(&status_path, "# Status\n\n- current gate: ① Intent\n").expect("status");
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             slug,
             status(
                 ParseState::Ok,
-                Some("active"),
+                Some("leaf"),
                 Some("Learn"),
                 Some("① Intent"),
             ),
@@ -4129,17 +4050,17 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             .root
             .path()
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug)
             .join("00-status.md");
         std::fs::create_dir_all(status_path.parent().unwrap()).expect("leaf dir");
         std::fs::write(&status_path, "# Status\n\n- current gate: ① Intent\n").expect("status");
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             slug,
             status(
                 ParseState::Ok,
-                Some("active"),
+                Some("leaf"),
                 Some("Learn"),
                 Some("① Intent"),
             ),
@@ -4160,15 +4081,15 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             .root
             .path()
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug)
             .join("00-status.md");
         std::fs::create_dir_all(status_path.parent().unwrap()).expect("leaf dir");
         std::fs::write(&status_path, "# Status\n\nshort body\n").expect("status");
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             slug,
-            status(ParseState::Ok, Some("active"), Some("Learn"), Some("-")),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("-")),
         )]);
         let mut app = AppState::from_inventory(&inventory);
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
@@ -4192,7 +4113,7 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             .root
             .path()
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug)
             .join("00-status.md");
         std::fs::create_dir_all(status_path.parent().unwrap()).expect("leaf dir");
@@ -4202,9 +4123,9 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             .join("\n");
         std::fs::write(&status_path, format!("# Status\n\n{body}\n")).expect("status");
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             slug,
-            status(ParseState::Ok, Some("active"), Some("Learn"), Some("-")),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("-")),
         )]);
         let mut app = AppState::from_inventory(&inventory);
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
@@ -4225,7 +4146,7 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             .root
             .path()
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug)
             .join("00-status.md");
         std::fs::create_dir_all(status_path.parent().unwrap()).expect("leaf dir");
@@ -4235,9 +4156,9 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             .join("\n");
         std::fs::write(&status_path, format!("# Status\n\n{body}\n")).expect("status");
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
-            Bucket::Leaves,
+            StageDir::Leaves,
             slug,
-            status(ParseState::Ok, Some("active"), Some("Learn"), Some("-")),
+            status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("-")),
         )]);
         let mut app = AppState::from_inventory(&inventory);
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
@@ -4270,37 +4191,37 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
         }
 
         fn inventory_with_items(&self, items: Vec<InventoryItem>) -> Inventory {
-            let mut seeds = Vec::new();
+            let mut sprouts = Vec::new();
             let mut leaves = Vec::new();
             let mut fallen = Vec::new();
             let mut pressed = Vec::new();
 
             for item in items {
-                match item.bucket {
-                    Bucket::Seeds => seeds.push(item),
-                    Bucket::Leaves => leaves.push(item),
-                    Bucket::Fallen => fallen.push(item),
-                    Bucket::Pressed => pressed.push(item),
+                match item.stage_dir {
+                    StageDir::Sprouts => sprouts.push(item),
+                    StageDir::Leaves => leaves.push(item),
+                    StageDir::Fallen => fallen.push(item),
+                    StageDir::Pressed => pressed.push(item),
                 }
             }
 
             Inventory {
                 leaf_root: self.root.path().join(".leaf"),
-                buckets: vec![
-                    BucketInventory {
-                        bucket: Bucket::Seeds,
-                        items: seeds,
+                stages: vec![
+                    StageInventory {
+                        stage_dir: StageDir::Sprouts,
+                        items: sprouts,
                     },
-                    BucketInventory {
-                        bucket: Bucket::Leaves,
+                    StageInventory {
+                        stage_dir: StageDir::Leaves,
                         items: leaves,
                     },
-                    BucketInventory {
-                        bucket: Bucket::Fallen,
+                    StageInventory {
+                        stage_dir: StageDir::Fallen,
                         items: fallen,
                     },
-                    BucketInventory {
-                        bucket: Bucket::Pressed,
+                    StageInventory {
+                        stage_dir: StageDir::Pressed,
                         items: pressed,
                     },
                 ],
@@ -4309,23 +4230,23 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
 
         fn plain_leaf(&self, slug: &str) -> InventoryItem {
             self.leaf_item(
-                Bucket::Leaves,
+                StageDir::Leaves,
                 slug,
-                status(
-                    ParseState::Ok,
-                    Some("active"),
-                    Some("Learn"),
-                    Some("intent"),
-                ),
+                status(ParseState::Ok, Some("leaf"), Some("Learn"), Some("intent")),
             )
         }
 
-        fn leaf_item(&self, bucket: Bucket, slug: &str, status: StatusSummary) -> InventoryItem {
+        fn leaf_item(
+            &self,
+            stage_dir: StageDir,
+            slug: &str,
+            status: StatusSummary,
+        ) -> InventoryItem {
             let path = self
                 .root
                 .path()
                 .join(".leaf")
-                .join(bucket_dir(bucket))
+                .join(stage_dir_path(stage_dir))
                 .join(slug);
             let status_path = path.join("00-status.md");
             std::fs::create_dir_all(status_path.parent().unwrap()).unwrap();
@@ -4338,7 +4259,7 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             }
 
             InventoryItem {
-                bucket,
+                stage_dir,
                 slug: slug.to_string(),
                 kind: ItemKind::LeafWork,
                 path: path.clone(),
@@ -4351,7 +4272,7 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
                 },
                 review: Some(crate::review::ReviewSource::LeafWork {
                     root_path: path,
-                    root_relative_path: format!(".leaf/{}/{slug}", bucket_dir(bucket)),
+                    root_relative_path: format!(".leaf/{}/{slug}", stage_dir_path(stage_dir)),
                 }),
             }
         }
@@ -4359,13 +4280,15 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
 
     fn status(
         parse_state: ParseState,
-        state: Option<&str>,
+        stage: Option<&str>,
         current_phase: Option<&str>,
         current_gate: Option<&str>,
     ) -> StatusSummary {
         StatusSummary {
             parse_state,
-            state: state.map(str::to_string),
+            stage: stage.map(str::to_string),
+            legacy_state: None,
+            fallen_reason: None,
             current_phase: current_phase.map(str::to_string),
             current_gate: current_gate.map(str::to_string),
             first_missing_gate: None,
@@ -4374,7 +4297,7 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
         }
     }
 
-    fn bucket_dir(bucket: Bucket) -> &'static str {
-        bucket.dir_name()
+    fn stage_dir_path(stage_dir: StageDir) -> &'static str {
+        stage_dir.dir_name()
     }
 }

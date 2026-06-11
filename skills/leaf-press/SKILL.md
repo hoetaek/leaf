@@ -41,13 +41,12 @@ Inspect local truth first:
 
 ```bash
 git status --short --branch
-find .leaf/leaves .leaf/sprouts .leaf/fallen .leaf/02-leaves .leaf/01-seeds .leaf/03-fallen -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort
+find .leaf/02-leaves .leaf/01-sprouts .leaf/03-fallen -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort
 ```
 
 Resolve the source for `{slug}`:
 
-- Prefer `.leaf/leaves/{slug}/`, or compatibility `.leaf/02-leaves/{slug}/`, when
-  a completed reference-worthy leaf exists.
+- Prefer `.leaf/02-leaves/{slug}/` when a completed reference-worthy leaf exists.
 - Use a sprout only when the user explicitly asks for a provisional digest; name
   that it is not yet a completed leaf.
 - Use a fallen source only when the user explicitly asks to summarize archived

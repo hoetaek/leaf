@@ -13,18 +13,9 @@ Use stage language in human-facing prose:
 
 ```text
 .leaf/
-├── sprouts/     incomplete work: Learn through review/execution
-├── leaves/      completed, reference-worthy leaf folders
-└── fallen/      discarded or archived work, including completed non-reference work
-```
-
-Until physical migration lands, the CLI may still store these as compatibility
-paths:
-
-```text
-.leaf/01-seeds/   compatibility storage for sprouts
-.leaf/02-leaves/  compatibility storage for leaves
-.leaf/03-fallen/  compatibility storage for fallen
+├── 01-sprouts/  incomplete work: Learn through review/execution
+├── 02-leaves/   completed, reference-worthy leaf folders
+└── 03-fallen/   discarded or archived work, including completed non-reference work
 ```
 
 Learn and post-Learn work stay in the same sprout until completion. At closure,
@@ -47,8 +38,7 @@ instead of creating a duplicate.
 ## Project Structure
 
 ```text
-.leaf/sprouts/<slug>/                         incomplete LEAF work
-# compatibility: .leaf/01-seeds/<slug>/
+.leaf/01-sprouts/<slug>/                         incomplete LEAF work
 ├── 00-status.md                              dashboard: stage, gate, progress, next action
 │
 ├── 01-Learn/
@@ -78,8 +68,7 @@ instead of creating a duplicate.
 Completed reference-worthy leaves may also contain:
 
 ```text
-.leaf/leaves/<slug>/pressed.md                citable digest for future reference
-# compatibility: .leaf/02-leaves/<slug>/pressed.md
+.leaf/02-leaves/<slug>/pressed.md                citable digest for future reference
 ```
 
 ## Status Dashboard
@@ -121,15 +110,15 @@ Recommended template:
 ```markdown
 # Status
 
-- Current stage: sprout
-- Current phase: Learn
-- Current gate: ② Unknowns & Context
-- First missing gate: ②
-- Next action: resolve blocking unknowns; then continue to ③ Criteria
-- Next approval point: Learn phase -> Example phase
-- Latest return: -
-- Return count: 0
-- Last updated: YYYY-MM-DD
+- stage: sprout
+- current phase: Learn
+- current gate: ② Unknowns & Context
+- first missing gate: ② Unknowns & Context
+- next action: resolve blocking unknowns; then continue to ③ Criteria
+- next approval point: Learn phase -> Example phase
+- latest return: -
+- return count: 0
+- last updated: YYYY-MM-DD
 
 | Gate | Status | Progress | Artifact | Next / Waiting on |
 |---|---:|---:|---|---|

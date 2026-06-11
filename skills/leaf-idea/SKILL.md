@@ -14,9 +14,6 @@ and split decision are clear enough for ③ Criteria.
 - A sprout is one possible future leaf, not an inbox item.
 - Learn runs in the same sprout that later continues to ③; do not require a
   stage move.
-- Until physical stage migration lands, the CLI may still store sprouts at
-  `.leaf/01-seeds/<slug>/`. Treat that as compatibility storage; use
-  sprout/stage language in human-facing prose.
 - `leaf-work` takes over at ③ Example after Learn passes, still in the same
   sprout.
 - Concepts, taxonomies, models, policies, decision records, plans, documents,
@@ -31,7 +28,7 @@ Inspect local truth before asking:
 
 ```bash
 git status --short --branch
-find .leaf/sprouts .leaf/leaves .leaf/fallen .leaf/01-seeds .leaf/02-leaves .leaf/03-fallen -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort
+find .leaf/01-sprouts .leaf/02-leaves .leaf/03-fallen -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort
 ```
 
 Resume a likely matching sprout instead of creating a duplicate. Use lowercase

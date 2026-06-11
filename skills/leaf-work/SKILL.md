@@ -40,11 +40,8 @@ covers the handoff plus ③ onward.
 
 - **Use the leaf CLI as the persistent body of the work.** `leaf-work` assumes
   work lives in one repo-local `.leaf/` project folder. Incomplete work remains a
-  sprout through Learn, Example, Architect, execution, and review. Until physical
-  stage migration is complete, the CLI may still store sprouts at
-  `.leaf/01-seeds/<slug>/`; treat that as compatibility storage and use
-  sprout/stage language in human-facing prose. If the work has not been through
-  Learn — no sprout exists, or ① and ② have not passed —
+  sprout through Learn, Example, Architect, execution, and review. If the work
+  has not been through Learn — no sprout exists, or ① and ② have not passed —
   **invoke the `leaf-idea` skill with the Skill tool** to run Learn first rather
   than starting gate work here; being entered without Learn is the signal to hand
   off to `leaf-idea`, not to improvise the missing gates. If a matching sprout

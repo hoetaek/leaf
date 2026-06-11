@@ -34,7 +34,7 @@ Inspect local truth before changing anything:
 
 ```bash
 git status --short --branch
-find .leaf/sprouts .leaf/leaves .leaf/fallen .leaf/01-seeds .leaf/02-leaves .leaf/03-fallen -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort
+find .leaf/01-sprouts .leaf/02-leaves .leaf/03-fallen -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort
 ```
 
 If the source is missing, stop. If a fallen folder for the slug already exists,

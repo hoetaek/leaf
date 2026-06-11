@@ -191,14 +191,11 @@ mod tests {
             ".leaf",
             vec![
                 DoctorFinding::ok("leaf_root_present", ".leaf initialized").with_path(".leaf"),
-                DoctorFinding::warn(
-                    "duplicate_slug",
-                    "slug appears in more than one lifecycle bucket",
-                )
-                .with_paths([".leaf/01-seeds/demo", ".leaf/02-leaves/demo"]),
+                DoctorFinding::warn("duplicate_slug", "slug appears in more than one stage")
+                    .with_paths([".leaf/01-sprouts/demo", ".leaf/02-leaves/demo"]),
                 DoctorFinding::error(
-                    "state_bucket_mismatch",
-                    "state seed conflicts with bucket 02-leaves; expected active",
+                    "stage_dir_mismatch",
+                    "stage sprout conflicts with directory leaves; expected leaf",
                 )
                 .with_path(".leaf/02-leaves/demo/00-status.md"),
             ],
@@ -213,7 +210,7 @@ mod tests {
         assert!(output.find("Errors").unwrap() < output.find("Warnings").unwrap());
         assert!(output.find("Warnings").unwrap() < output.find("OK checks").unwrap());
         assert!(
-            output.contains("    paths   .leaf/01-seeds/demo\n            .leaf/02-leaves/demo")
+            output.contains("    paths   .leaf/01-sprouts/demo\n            .leaf/02-leaves/demo")
         );
     }
 
@@ -222,11 +219,8 @@ mod tests {
         let report = DoctorReport::new(
             ".leaf",
             vec![
-                DoctorFinding::warn(
-                    "duplicate_slug",
-                    "slug appears in more than one lifecycle bucket",
-                )
-                .with_paths([".leaf/01-seeds/demo", ".leaf/02-leaves/demo"]),
+                DoctorFinding::warn("duplicate_slug", "slug appears in more than one stage")
+                    .with_paths([".leaf/01-sprouts/demo", ".leaf/02-leaves/demo"]),
             ],
         );
 
@@ -241,7 +235,7 @@ mod tests {
         assert!(json["findings"][0].get("path").is_none());
         assert_eq!(
             json["findings"][0]["paths"],
-            serde_json::json!([".leaf/01-seeds/demo", ".leaf/02-leaves/demo"])
+            serde_json::json!([".leaf/01-sprouts/demo", ".leaf/02-leaves/demo"])
         );
     }
 }

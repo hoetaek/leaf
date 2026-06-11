@@ -1,8 +1,8 @@
-use crate::inventory::{Bucket, ParseState};
+use crate::inventory::{ParseState, StageDir};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ListColumn {
-    Bucket,
+    Stage,
     Phase,
     Gate,
     Slug,
@@ -16,7 +16,7 @@ pub(crate) enum ColumnWidth {
 }
 
 pub(crate) const LIST_COLUMNS: [ListColumn; 5] = [
-    ListColumn::Bucket,
+    ListColumn::Stage,
     ListColumn::Phase,
     ListColumn::Gate,
     ListColumn::Slug,
@@ -24,7 +24,7 @@ pub(crate) const LIST_COLUMNS: [ListColumn; 5] = [
 ];
 
 pub(crate) trait ListColumnRow {
-    fn bucket_label(&self) -> &str;
+    fn stage_label(&self) -> &str;
     fn phase(&self) -> &str;
     fn gate(&self) -> &str;
     fn slug(&self) -> &str;
@@ -34,7 +34,7 @@ pub(crate) trait ListColumnRow {
 impl ListColumn {
     pub(crate) fn header(self) -> &'static str {
         match self {
-            ListColumn::Bucket => "BUCKET",
+            ListColumn::Stage => "STAGE",
             ListColumn::Phase => "PHASE",
             ListColumn::Gate => "GATE",
             ListColumn::Slug => "SLUG",
@@ -44,7 +44,7 @@ impl ListColumn {
 
     pub(crate) fn tui_width(self) -> ColumnWidth {
         match self {
-            ListColumn::Bucket => ColumnWidth::Fixed(8),
+            ListColumn::Stage => ColumnWidth::Fixed(8),
             ListColumn::Phase => ColumnWidth::Fixed(10),
             ListColumn::Gate => ColumnWidth::Fixed(18),
             ListColumn::Slug => ColumnWidth::Min(18),
@@ -54,7 +54,7 @@ impl ListColumn {
 
     fn text_min_width(self) -> usize {
         match self {
-            ListColumn::Bucket => 7,
+            ListColumn::Stage => 7,
             ListColumn::Phase => 10,
             ListColumn::Gate => 14,
             ListColumn::Slug => 8,
@@ -64,7 +64,7 @@ impl ListColumn {
 
     pub(crate) fn value(self, row: &impl ListColumnRow) -> String {
         match self {
-            ListColumn::Bucket => row.bucket_label().to_string(),
+            ListColumn::Stage => row.stage_label().to_string(),
             ListColumn::Phase => row.phase().to_string(),
             ListColumn::Gate => row.gate().to_string(),
             ListColumn::Slug => row.slug().to_string(),
@@ -98,21 +98,21 @@ pub(crate) fn text_table<R: ListColumnRow>(columns: &[ListColumn], rows: &[R]) -
     lines.join("\n")
 }
 
-pub(crate) fn bucket_label_singular(bucket: Bucket) -> &'static str {
-    match bucket {
-        Bucket::Seeds => "seed",
-        Bucket::Leaves => "leaf",
-        Bucket::Fallen => "fallen",
-        Bucket::Pressed => "pressed",
+pub(crate) fn stage_label_singular(stage_dir: StageDir) -> &'static str {
+    match stage_dir {
+        StageDir::Sprouts => "sprout",
+        StageDir::Leaves => "leaf",
+        StageDir::Fallen => "fallen",
+        StageDir::Pressed => "pressed",
     }
 }
 
-pub(crate) fn bucket_label_plural(bucket: Bucket) -> &'static str {
-    match bucket {
-        Bucket::Seeds => "seeds",
-        Bucket::Leaves => "leaves",
-        Bucket::Fallen => "fallen",
-        Bucket::Pressed => "pressed",
+pub(crate) fn stage_label_plural(stage_dir: StageDir) -> &'static str {
+    match stage_dir {
+        StageDir::Sprouts => "sprouts",
+        StageDir::Leaves => "leaves",
+        StageDir::Fallen => "fallen",
+        StageDir::Pressed => "pressed",
     }
 }
 
@@ -181,7 +181,7 @@ mod tests {
     use super::*;
 
     struct Row {
-        bucket: &'static str,
+        stage_dir: &'static str,
         phase: &'static str,
         gate: &'static str,
         slug: &'static str,
@@ -189,8 +189,8 @@ mod tests {
     }
 
     impl ListColumnRow for Row {
-        fn bucket_label(&self) -> &str {
-            self.bucket
+        fn stage_label(&self) -> &str {
+            self.stage_dir
         }
 
         fn phase(&self) -> &str {
@@ -214,7 +214,7 @@ mod tests {
     fn default_columns_are_the_inventory_display_contract() {
         let headers: Vec<_> = LIST_COLUMNS.iter().map(|column| column.header()).collect();
 
-        assert_eq!(headers, ["BUCKET", "PHASE", "GATE", "SLUG", "STATUS"]);
+        assert_eq!(headers, ["STAGE", "PHASE", "GATE", "SLUG", "STATUS"]);
     }
 
     #[test]
@@ -225,7 +225,7 @@ mod tests {
     #[test]
     fn markdown_table_uses_column_metadata() {
         let row = Row {
-            bucket: "leaf",
+            stage_dir: "leaf",
             phase: "Learn",
             gate: "intent",
             slug: "alpha",
@@ -234,14 +234,14 @@ mod tests {
 
         assert_eq!(
             markdown_table(&LIST_COLUMNS, &[&row]),
-            "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | Learn | intent | alpha | ok |"
+            "| STAGE | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | Learn | intent | alpha | ok |"
         );
     }
 
     #[test]
     fn markdown_table_escapes_cell_content_once() {
         let row = Row {
-            bucket: "leaf",
+            stage_dir: "leaf",
             phase: "Learn",
             gate: "intent",
             slug: "alpha|beta",
@@ -250,14 +250,14 @@ mod tests {
 
         assert_eq!(
             markdown_table(&LIST_COLUMNS, &[&row]),
-            "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | Learn | intent | alpha\\|beta | ok |"
+            "| STAGE | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | Learn | intent | alpha\\|beta | ok |"
         );
     }
 
     #[test]
     fn text_table_uses_the_same_column_order() {
         let row = Row {
-            bucket: "leaf",
+            stage_dir: "leaf",
             phase: "Architect",
             gate: "⑦ Task Graph",
             slug: "active",
@@ -266,7 +266,7 @@ mod tests {
 
         assert_eq!(
             text_table(&LIST_COLUMNS, &[row]),
-            "BUCKET  PHASE      GATE           SLUG     STATUS\nleaf    Architect  ⑦ Task Graph   active   ok"
+            "STAGE   PHASE      GATE           SLUG     STATUS\nleaf    Architect  ⑦ Task Graph   active   ok"
         );
     }
 }
