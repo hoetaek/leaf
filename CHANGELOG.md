@@ -8,6 +8,8 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+## 0.5.0 - 2026-06-11
+
 - Merged the `leaf-press` and `leaf-fall` skills into a single `leaf-clean`
   skill that tends the `.leaf/` workspace: pressing citable digests, moving
   non-reference-worthy work into fallen, and acting as the migration operator
