@@ -112,6 +112,53 @@ fn init_is_idempotent() {
 }
 
 #[test]
+fn init_creates_profile_file() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    repo.child(".leaf/PROFILE.md")
+        .assert(predicate::path::is_file());
+    let body = fs::read_to_string(repo.path().join(".leaf/PROFILE.md")).expect("profile readable");
+    assert!(body.starts_with("# Profile"));
+    assert!(body.contains("## Settled"));
+    assert!(body.contains("## Provisional"));
+}
+
+#[test]
+fn init_preserves_existing_profile_file() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let custom = "# Profile\n\ncustom content that must survive\n\n## Settled\n\n## Provisional\n";
+    repo.child(".leaf/PROFILE.md")
+        .write_str(custom)
+        .expect("write custom profile");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    assert_eq!(
+        fs::read_to_string(repo.path().join(".leaf/PROFILE.md")).expect("profile readable"),
+        custom
+    );
+}
+
+#[test]
 fn init_from_nested_cwd_uses_repo_root() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());

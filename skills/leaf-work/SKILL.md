@@ -34,7 +34,9 @@ Learn runs in `leaf-idea`; `leaf-work` continues the same sprout at ③ Example
 after Learn passes. Learn's detailed gate contracts live in
 `../leaf-idea/references/gate-01-intent.md` and
 `../leaf-idea/references/gate-02-unknowns-context.md`; `references/gates.md`
-covers the handoff plus ③ onward.
+covers the handoff plus ③ onward. ⑩ Retrospect also consolidates the leaf's
+lessons into the repo-local acquired profile `.leaf/PROFILE.md` per the
+`### Profile update` contract in `references/gates.md`.
 
 ## Always-on rules
 

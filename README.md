@@ -108,7 +108,10 @@ review. `02-leaves/` holds completed, reference-worthy LEAF folders.
 not useful enough to keep as a reference. Pressed digests live inside the source
 leaf as `pressed.md`, not in a shared top-level pressed folder. When a pressed
 leaf cites or is cited by other leaves, cross-leaf citation metadata lives next
-to the digest as `linked.md`.
+to the digest as `linked.md`. `.leaf/PROFILE.md` is the repo-local acquired
+profile: `leaf init` scaffolds it, completed leaves consolidate working-style
+traits into it at ⑩ Retrospect, and `leaf-soul` reads it at the start of LEAF
+work.
 
 `leaf init` adds `/.leaf` to `.git/info/exclude` so local collaboration notes do
 not appear in normal `git status` output.
