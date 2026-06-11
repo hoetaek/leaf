@@ -58,6 +58,7 @@ pub(crate) enum KeyInput {
 pub(crate) enum MouseInput {
     Down { visible_index: usize },
     Drag { visible_index: usize },
+    DoubleClick { visible_index: usize },
     Up,
 }
 
@@ -396,6 +397,15 @@ impl AppState {
             }
             MouseInput::Up => {
                 self.mouse_anchor = None;
+            }
+            MouseInput::DoubleClick { visible_index } => {
+                if !self.select_visible_index(visible_index) {
+                    return Outcome::Continue;
+                }
+                self.mouse_anchor = None;
+                if self.mode == Mode::List {
+                    self.open_review();
+                }
             }
         }
         Outcome::Continue
@@ -2023,6 +2033,192 @@ mod tests {
 
         assert_eq!(
             app.handle_mouse(MouseInput::Down { visible_index: 1 }),
+            Outcome::Continue
+        );
+        assert_eq!(app.selected_row_count(), 0);
+    }
+
+    #[test]
+    fn tui_app_double_click_opens_review_for_clicked_row() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_preview_status(
+            root.path(),
+            StageDir::Leaves,
+            slug,
+            "- current gate: ① Intent\n",
+        );
+        let item = leaf_item_at(root.path(), StageDir::Leaves, slug, complete_leaf_status());
+        let inventory = inventory_with_root(root.path(), vec![item]);
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.mode(), Mode::List);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::DoubleClick { visible_index: 0 }),
+            Outcome::Continue
+        );
+
+        assert_eq!(app.mode(), Mode::Review);
+        let review = app.review_state().expect("review state");
+        assert_eq!(review.document.root_relative_path, ".leaf/02-leaves/demo");
+    }
+
+    #[test]
+    fn tui_app_double_click_selects_clicked_row_before_opening_review() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        for slug in ["alpha", "beta"] {
+            write_preview_status(
+                root.path(),
+                StageDir::Leaves,
+                slug,
+                "- current gate: ① Intent\n",
+            );
+        }
+        let inventory = inventory_with_root(
+            root.path(),
+            vec![
+                leaf_item_at(
+                    root.path(),
+                    StageDir::Leaves,
+                    "alpha",
+                    complete_leaf_status(),
+                ),
+                leaf_item_at(
+                    root.path(),
+                    StageDir::Leaves,
+                    "beta",
+                    complete_leaf_status(),
+                ),
+            ],
+        );
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.selected_index(), 0);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::DoubleClick { visible_index: 1 }),
+            Outcome::Continue
+        );
+
+        assert_eq!(app.selected_index(), 1);
+        assert_eq!(app.mode(), Mode::Review);
+        let review = app.review_state().expect("review state");
+        assert_eq!(review.document.root_relative_path, ".leaf/02-leaves/beta");
+    }
+
+    #[test]
+    fn tui_app_double_click_on_non_reviewable_row_reports_status_and_stays_in_list() {
+        let mut item = leaf_item(StageDir::Leaves, "digest", complete_leaf_status());
+        item.review = None;
+        let inventory = inventory_with_items(vec![item]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::DoubleClick { visible_index: 0 }),
+            Outcome::Continue
+        );
+
+        assert_eq!(app.mode(), Mode::List);
+        assert!(app.review_state().is_none());
+        assert!(
+            app.status_line()
+                .contains("review is only available for leaf work rows")
+        );
+    }
+
+    #[test]
+    fn tui_app_double_click_out_of_range_is_ignored() {
+        let inventory = inventory_with_slugs(&["alpha", "beta"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::DoubleClick { visible_index: 9 }),
+            Outcome::Continue
+        );
+
+        assert_eq!(app.mode(), Mode::List);
+        assert_eq!(app.selected_index(), 0);
+        assert!(app.review_state().is_none());
+    }
+
+    #[test]
+    fn tui_app_double_click_in_range_select_selects_without_opening_review() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.handle_key(KeyInput::Char('v'));
+        assert_eq!(app.mode(), Mode::RangeSelect);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::DoubleClick { visible_index: 2 }),
+            Outcome::Continue
+        );
+
+        assert_eq!(app.mode(), Mode::RangeSelect);
+        assert_eq!(app.selected_index(), 2);
+        assert!(app.review_state().is_none());
+    }
+
+    #[test]
+    fn tui_app_double_click_is_ignored_in_filter_mode() {
+        let inventory = inventory_with_slugs(&["alpha"]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.handle_key(KeyInput::Char('/'));
+        assert_eq!(app.mode(), Mode::FilterInput);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::DoubleClick { visible_index: 0 }),
+            Outcome::Continue
+        );
+
+        assert_eq!(app.mode(), Mode::FilterInput);
+        assert!(app.review_state().is_none());
+    }
+
+    #[test]
+    fn tui_app_drag_after_double_click_review_roundtrip_does_not_mark_range() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        for slug in ["alpha", "beta", "gamma"] {
+            write_preview_status(
+                root.path(),
+                StageDir::Leaves,
+                slug,
+                "- current gate: ① Intent\n",
+            );
+        }
+        let inventory = inventory_with_root(
+            root.path(),
+            vec![
+                leaf_item_at(
+                    root.path(),
+                    StageDir::Leaves,
+                    "alpha",
+                    complete_leaf_status(),
+                ),
+                leaf_item_at(
+                    root.path(),
+                    StageDir::Leaves,
+                    "beta",
+                    complete_leaf_status(),
+                ),
+                leaf_item_at(
+                    root.path(),
+                    StageDir::Leaves,
+                    "gamma",
+                    complete_leaf_status(),
+                ),
+            ],
+        );
+        let mut app = AppState::from_inventory(&inventory);
+
+        // Double click opens review; the trailing mouse Up never reaches the app
+        // because review mode releases mouse capture.
+        app.handle_mouse(MouseInput::DoubleClick { visible_index: 0 });
+        assert_eq!(app.mode(), Mode::Review);
+        app.handle_key(KeyInput::Esc);
+        assert_eq!(app.mode(), Mode::List);
+
+        // A Drag without a fresh Down must not mark a range from a stale anchor.
+        assert_eq!(
+            app.handle_mouse(MouseInput::Drag { visible_index: 2 }),
             Outcome::Continue
         );
         assert_eq!(app.selected_row_count(), 0);

@@ -24,6 +24,7 @@ trait TuiAdapter {
 
 const EVENT_POLL_INTERVAL: Duration = Duration::from_millis(100);
 const REVIEW_AUTO_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
+const DOUBLE_CLICK_INTERVAL: Duration = Duration::from_millis(400);
 
 struct RealTuiAdapter {
     repo_root: PathBuf,
@@ -80,6 +81,7 @@ fn event_loop<A: TuiAdapter>(
     session: &mut TerminalSession,
 ) -> Result<()> {
     let mut last_review_auto_refresh = Instant::now();
+    let mut click_tracker = ClickTracker::default();
     loop {
         maybe_auto_refresh_review(app, &mut last_review_auto_refresh, Instant::now());
 
@@ -93,6 +95,7 @@ fn event_loop<A: TuiAdapter>(
 
         match event::read().context("read leaf list TUI event")? {
             Event::Key(key) if key.kind == KeyEventKind::Press => {
+                click_tracker.reset();
                 if is_ctrl_c(key) {
                     break;
                 }
@@ -116,6 +119,8 @@ fn event_loop<A: TuiAdapter>(
                 let Some(input) = mouse_input(area, app, mouse) else {
                     continue;
                 };
+                let input =
+                    upgrade_double_click(&mut click_tracker, input, mouse.row, Instant::now());
 
                 let outcome = app.handle_mouse(input);
                 if outcome == Outcome::Quit {
@@ -173,6 +178,46 @@ fn mouse_input(area: Rect, app: &AppState, mouse: MouseEvent) -> Option<MouseInp
         }
         MouseEventKind::Up(MouseButton::Left) => Some(MouseInput::Up),
         _ => None,
+    }
+}
+
+#[derive(Default)]
+struct ClickTracker {
+    last_down: Option<(Instant, u16, usize)>,
+}
+
+impl ClickTracker {
+    fn reset(&mut self) {
+        self.last_down = None;
+    }
+}
+
+fn upgrade_double_click(
+    tracker: &mut ClickTracker,
+    input: MouseInput,
+    screen_row: u16,
+    now: Instant,
+) -> MouseInput {
+    match input {
+        MouseInput::Down { visible_index } => {
+            if let Some((at, last_screen_row, last_visible_index)) = tracker.last_down
+                && last_screen_row == screen_row
+                && now.duration_since(at) <= DOUBLE_CLICK_INTERVAL
+            {
+                tracker.last_down = None;
+                MouseInput::DoubleClick {
+                    visible_index: last_visible_index,
+                }
+            } else {
+                tracker.last_down = Some((now, screen_row, visible_index));
+                MouseInput::Down { visible_index }
+            }
+        }
+        MouseInput::Drag { .. } => {
+            tracker.reset();
+            input
+        }
+        _ => input,
     }
 }
 
@@ -581,6 +626,200 @@ mod tests {
                 root_relative_path: format!(".leaf/{}/{slug}", stage_dir.dir_name()),
             }),
         }
+    }
+
+    #[test]
+    fn upgrade_double_click_promotes_second_click_on_same_row_within_interval() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        assert_eq!(
+            upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 1 }, 4, t0),
+            MouseInput::Down { visible_index: 1 }
+        );
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 1 },
+                4,
+                t0 + Duration::from_millis(300),
+            ),
+            MouseInput::DoubleClick { visible_index: 1 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_promotes_same_screen_row_with_first_visible_index() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        assert_eq!(
+            upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 6 }, 4, t0),
+            MouseInput::Down { visible_index: 6 }
+        );
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 3 },
+                4,
+                t0 + Duration::from_millis(300),
+            ),
+            MouseInput::DoubleClick { visible_index: 6 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_accepts_click_at_exact_interval_boundary() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 0 }, 4, t0);
+
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 0 },
+                4,
+                t0 + DOUBLE_CLICK_INTERVAL,
+            ),
+            MouseInput::DoubleClick { visible_index: 0 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_keeps_slow_second_click_as_single() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 1 }, 4, t0);
+
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 1 },
+                4,
+                t0 + DOUBLE_CLICK_INTERVAL + Duration::from_millis(1),
+            ),
+            MouseInput::Down { visible_index: 1 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_keeps_click_on_different_row_as_single() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 1 }, 4, t0);
+
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 2 },
+                5,
+                t0 + Duration::from_millis(100),
+            ),
+            MouseInput::Down { visible_index: 2 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_reset_clears_pending_click() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 1 }, 4, t0);
+        tracker.reset();
+
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 1 },
+                4,
+                t0 + Duration::from_millis(100),
+            ),
+            MouseInput::Down { visible_index: 1 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_resets_after_promotion_so_triple_click_starts_fresh() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 1 }, 4, t0);
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 1 },
+                4,
+                t0 + Duration::from_millis(100),
+            ),
+            MouseInput::DoubleClick { visible_index: 1 }
+        );
+
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 1 },
+                4,
+                t0 + Duration::from_millis(200),
+            ),
+            MouseInput::Down { visible_index: 1 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_passes_up_through_and_keeps_click_sequence() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 1 }, 4, t0);
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Up,
+                4,
+                t0 + Duration::from_millis(50),
+            ),
+            MouseInput::Up
+        );
+
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 1 },
+                4,
+                t0 + Duration::from_millis(200),
+            ),
+            MouseInput::DoubleClick { visible_index: 1 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_resets_on_drag() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 1 }, 4, t0);
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Drag { visible_index: 2 },
+                4,
+                t0 + Duration::from_millis(50),
+            ),
+            MouseInput::Drag { visible_index: 2 }
+        );
+
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 1 },
+                4,
+                t0 + Duration::from_millis(100),
+            ),
+            MouseInput::Down { visible_index: 1 }
+        );
     }
 
     #[test]
