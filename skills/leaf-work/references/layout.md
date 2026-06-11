@@ -1,18 +1,37 @@
 # Layout
 
-How a project's persistent files are named and organized. Read this before you
-write files.
+How a LEAF project's persistent files are named and organized. Read this before
+writing gate files.
 
-**The leaf-work folder records the thinking process.** Each file says what you
-did, learned, and decided at that gate; the artifact itself — essay, video,
-code — lives wherever you keep your work, and leaf-work only records what was
-done. `leaf-work` uses the `leaf` CLI for this folder: initialize `.leaf/` in
-the repo and create one project folder per slug. Inside that project folder,
-the top level is split by the four LEAF phases, each with a two-digit phase
-prefix so `ls` sort shows the work in order. Inside each phase, files keep their
-two-digit gate prefix.
+The LEAF folder records the thinking process: what you learned, decided, built,
+reviewed, and closed. The artifact itself — document, code, video, design, or
+prototype — may live elsewhere; LEAF records why it exists and how it was made.
 
-## Leaf CLI workspace
+## Stage Model
+
+Use stage language in human-facing prose:
+
+```text
+.leaf/
+├── sprouts/     incomplete work: Learn through review/execution
+├── leaves/      completed, reference-worthy leaf folders
+└── fallen/      discarded or archived work, including completed non-reference work
+```
+
+Until physical migration lands, the CLI may still store these as compatibility
+paths:
+
+```text
+.leaf/01-seeds/   compatibility storage for sprouts
+.leaf/02-leaves/  compatibility storage for leaves
+.leaf/03-fallen/  compatibility storage for fallen
+```
+
+Learn and post-Learn work stay in the same sprout until completion. At closure,
+explicitly decide whether the result is reference-worthy enough to become a leaf
+or should fall.
+
+## CLI Start
 
 Run these before writing gate files:
 
@@ -21,75 +40,56 @@ leaf init
 leaf new <slug>
 ```
 
-Run this when Learn is complete and Example is ready to start:
+`leaf new <slug>` creates or resumes the sprout project folder. Use lowercase
+ASCII kebab-case slugs. If a likely matching sprout already exists, resume it
+instead of creating a duplicate.
 
-```bash
-leaf promote <slug>
-```
-
-`leaf init` creates the repo-local workspace:
+## Project Structure
 
 ```text
-.leaf/
-├── seeds/
-├── leaves/
-├── fallen/
-└── pressed/
-```
-
-`leaf new <slug>` creates exploratory work under `.leaf/01-seeds/<slug>/`. Seeds
-are ideas and Learn-phase work: they can die, split, be enriched, or be
-rewritten while ① Intent and ② Unknowns & Context settle. When Learn passes and
-the user approves moving to Example, `leaf promote <slug>` moves the project to
-`.leaf/02-leaves/<slug>/` and updates `00-status.md` to active Example work.
-
-## Recommended structure
-
-```text
-.leaf/01-seeds/<slug>/                         exploratory idea seed / Learn phase
-# then .leaf/02-leaves/<slug>/                 committed active leaf from Example onward
-├── 00-status.md                              dashboard: current gate, progress, next action
-├── README.md                                 project description only (optional)
+.leaf/sprouts/<slug>/                         incomplete LEAF work
+# compatibility: .leaf/01-seeds/<slug>/
+├── 00-status.md                              dashboard: stage, gate, progress, next action
 │
 ├── 01-Learn/
 │   ├── 01-intent.md                          ① Intent
 │   ├── 02-unknowns.md                        ② Unknowns, sourced answers, context
-│   ├── 02-references/                        ② collected materials & search notes, by topic
-│   └── 02-experiments/                       ② experiment process logs by problem; clean result summarized back to 02-unknowns.md
+│   ├── 02-references/                        ② collected materials and search notes
+│   └── 02-experiments/                       ② experiment logs, summarized back to 02-unknowns.md
 │
 ├── 02-Example/
-│   ├── 03-criteria.md                        ③ Criteria (purpose + requirements)
-│   └── 04-wireframe/                         ④ Instance + contract (folder when interactive)
-│       ├── index.html                        the instance (variation rendered)
+│   ├── 03-criteria.md                        ③ Criteria
+│   └── 04-wireframe/                         ④ Instance + contract when interactive
+│       ├── index.html
 │       ├── mock-data.json
-│       └── contracts.md                      declared contract behind each placeholder
+│       └── contracts.md
 │
 ├── 03-Architect/
-│   ├── 05-design.md                          ⑤ Design — generator (consumes ④ contract)
-│   ├── 06-critic.md                          ⑥ Critic — gate always runs; file created when depth/risk warrants
+│   ├── 05-design.md                          ⑤ Design
+│   ├── 06-critic.md                          ⑥ Critic, lazy when depth/risk warrants
 │   ├── 07-tasks.md                           ⑦ Task graph
-│   └── 08-execution.md                       ⑧ lazy execution log / handoff
+│   └── 08-execution.md                       ⑧ execution log / handoff
 │
 └── 04-Feedback/
-    ├── 09-review.md                          ⑨ Review/sync, lazy until review happens
-    └── 10-retrospect.md                      ⑩ Retrospect, lazy until close
+    ├── 09-review.md                          ⑨ Review/sync
+    └── 10-retrospect.md                      ⑩ Retrospect
 ```
 
-The current CLI scaffolds the core seed files (`00-status.md`, gates ①-⑤, ⑦,
-and the phase folders), then promotes the project to active leaf storage after
-Learn. Create lazy files such as `06-critic.md`, `08-execution.md`,
-`09-review.md`, and `10-retrospect.md` only when the gate needs them.
+Completed reference-worthy leaves may also contain:
 
-## Status dashboard
+```text
+.leaf/leaves/<slug>/pressed.md                citable digest for future reference
+# compatibility: .leaf/02-leaves/<slug>/pressed.md
+```
 
-`00-status.md` is the first file to read when resuming a project. It is an
-overview, not the source of truth: each gate's own file/folder remains
-authoritative. Update it whenever a gate starts, becomes ready for review,
-completes, needs explicit approval, is approved, returns, is blocked/deferred,
-or the next action changes materially. Returns are historical events, not gate
-states; summarize them in the dashboard and record them in the Return Log.
+## Status Dashboard
 
-Use coarse progress values to avoid fake precision:
+`00-status.md` is the first file to read when resuming. It is an overview, not
+the source of truth; each gate file remains authoritative. Update it whenever
+the current phase/gate, next action, review status, approval need, return, or
+closure condition changes.
+
+Use coarse progress values:
 
 ```text
 0    not started
@@ -99,7 +99,7 @@ Use coarse progress values to avoid fake precision:
 100  complete; user-approved when approval was required
 ```
 
-Use these state values:
+Use these gate status values:
 
 ```text
 not-started      gate work has not begun
@@ -112,37 +112,30 @@ approved         user explicitly approved the phase transition, escalated gate,
                  or pre-execution Architect snapshot
 ```
 
-Do not mark every completed gate `approved`. Use `complete` for ordinary gates
-the agent validated inside the current phase. Use `approved` only when
-the user explicitly approved a phase transition, escalated gate, pre-execution
-Architect snapshot, or passed snapshot. When ⑦ Task Graph is ready and ⑧ is the
-next move, set ⑧ Artifact to `needs-approval` and write the required approval
-surface in `Next / Waiting on`. A later return may invalidate or reopen a
-`complete` or `approved` gate; if the return crosses a previously approved phase
-boundary or pre-execution Architect approval, escalate again. If work is blocked
-or intentionally deferred, keep the gate state as `active` or `not-started` and
-write the reason in `Next / Waiting on` (`blocked: <reason>` or
-`deferred: <resume condition>`).
+For fallen items, use a `fallen reason` such as `abandoned`, `superseded`,
+`split`, `invalidated`, `archived`, or `completed-not-reference-worthy`. Do not
+use `fallen` as an ordinary gate status.
 
 Recommended template:
 
 ```markdown
 # Status
 
+- Current stage: sprout
 - Current phase: Learn
 - Current gate: ② Unknowns & Context
 - First missing gate: ②
-- Next action: resolve blocking unknowns; then ask whether to approve Learn and run `leaf promote <slug>`
+- Next action: resolve blocking unknowns; then continue to ③ Criteria
 - Next approval point: Learn phase -> Example phase
 - Latest return: -
 - Return count: 0
 - Last updated: YYYY-MM-DD
 
-| Gate | State | Progress | Artifact | Next / Waiting on |
+| Gate | Status | Progress | Artifact | Next / Waiting on |
 |---|---:|---:|---|---|
 | ① Intent | complete | 100 | 01-Learn/01-intent.md | - |
 | ② Unknowns & Context | active | 50 | 01-Learn/02-unknowns.md | resolve blocking unknowns |
-| ③ Criteria | not-started | 0 | 02-Example/03-criteria.md | start after Learn approval and `leaf promote <slug>` |
+| ③ Criteria | not-started | 0 | 02-Example/03-criteria.md | start after Learn closes |
 | ④ Wireframe | not-started | 0 | 02-Example/04-wireframe/ | - |
 | ⑤ Design | not-started | 0 | 03-Architect/05-design.md | - |
 | ⑥ Critic | not-started | 0 | 03-Architect/06-critic.md | - |
@@ -158,80 +151,31 @@ Recommended template:
 | - | - | - | - | - | - | - |
 ```
 
-When a return happens, update the affected gate states separately. The target
+When a return happens, update the affected gate statuses separately. The target
 gate usually becomes `active`; downstream gates may become `not-started`,
 `active`, `review-ready`, `complete`, or `needs-approval` depending on what the
-return invalidated. Do not use `returned` as a state.
+return invalidated. Do not use `returned` as a status.
 
-When a gate's artifacts grow to three or more, promote the file form to a folder
-inside its phase folder. The folder name uses the plural gate keyword; files
-inside drop the keyword:
+## Naming Rules
 
-```text
-04-Feedback/09-reviews/                       (folder form)
-├── 공적서-review-v1.md
-├── 공적서-review-v2.md
-└── 추천서-review-v1.md
-
-04-Feedback/10-retrospective/                 (folder form)
-├── mid-process-discoveries.md
-├── limitations.md
-└── retrospective-2026-05-30.md
-```
-
-## Naming rules
-
-- **One leaf folder per project.** Do not spread one project's process files
-  across multiple `.leaf/01-seeds/` or `.leaf/02-leaves/` folders.
-- **The scaffold comes first, and `00-status.md` is part of it.** Invoking
-  leaf-work means running `leaf init` / `leaf new <slug>` and using the
-  resulting `.leaf/01-seeds/<slug>/` scaffold for Learn before running
-  `leaf promote <slug>` for Example and later phases — there is no "LEAF without
-  a body." A task too small to deserve that scaffold should not invoke leaf-work
-  at all, rather than run it while skipping the files.
-- **`README.md` is not the status file.** Use it only for stable project
-  description or handoff notes. Current gate, progress, and next action belong
-  in `00-status.md`.
-- **Top-level folders inside the leaf are phases.** Use exactly `01-Learn/`,
-  `02-Example/`, `03-Architect/`, and `04-Feedback/` inside the seed/leaf
-  folder. The numeric prefix preserves order; the phase name preserves meaning.
-- **No nested project folders.** Do not create `<##>-sub-<name>/` or recursive
-  leaf-work children. If work is too large for one task line, split it inside
-  `03-Architect/07-tasks.md`. If it truly needs an independent LEAF cycle,
-  create a separate sibling project folder and reference that path from the task
-  graph.
-- **② is one gate, not a merge.** Unknown surfacing, reference search, sourced
-  answers, context notes, assumptions, and unresolved questions stay together in
-  `01-Learn/02-unknowns.md`. This is deliberate: the agent naturally records a
-  question and then updates the same entry with what was found. Put bulky source
-  material in `01-Learn/02-references/`, and keep messy experiment process logs
-  in `01-Learn/02-experiments/{name}.md`, but summarize the useful answer back in
-  `02-unknowns.md`. Both sidecars share ②'s `02` prefix because they serve gate
-  ②, and both exist to keep `02-unknowns.md` a clean index of what is now known
-  rather than a scratchpad of every source or trial. See
-  `references/experiment-log.md` for the experiment machine.
-- **③ is one gate, not a merge.** Criteria combines purpose and requirements
-  because both are pre-instance judgment. Keep purpose and requirements as
-  visible sections inside `02-Example/03-criteria.md`.
-- **Never merge across a produce/consume boundary.** ③ Criteria vs ④ Wireframe
-  must stay separate because the concrete instance must pass the criteria and can
-  falsify them. ④ Wireframe vs ⑤ Design must stay separate because the locked
-  contract is consumed by the generator. `03+04`, `04+05`, and `03+04+05` are
-  forbidden.
-- **Match the file name to the gate vocabulary.** The CLI uses stable names for
-  the common single-artifact case: `01-intent.md`, `02-unknowns.md`,
-  `03-criteria.md`, `04-wireframe.md`, `05-design.md`, `07-tasks.md`, plus lazy
-  `06-critic.md`, `08-execution.md`, `09-review.md`, and `10-retrospect.md`.
-  When a gate has several artifacts, use a folder form and put named files
-  inside it.
-- **File or folder by count.** Keep gate outputs as prefix files inside their
-  phase folder when there are one or two; promote to a folder when three or more
-  pile up (`01-Learn/02-references/`, `01-Learn/02-experiments/`,
-  `04-Feedback/09-reviews/`, `04-Feedback/10-retrospective/`).
-- **`08-execution.md` is a running log.** Append one entry per work session —
-  what you did, what came of it, what's next. The artifact itself lives outside
-  leaf-work; this file keeps the record of what was done.
-- **Reuse**: copy the folder structure as the starting point for the next
-  project. The previous retrospective then feeds the next project's ② — its
-  lessons update the ② checklist, and its limitations (what stayed unresolved,
-  where the conclusions stop) seed future ① intents.
+- **One project folder per LEAF work item.** Do not spread one item's process
+  files across multiple sprout or leaf folders.
+- **The scaffold comes first.** Invoking LEAF means using `leaf init` /
+  `leaf new <slug>` and keeping the gate files in that project folder. A task too
+  small for the scaffold should not invoke LEAF.
+- **Top-level folders are phases.** Use exactly `01-Learn/`, `02-Example/`,
+  `03-Architect/`, and `04-Feedback/` inside the project folder.
+- **No nested project folders.** Split large work inside `03-Architect/07-tasks.md`;
+  create a sibling sprout only when the work needs an independent LEAF cycle.
+- **② is one gate.** Unknowns, reference search, sourced answers, assumptions,
+  and unresolved questions stay indexed in `01-Learn/02-unknowns.md`. Put bulky
+  source material in `01-Learn/02-references/` and experiments in
+  `01-Learn/02-experiments/`, then summarize the useful answer back.
+- **Never merge produce/consume boundaries.** Keep ③ Criteria, ④ Wireframe, and
+  ⑤ Design separate so disagreement stays visible.
+- **File or folder by count.** Keep gate outputs as prefix files when there are
+  one or two. Convert to a folder when three or more pile up.
+- **`08-execution.md` is a running log.** Append one entry per work session: what
+  you did, what came of it, and what is next.
+- **Reuse comes from closure.** Retrospect lessons feed the next project's ②;
+  limitations and unresolved boundaries can start future ① intents.

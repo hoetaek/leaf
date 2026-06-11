@@ -1,36 +1,32 @@
 ---
 name: leaf-fall
-description: Use when trashing, discarding, closing, retiring, completing, abandoning, superseding, parking, splitting, or invalidating an active `.leaf/02-leaves/{slug}/` work item into `.leaf/03-fallen/{slug}/`; trigger on `leaf fall`, "trash this leaf", "discard this leaf", "close this leaf", "mark this leaf done", or "stop carrying this leaf".
+description: Use when discarding, archiving, abandoning, superseding, parking, splitting, invalidating, or closing non-reference-worthy LEAF work into fallen with an explicit fallen reason.
 ---
 
 # LEAF Fall
 
-Trash an active `.leaf/02-leaves/<slug>/` work item into `.leaf/03-fallen/<slug>/`.
-Falling removes the leaf from the active carrying set; it is trash, not a
-citation or long-term reference surface.
+Move LEAF work into `fallen` when it should stop being carried and should not
+become a reference-worthy leaf. Fallen is for discarded, archived, invalidated,
+superseded, or completed-but-not-worth-reusing work.
 
 ## Boundary
 
 - Work only inside `.leaf/`.
-- Use `leaf fall <slug> --reason <reason>` for the lifecycle move.
+- Use `leaf fall <slug> --reason <fallen reason>` for the stage move when the CLI
+  supports the source.
+- Do not use fall as a generic "done" button. If a completed item is useful
+  future reference, it belongs in `leaves`, optionally with `pressed.md`.
 - Do not read, write, infer, or validate `.wt/` files.
 - Do not create wt TaskDocuments, workflows, branches, PRs, commits, tickets, or
   execution artifacts.
-- Do not close a leaf only because execution finished. The leaf remains active
-  until review/sync and enough retrospective closure are recorded.
-- Do not mix seed states with fallen leaves. `killed` or `deferred` belongs to
-  `.leaf/01-seeds/<slug>/`; `fallen` belongs to committed `.leaf/02-leaves/<slug>/`.
+- Do not auto-create successor work. Link an existing or proposed successor path
+  only when needed.
 
-## Reference map
-
-Conduct and reporting are shared across the LEAF family, not duplicated here.
-**Invoke the `leaf-soul` skill with the Skill tool** before acting and follow it —
-do not just read its file. When the work needs another LEAF skill, invoke that
-skill rather than only referencing it. The sibling reference below backs it up:
+## Reference Map
 
 | Read | When |
 |---|---|
-| `../leaf-soul/SKILL.md` | always: shared conduct/voice, overview-first reporting, fact-vs-guess separation, review handoff, and preferred language — follow it for closure notes and reports |
+| `../leaf-soul/SKILL.md` | always: soul, reporting, fact-vs-assumption separation, user-language prose, review handoff |
 
 ## First Read
 
@@ -38,56 +34,56 @@ Inspect local truth before changing anything:
 
 ```bash
 git status --short --branch
-find .leaf/02-leaves .leaf/03-fallen -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort
+find .leaf/sprouts .leaf/leaves .leaf/fallen .leaf/01-seeds .leaf/02-leaves .leaf/03-fallen -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort
 ```
 
-If `.leaf/02-leaves/<slug>/` is missing, stop. If `.leaf/03-fallen/<slug>/` already
-exists, stop and do not merge or overwrite.
+If the source is missing, stop. If a fallen folder for the slug already exists,
+stop and do not merge or overwrite.
 
 ## Closure Check
 
 Before falling, verify:
 
-- the user explicitly wants this active leaf closed
-- the fall reason can be named, such as `completed`, `abandoned`, `superseded`,
-  `parked`, `split`, or `invalidated`
-- `04-Feedback/09-review.md` or equivalent review/sync notes exist when the work
-  reached execution or external review
+- the user explicitly wants this work removed from the carried set
+- the work is not being kept as a reference-worthy leaf
+- the fallen reason can be named, such as `abandoned`, `superseded`, `parked`,
+  `split`, `invalidated`, `archived`, or `completed-not-reference-worthy`
+- review/sync notes exist when the work reached execution or external review, or
+  the reason they are unnecessary is stated
 - `04-Feedback/10-retrospect.md` exists, or you can write a minimal closure note
-  before/after the CLI move
-- any successor seed or leaf is linked only as a path; do not auto-create it
+  before or after the CLI move
 
-The CLI only writes flexible status slots. The AI should fill useful closure
-content when context is available.
+The AI should fill useful closure content when context is available; do not make
+the user reconstruct why the work fell.
 
 ## Fall
 
 Run:
 
 ```bash
-leaf fall <slug> --reason "<reason>"
+leaf fall <slug> --reason "<fallen reason>"
 ```
 
-Then enrich `.leaf/03-fallen/<slug>/00-status.md` when the context supports it:
+Then enrich the fallen `00-status.md` when context supports it:
 
-- `closure summary`: what this leaf established or why it stopped
-- `reusable lessons`: what future seeds/leaves should reuse
+- `fallen reason`: why this stopped or why it is not reference-worthy
+- `closure summary`: what this work established, if anything
+- `reusable lessons`: process lessons future sprouts/leaves should reuse
 - `unresolved limits`: what remains unknown, weak, or out of scope
-- `successor`: optional `.leaf/01-seeds/...` or `.leaf/02-leaves/...` path
+- `successor`: optional path or proposed slug
 
-If the leaf lacks `04-Feedback/10-retrospect.md`, create a concise one with the
-same four fields plus any evidence that caused closure. Keep raw wording,
-unknowns, criteria, wireframe, design, task graph, review notes, references, and
+If the source lacks `04-Feedback/10-retrospect.md`, create a concise one with the
+same fields plus any evidence that caused closure. Keep raw wording, unknowns,
+criteria, wireframe, design, task graph, review notes, references, and
 retrospective artifacts intact.
 
 ## Report
 
-Report per `../leaf-soul/SKILL.md` — overview-first, plain words, verified facts
-separate from assumptions. Include:
+Report per `../leaf-soul/SKILL.md`. Include:
 
-- fallen path: `.leaf/03-fallen/<slug>/`
-- source path that no longer exists: `.leaf/02-leaves/<slug>/`
-- fall reason
+- fallen path
+- source path that was moved
+- fallen reason
+- whether the work was incomplete, discarded, or completed-not-reference-worthy
 - closure fields filled or intentionally left blank
-- files left inspectable in fallen trash
 - confirmation that no `.wt/` or execution artifacts were created

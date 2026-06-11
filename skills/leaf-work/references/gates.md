@@ -341,10 +341,10 @@ whatever — lives wherever you keep your work; `03-Architect/08-execution.md`
 records *what was done*, one entry per work session, not the artifact.
 
 Do not start this gate by default until the user explicitly approves the
-promoted Architect snapshot: ⑤ Design, ⑥ Critic verdict, ⑦ Task Graph,
+Architect snapshot: ⑤ Design, ⑥ Critic verdict, ⑦ Task Graph,
 execution scope, risks, and the first execution chunk. This is the exact line
 between scaffolding and execution. Skip it only when the user explicitly
-pre-authorized auto-execution for this leaf; if the work is too small or
+pre-authorized auto-execution for this sprout; if the work is too small or
 low-risk to justify that approval surface, it should not have invoked
 leaf-work.
 
@@ -369,7 +369,7 @@ says so.
 ## ⑨ Review / Sync
 
 Keep the plan true after drafting and feedback. This gate loops with ⑧ —
-expect it to run many times while the work is alive; ⑩ closes the leaf once.
+expect it to run many times while the work is alive; ⑩ closes the work once.
 
 Review checks: Does the artifact satisfy criteria? Are claims supported by
 evidence? Does section order still fit the argument? Did drafting reveal missing
@@ -393,7 +393,7 @@ conditions under which the conclusions do not apply. This is what makes a
 finished leaf citable as prior work: future work builds on the established
 part without re-deriving it, and the unresolved and boundary entries are
 where a future leaf's ① necessity is born — the same way a paper's
-limitations section seeds the next study. Write it to
+limitations section can start the next study. Write it to
 `10-retrospective/limitations.md` (or a Limitations section of the single
 retrospect file).
 

@@ -70,7 +70,7 @@ these are true:
 - ④ Wireframe needs the actual operator, reader, or stakeholder to confirm fit;
 - ⑤ Design commits public, costly, security/privacy-sensitive, or hard-to-revert
   structure;
-- ⑦ Task Graph is being promoted into ⑧ Artifact / Execution; approval covers
+- ⑦ Task Graph is being consumed by ⑧ Artifact / Execution; approval covers
   ⑤ Design, ⑥ Critic verdict, ⑦ Task Graph, execution scope, risks, and the
   first execution chunk;
 - ⑧ Artifact is being marked passed, delivered, or externally shared;

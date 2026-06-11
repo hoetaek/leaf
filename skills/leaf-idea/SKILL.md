@@ -13,7 +13,7 @@ and split decision are clear enough for ③ Criteria.
 
 - A sprout is one possible future leaf, not an inbox item.
 - Learn runs in the same sprout that later continues to ③; do not require a
-  lifecycle promotion.
+  stage move.
 - Until physical stage migration lands, the CLI may still store sprouts at
   `.leaf/01-seeds/<slug>/`. Treat that as compatibility storage; use
   sprout/stage language in human-facing prose.
@@ -23,8 +23,7 @@ and split decision are clear enough for ③ Criteria.
   UI, and code changes can all be valid artifacts. If implementation becomes a
   separate lifecycle, reviewer, success check, or code surface, split it into a
   separate sprout.
-- Do not run or recommend `leaf promote`. Old promoted folders may exist as
-  compatibility data only.
+- Older compatibility folders may exist as storage data only.
 
 ## First Read
 

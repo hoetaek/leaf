@@ -1,7 +1,7 @@
 interface:
   display_name: "LEAF Fall"
-  short_description: "Discard committed leaves after closure"
-  default_prompt: "Use $leaf-fall to trash an active .leaf leaf into .leaf/03-fallen while writing a useful closure note."
+  short_description: "Move non-reference LEAF work to fallen"
+  default_prompt: "Use $leaf-fall to move LEAF work into fallen with an explicit fallen reason and a useful closure note."
 
 policy:
   allow_implicit_invocation: true
