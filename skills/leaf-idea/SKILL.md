@@ -64,9 +64,22 @@ Read only what the current move needs:
 5. **Run ② Unknowns & Context.** Use `references/gate-02-unknowns-context.md` as the
    contract. Group unknowns, gather references or internal facts, expose
    premises, and keep fact/assumption/user-review boundaries visible.
-6. **Ask the Learn-close question.** If anything remains, keep the sprout
-   enriched and continue Learn. If the user confirms no Learn-blocking unknowns
-   remain, recommend `continue to Example`.
+6. **Ask the Learn-close question with the evidence in view.** Before asking,
+   show what was actually gathered so the user judges sufficiency from the
+   files, not from memory. If anything remains, keep the sprout enriched and
+   continue Learn. If the user confirms no Learn-blocking unknowns remain,
+   recommend `continue to Example`.
+
+Show the gathered references as a file tree first:
+
+```bash
+find .leaf/01-sprouts/<slug>/01-Learn/02-references -type f | sort
+```
+
+Render the result as a tree with a one-line note per file saying what it
+covers. An empty or thin tree is evidence too — name it plainly instead of
+hiding it; "no references were needed because <reason>" must be said, not
+implied.
 
 Learn-close question:
 

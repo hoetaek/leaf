@@ -8,6 +8,10 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+- The `leaf-idea` Learn-close question now shows the `01-Learn/02-references/`
+  file tree first, with a one-line note per file, so the user judges whether
+  enough material was gathered from the files rather than from memory.
+
 ## 0.5.0 - 2026-06-11
 
 - Added `leaf review <slug>` to open the review reader for one leaf-work item
