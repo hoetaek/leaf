@@ -31,6 +31,14 @@ enum PreviewPlacement {
     Bottom,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct ListChunks {
+    header: Rect,
+    notice: Rect,
+    body: Rect,
+    status: Rect,
+}
+
 pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
     let area = frame.area();
     if app.mode() == Mode::Review {
@@ -38,22 +46,18 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
         return;
     }
 
-    let chunks = Layout::vertical([
-        Constraint::Length(LIST_HEADER_HEIGHT),
-        Constraint::Min(1),
-        Constraint::Length(1),
-    ])
-    .split(area);
-    draw_header(frame, chunks[0], app);
+    let chunks = list_chunks(area);
+    draw_header(frame, chunks.header, app);
+    draw_notice(frame, chunks.notice, app);
 
     match preview_placement(area, app) {
-        PreviewPlacement::Hidden => draw_table(frame, chunks[1], app),
+        PreviewPlacement::Hidden => draw_table(frame, chunks.body, app),
         PreviewPlacement::Bottom => {
             let body_chunks = Layout::vertical([
                 Constraint::Min(1),
-                Constraint::Length(bottom_preview_height(chunks[1])),
+                Constraint::Length(bottom_preview_height(chunks.body)),
             ])
-            .split(chunks[1]);
+            .split(chunks.body);
             draw_table(frame, body_chunks[0], app);
             draw_preview(frame, body_chunks[1], app);
         }
@@ -63,12 +67,29 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
                 Constraint::Min(MIN_TABLE_WIDTH_FOR_RIGHT_PREVIEW),
                 Constraint::Length(preview_width),
             ])
-            .split(chunks[1]);
+            .split(chunks.body);
             draw_table(frame, body_chunks[0], app);
             draw_preview(frame, body_chunks[1], app);
         }
     }
-    draw_status(frame, chunks[2], app);
+    draw_status(frame, chunks.status, app);
+}
+
+fn list_chunks(area: Rect) -> ListChunks {
+    let chunks = Layout::vertical([
+        Constraint::Length(LIST_HEADER_HEIGHT),
+        Constraint::Length(1),
+        Constraint::Min(1),
+        Constraint::Length(1),
+    ])
+    .split(area);
+
+    ListChunks {
+        header: chunks[0],
+        notice: chunks[1],
+        body: chunks[2],
+        status: chunks[3],
+    }
 }
 
 fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
@@ -295,7 +316,12 @@ fn draw_table(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
     let visible_rows = app.visible_rows();
     if visible_rows.is_empty() {
         let empty = Paragraph::new("No leaf items match the current view.");
-        frame.render_widget(empty, content_area);
+        let empty_area = if content_area.height == 0 {
+            area
+        } else {
+            content_area
+        };
+        frame.render_widget(empty, empty_area);
         return;
     }
 
@@ -345,6 +371,20 @@ fn draw_preview(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
     frame.render_widget(
         Paragraph::new(lines),
         padded_content_inner(block.inner(area)),
+    );
+}
+
+fn draw_notice(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
+    if app.notice().is_empty() {
+        return;
+    }
+
+    frame.render_widget(
+        Paragraph::new(Line::styled(
+            app.notice().to_string(),
+            strong_style().fg(Color::Yellow),
+        )),
+        area,
     );
 }
 
@@ -422,13 +462,7 @@ fn row_is_active(app: &AppState, index: usize) -> bool {
 /// Computes the table chunk for a full terminal `Rect`, mirroring the layout
 /// `draw` uses so mouse hit-testing maps onto the same rows `draw_table` renders.
 fn table_chunk(area: Rect, app: &AppState) -> Rect {
-    let chunks = Layout::vertical([
-        Constraint::Length(LIST_HEADER_HEIGHT),
-        Constraint::Min(1),
-        Constraint::Length(1),
-    ])
-    .split(area);
-    let body = chunks[1];
+    let body = list_chunks(area).body;
     match preview_placement(area, app) {
         PreviewPlacement::Hidden => body,
         PreviewPlacement::Bottom => Layout::vertical([
@@ -1949,6 +1983,10 @@ mod tests {
             .collect::<String>()
     }
 
+    fn row_text(buffer: &Buffer, width: u16, y: u16) -> String {
+        buffer_line(buffer, width, y)
+    }
+
     fn line_contains_text(buffer: &Buffer, width: u16, height: u16, text: &str) -> bool {
         (0..height).any(|y| {
             (0..width).any(|x| {
@@ -2092,6 +2130,47 @@ mod tests {
         let selected = render_buffer(120, 24, &app);
 
         assert!(buffer_line(&selected, 120, 1).contains("selected 1"));
+    }
+
+    #[test]
+    fn list_notice_renders_below_header_in_strong_yellow() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.plain_leaf("alpha")]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.set_notice("copied row alpha");
+
+        let buffer = render_buffer(80, 12, &app);
+
+        assert!(row_text(&buffer, 80, 2).contains("copied row alpha"));
+        assert!(!row_text(&buffer, 80, 11).contains("copied row alpha"));
+        let position =
+            text_position(&buffer, 80, 12, "copied row alpha").expect("notice should render");
+        let first_cell = &buffer[(position.0, position.1)];
+        assert_eq!(first_cell.fg, Color::Yellow);
+        assert!(first_cell.modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn list_notice_line_is_blank_when_no_notice() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.plain_leaf("alpha")]);
+        let app = AppState::from_inventory(&inventory);
+
+        let buffer = render_buffer(80, 12, &app);
+
+        assert_eq!(row_text(&buffer, 80, 2).trim(), "");
+    }
+
+    #[test]
+    fn small_terminal_render_with_notice_does_not_panic() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.plain_leaf("alpha")]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.set_notice("refreshed");
+
+        let buffer = render_buffer(40, 6, &app);
+        let text = buffer_to_text(&buffer, 40, 6);
+        assert!(text.contains("refreshed"));
     }
 
     #[test]
@@ -3484,15 +3563,15 @@ mod tests {
             fixture.plain_leaf("gamma"),
         ]));
 
-        // Terminal Rect(0,0,80,10): header y=0..1, table y=2 height=7, status y=9.
+        // Terminal Rect(0,0,80,10): header y=0..1, notice y=2, table y=3 height=6, status y=9.
         // Data rows begin below the table border/header, and roomy tables add 1ch content padding.
         let area = Rect::new(0, 0, 80, 10);
 
-        assert_eq!(table_mouse_target(area, &app, 20, 4), Some(0));
-        assert_eq!(table_mouse_target(area, &app, 2, 5), Some(1));
-        assert_eq!(table_mouse_target(area, &app, 1, 6), None);
-        assert_eq!(table_mouse_target(area, &app, 3, 6), Some(2));
-        assert_eq!(table_mouse_target(area, &app, 4, 6), Some(2));
+        assert_eq!(table_mouse_target(area, &app, 20, 5), Some(0));
+        assert_eq!(table_mouse_target(area, &app, 2, 6), Some(1));
+        assert_eq!(table_mouse_target(area, &app, 1, 7), None);
+        assert_eq!(table_mouse_target(area, &app, 3, 7), Some(2));
+        assert_eq!(table_mouse_target(area, &app, 4, 7), Some(2));
     }
 
     #[test]
@@ -3507,9 +3586,9 @@ mod tests {
         }
         assert_eq!(app.selected_index(), 9);
 
-        // table height 7 -> capacity 4 -> offset = 9 - 3 = 6.
+        // table height 6 -> capacity 3 -> offset = 9 - 2 = 7.
         let area = Rect::new(0, 0, 80, 10);
-        assert_eq!(table_mouse_target(area, &app, 20, 4), Some(6));
+        assert_eq!(table_mouse_target(area, &app, 20, 5), Some(7));
         assert_eq!(table_mouse_target(area, &app, 20, 7), Some(9));
     }
 
@@ -3523,8 +3602,8 @@ mod tests {
         ]));
         let area = Rect::new(0, 0, 160, 24);
 
-        assert_eq!(table_mouse_target(area, &app, 20, 4), Some(0));
-        assert_eq!(table_mouse_target(area, &app, 110, 4), None);
+        assert_eq!(table_mouse_target(area, &app, 20, 5), Some(0));
+        assert_eq!(table_mouse_target(area, &app, 110, 5), None);
     }
 
     #[test]
@@ -3536,13 +3615,14 @@ mod tests {
         ]));
         let area = Rect::new(0, 0, 80, 10);
 
-        assert_eq!(table_mouse_target(area, &app, 20, 2), None); // top border
-        assert_eq!(table_mouse_target(area, &app, 20, 3), None); // header
+        assert_eq!(table_mouse_target(area, &app, 20, 2), None); // notice
+        assert_eq!(table_mouse_target(area, &app, 20, 3), None); // top border
+        assert_eq!(table_mouse_target(area, &app, 20, 4), None); // header
         assert_eq!(table_mouse_target(area, &app, 20, 8), None); // bottom border
         assert_eq!(table_mouse_target(area, &app, 20, 9), None); // status line
-        assert_eq!(table_mouse_target(area, &app, 20, 6), None); // beyond last row
-        assert_eq!(table_mouse_target(area, &app, 0, 4), None); // left border
-        assert_eq!(table_mouse_target(area, &app, 79, 4), None); // right border
+        assert_eq!(table_mouse_target(area, &app, 20, 7), None); // beyond last row
+        assert_eq!(table_mouse_target(area, &app, 0, 5), None); // left border
+        assert_eq!(table_mouse_target(area, &app, 79, 5), None); // right border
     }
 
     #[test]

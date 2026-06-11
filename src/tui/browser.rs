@@ -594,14 +594,14 @@ mod tests {
                 test_item(root.path(), StageDir::Leaves, "gamma"),
             ],
         ));
-        // Rect(0,0,80,10): table data rows start at y=4.
+        // Rect(0,0,80,10): header y=0..1, notice y=2, table data rows start at y=5.
         let area = Rect::new(0, 0, 80, 10);
 
         assert_eq!(
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Left), 20, 4)
+                mouse(MouseEventKind::Down(MouseButton::Left), 20, 5)
             ),
             Some(MouseInput::Down { visible_index: 0 })
         );
@@ -609,7 +609,7 @@ mod tests {
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Left), 2, 5)
+                mouse(MouseEventKind::Down(MouseButton::Left), 2, 6)
             ),
             Some(MouseInput::Down { visible_index: 1 })
         );
@@ -617,7 +617,7 @@ mod tests {
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Drag(MouseButton::Left), 20, 6)
+                mouse(MouseEventKind::Drag(MouseButton::Left), 20, 7)
             ),
             Some(MouseInput::Drag { visible_index: 2 })
         );
@@ -661,12 +661,12 @@ mod tests {
             mouse_input(area, &app, mouse(MouseEventKind::Moved, 20, 4)),
             None
         );
-        // Left down on the header row is not a data row.
+        // Left down on the table header row is not a data row.
         assert_eq!(
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Left), 20, 3)
+                mouse(MouseEventKind::Down(MouseButton::Left), 20, 4)
             ),
             None
         );
