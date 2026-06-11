@@ -33,9 +33,10 @@ LEAF names the four kinds of uncertainty to close, in order:
 | **Feedback** | Confirm it still holds, then settle what was established and what was learned | ⑨ Review/sync · ⑩ Retrospect |
 
 Learn runs in the `leaf-idea` skill on a seed; `leaf-work` begins at ③ Example
-after `leaf promote <slug>`. Learn's detailed gate contract lives in
-`../leaf-idea/references/learn-gates.md`; `references/gates.md` covers the
-handoff plus ③ onward.
+after `leaf promote <slug>`. Learn's detailed gate contracts live in
+`../leaf-idea/references/gate-01-intent.md` and
+`../leaf-idea/references/gate-02-unknowns-context.md`; `references/gates.md`
+covers the handoff plus ③ onward.
 
 ## Always-on rules
 
@@ -81,9 +82,10 @@ handoff plus ③ onward.
   With the scaffold and `00-status.md` in hand, identify which gate the work is
   at, open the reference that owns that gate, name the gate to the user, and then
   proceed exactly as that gate's entry/exit/return conditions direct. For ①/②
-  returns, use `../leaf-idea/references/learn-gates.md`; for ③ onward, use
-  `references/gates.md`. SKILL.md gives the shape; the relevant gate reference
-  gives the pass/fail test you act on.
+  returns, use `../leaf-idea/references/gate-01-intent.md` for ① and
+  `../leaf-idea/references/gate-02-unknowns-context.md` for ②; for ③ onward,
+  use `references/gates.md`. SKILL.md gives the shape; the relevant gate
+  reference gives the pass/fail test you act on.
 - **Use the gate authoring loop for durable gate files.** When creating or
   revising a gate artifact, draft the smallest useful version, challenge it
   against the gate's foci, revise, and show only the review surface needed for
@@ -98,9 +100,10 @@ handoff plus ③ onward.
   discovery overturns — usually ② Unknowns & Context; ① Intent itself when the
   problem definition fell — update it, then resume only the gates that depended
   on what changed. A return into ① or ② reopens Learn; do it in place in the
-  active leaf's `01-Learn/` against `../leaf-idea/references/learn-gates.md`,
-  since that folder came with the leaf. If the discovery unsettles the whole
-  idea, flag that the seed-level frame needs rethinking, not just a gate edit.
+  active leaf's `01-Learn/` against `../leaf-idea/references/gate-01-intent.md`
+  or `../leaf-idea/references/gate-02-unknowns-context.md`, since that folder
+  came with the leaf. If the discovery unsettles the whole idea, flag that the
+  seed-level frame needs rethinking, not just a gate edit.
   Log each return to `04-Feedback/10-retrospective/mid-process-discoveries.md`.
   Linear one-pass progress through all ten gates is unrealistic for real work.
 - **Phase transitions need explicit user approval by default; gate transitions

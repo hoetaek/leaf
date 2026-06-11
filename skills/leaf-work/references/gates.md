@@ -21,20 +21,21 @@ falsification, merge rule) live in `engine.md`. For per-domain templates, see
 ## ① Intent
 
 ① belongs to `leaf-idea`. Its detailed contract lives in
-`../../leaf-idea/references/learn-gates.md`; use that file as the pass/fail test
-for raw wording, why/what separation, provisional what, locked intent, split
-checks, and return conditions.
+`../../leaf-idea/references/gate-01-intent.md`; use that file as the pass/fail
+test for raw wording, why/what separation, provisional what, locked intent,
+split checks, and return conditions.
 
-`leaf-work` consumes ① only after promotion. If ③ or later reveals that the
-intent is wrong, return to `leaf-idea` or revise the promoted leaf's Learn files
-against `../../leaf-idea/references/learn-gates.md` before continuing.
+`leaf-work` consumes ① only after Learn passes. If ③ or later reveals that the
+intent is wrong, return to `leaf-idea` or revise the sprout's Learn files
+against `../../leaf-idea/references/gate-01-intent.md` before continuing.
 
 ## ② Unknowns & Context
 
 ② belongs to `leaf-idea`. Its detailed contract lives in
-`../../leaf-idea/references/learn-gates.md`; use that file as the pass/fail test
-for unknown categories, reference exploration, experiment boundaries, fact vs
-assumption labels, the Premise Inventory, and the Learn-close condition.
+`../../leaf-idea/references/gate-02-unknowns-context.md`; use that file as the
+pass/fail test for unknown categories, reference exploration, experiment
+boundaries, fact vs assumption labels, the Premise Inventory, and the
+Learn-close condition.
 
 `leaf-work` consumes ② as the basis for ③ Criteria: what the user can now choose
 between, what facts support the choice, and which explicit assumptions or user
