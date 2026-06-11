@@ -106,7 +106,9 @@ The Learn gate contract lives in
 review. `02-leaves/` holds completed, reference-worthy LEAF folders.
 `03-fallen/` holds discarded or archived work, including completed work that is
 not useful enough to keep as a reference. Pressed digests live inside the source
-leaf as `pressed.md`, not in a shared top-level pressed folder.
+leaf as `pressed.md`, not in a shared top-level pressed folder. When a pressed
+leaf cites or is cited by other leaves, cross-leaf citation metadata lives next
+to the digest as `linked.md`.
 
 `leaf init` adds `/.leaf` to `.git/info/exclude` so local collaboration notes do
 not appear in normal `git status` output.
@@ -118,6 +120,7 @@ leaf init
 leaf new <slug>
 leaf fall <slug> --reason <reason>
 leaf list [--json]
+leaf review <slug>
 leaf doctor [--json]
 ```
 
@@ -154,6 +157,10 @@ reasons such as `abandoned`, `superseded`, `parked`, `split`, `invalidated`, or
 `leaf list` shows the current stage inventory. Non-TTY output uses a deterministic
 `STAGE` table; `leaf list --json` outputs top-level `stages`.
 
+`leaf review <slug>` opens the same source-faithful review reader for one
+leaf-work item directly. In non-TTY output it writes the review document as
+plain text.
+
 `leaf doctor` checks whether `.leaf/` is ready for `leaf list` and reports old
 layout leftovers, missing status fields, and stage/status mismatches.
 
@@ -179,7 +186,7 @@ with `--skill` would leave those cross-skill references broken.
 
 `leaf` is currently an early Rust CLI. The current slice initializes repo-local
 LEAF storage, scaffolds sprouts, lists stage inventory, diagnoses list readiness,
-and moves non-reference-worthy work into fallen.
+opens review readers, and moves non-reference-worthy work into fallen.
 
 The crate is not published to crates.io.
 
