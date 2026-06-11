@@ -180,20 +180,20 @@ fn handle_outcome<A: TuiAdapter>(app: &mut AppState, adapter: &A, outcome: Outco
     match outcome {
         Outcome::Continue | Outcome::Quit => {}
         Outcome::CopyRow { slug, text } => match adapter.copy_to_clipboard(&text) {
-            Ok(()) => app.set_status_message(format!("copied row {slug}")),
-            Err(err) => app.set_status_message(format!("copy failed: {err}")),
+            Ok(()) => app.set_notice(format!("copied row {slug}")),
+            Err(err) => app.set_notice(format!("copy failed: {err}")),
         },
         Outcome::CopyRows { count, text } => match adapter.copy_to_clipboard(&text) {
-            Ok(()) => app.set_status_message(format!("copied {count} {}", row_word(count))),
-            Err(err) => app.set_status_message(format!("copy failed: {err}")),
+            Ok(()) => app.set_notice(format!("copied {count} {}", row_word(count))),
+            Err(err) => app.set_notice(format!("copy failed: {err}")),
         },
         Outcome::Refresh => match adapter.load_inventory() {
             Ok(inventory) => {
                 app.replace_inventory(&inventory);
-                app.set_status_message("refreshed");
+                app.set_notice("refreshed");
             }
             Err(err) => {
-                app.set_status_message(format!("refresh failed: {err}"));
+                app.set_notice(format!("refresh failed: {err}"));
             }
         },
     }
@@ -322,7 +322,8 @@ mod tests {
         handle_outcome(&mut app, &adapter, Outcome::Refresh).expect("refresh outcome");
 
         assert_eq!(app.row_count(), 2);
-        assert!(app.status_line().contains("refreshed"));
+        assert_eq!(app.notice(), "refreshed");
+        assert!(!app.status_line().contains("refreshed"));
     }
 
     #[test]
@@ -341,7 +342,8 @@ mod tests {
 
         assert_eq!(app.row_count(), 1);
         assert_eq!(app.selected_row().map(ListRow::slug), Some("draft"));
-        assert!(app.status_line().contains("refresh failed"));
+        assert!(app.notice().contains("refresh failed"));
+        assert!(!app.status_line().contains("refresh failed"));
     }
 
     #[test]
@@ -369,7 +371,8 @@ mod tests {
                     .to_string()
             ]
         );
-        assert!(app.status_line().contains("copied row alpha"));
+        assert_eq!(app.notice(), "copied row alpha");
+        assert!(!app.status_line().contains("copied row alpha"));
     }
 
     #[test]
@@ -397,7 +400,8 @@ mod tests {
                     .to_string()
             ]
         );
-        assert!(app.status_line().contains("copied 2 rows"));
+        assert_eq!(app.notice(), "copied 2 rows");
+        assert!(!app.status_line().contains("copied 2 rows"));
     }
 
     #[test]
@@ -425,8 +429,9 @@ mod tests {
                     .to_string()
             ]
         );
-        assert!(app.status_line().contains("copied 1 row"));
-        assert!(!app.status_line().contains("copied 1 rows"));
+        assert_eq!(app.notice(), "copied 1 row");
+        assert!(!app.notice().contains("copied 1 rows"));
+        assert!(!app.status_line().contains("copied 1 row"));
     }
 
     #[test]
@@ -448,8 +453,10 @@ mod tests {
         )
         .expect("failure is reported in app status, not returned");
 
-        assert!(app.status_line().contains("copy failed"));
-        assert!(app.status_line().contains("clipboard unavailable"));
+        assert!(app.notice().contains("copy failed"));
+        assert!(app.notice().contains("clipboard unavailable"));
+        assert!(!app.status_line().contains("copy failed"));
+        assert!(!app.status_line().contains("clipboard unavailable"));
     }
 
     #[test]

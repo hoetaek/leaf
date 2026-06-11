@@ -946,10 +946,6 @@ impl AppState {
         self.select_stage_slug(stage_dir, &slug)
     }
 
-    pub(crate) fn set_status_message(&mut self, message: impl Into<String>) {
-        self.status_line = message.into();
-    }
-
     pub(crate) fn set_notice(&mut self, message: impl Into<String>) {
         self.notice = message.into();
     }
