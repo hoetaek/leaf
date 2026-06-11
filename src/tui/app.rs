@@ -372,7 +372,6 @@ impl AppState {
     }
 
     pub(crate) fn handle_mouse(&mut self, input: MouseInput) -> Outcome {
-        self.notice.clear();
         if matches!(self.mode, Mode::FilterInput) {
             return Outcome::Continue;
         }
@@ -381,12 +380,14 @@ impl AppState {
         }
         match input {
             MouseInput::Down { visible_index } => {
+                self.notice.clear();
                 if !self.select_visible_index(visible_index) {
                     return Outcome::Continue;
                 }
                 self.mouse_anchor = Some(self.selected_index);
             }
             MouseInput::Drag { visible_index } => {
+                self.notice.clear();
                 let Some(anchor) = self.mouse_anchor else {
                     return Outcome::Continue;
                 };
@@ -399,6 +400,7 @@ impl AppState {
                 self.mouse_anchor = None;
             }
             MouseInput::DoubleClick { visible_index } => {
+                self.notice.clear();
                 if !self.select_visible_index(visible_index) {
                     return Outcome::Continue;
                 }
@@ -2123,6 +2125,33 @@ mod tests {
             app.notice()
                 .contains("review is only available for leaf work rows")
         );
+        assert!(
+            !app.status_line()
+                .contains("review is only available for leaf work rows")
+        );
+    }
+
+    #[test]
+    fn tui_app_trailing_mouse_up_after_non_reviewable_double_click_keeps_notice() {
+        let mut item = leaf_item(StageDir::Leaves, "digest", complete_leaf_status());
+        item.review = None;
+        let inventory = inventory_with_items(vec![item]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::Down { visible_index: 0 }),
+            Outcome::Continue
+        );
+        assert_eq!(app.handle_mouse(MouseInput::Up), Outcome::Continue);
+        assert_eq!(
+            app.handle_mouse(MouseInput::DoubleClick { visible_index: 0 }),
+            Outcome::Continue
+        );
+        assert_eq!(app.handle_mouse(MouseInput::Up), Outcome::Continue);
+
+        assert_eq!(app.mode(), Mode::List);
+        assert!(app.review_state().is_none());
+        assert_eq!(app.notice(), "review is only available for leaf work rows");
         assert!(
             !app.status_line()
                 .contains("review is only available for leaf work rows")
