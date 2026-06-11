@@ -54,8 +54,9 @@ leaf new my-first-idea
 
 Ask your agent to use `leaf-idea` to capture an idea and run the Learn phase on a
 sprout (lock ① Intent, resolve ② Unknowns & Context); use `leaf-work` to carry a
-sprout from ③ Example through to a shipped result. Learn and post-Learn work stay
-in the same sprout until completion.
+sprout from ③ Example through ⑧ Artifact / Execution. After ⑧ passes,
+`leaf-clean` moves the work into `02-leaves/` so ⑨ Review and ⑩ Retrospect happen
+on the leaf.
 
 Other CLI install paths are available from the latest GitHub Release:
 
@@ -102,8 +103,10 @@ The Learn gate contract lives in
 └── 03-fallen/
 ```
 
-`01-sprouts/` holds incomplete work: Learn, Example, Architect, execution, and
-review. `02-leaves/` holds completed, reference-worthy LEAF folders.
+`01-sprouts/` holds incomplete work through Learn, Example, Architect, and
+⑧ Artifact / Execution. `02-leaves/` holds ⑧-passed work while it goes through
+⑨ Review and ⑩ Retrospect, then remains as completed, reference-worthy LEAF
+folders.
 `03-fallen/` holds discarded or archived work, including completed work that is
 not useful enough to keep as a reference. Pressed digests live inside the source
 leaf as `pressed.md`, not in a shared top-level pressed folder. When a pressed
@@ -187,7 +190,7 @@ This repository ships Agent Skills:
 |---|---|
 | [`leaf-idea`](skills/leaf-idea/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
 | [`leaf-work`](skills/leaf-work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
-| [`leaf-clean`](skills/leaf-clean/SKILL.md) | Tending the `.leaf/` workspace: pressing citable digests, moving non-reference-worthy work into fallen, and migrating old layouts reported by `leaf doctor` |
+| [`leaf-clean`](skills/leaf-clean/SKILL.md) | Tending the `.leaf/` workspace: moving ⑧-passed sprouts into leaves, pressing citable digests, moving non-reference-worthy work into fallen, and migrating old layouts reported by `leaf doctor` |
 | [`leaf-soul`](skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
 Install the LEAF skills together as a family — they are not independent.

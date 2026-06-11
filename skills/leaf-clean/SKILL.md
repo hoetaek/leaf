@@ -3,13 +3,15 @@ name: leaf-clean
 description: |
   Use when tending the `.leaf/` workspace itself rather than the content of any
   leaf: pressing a completed, reference-worthy leaf into a citable `pressed.md`
-  digest; moving non-reference-worthy work into fallen with an explicit fallen
-  reason; or migrating an old workspace layout reported by `leaf doctor`.
+  digest; completing the post-⑧ sprout-to-leaf stage transition; moving
+  non-reference-worthy work into fallen with an explicit fallen reason; or
+  migrating an old workspace layout reported by `leaf doctor`.
   Trigger on `leaf press`, "press this leaf", "make this leaf citable",
   "인용용으로 눌러줘", "중요 내용만 하나의 마크다운으로", linking or citing
-  between leaves ("leaf 간 인용", `linked.md`), discarding, archiving,
-  abandoning, superseding, parking, splitting, invalidating, or closing LEAF
-  work, `leaf fall`, old folder names such as `seeds` / `01-seeds` / top-level
+  between leaves ("leaf 간 인용", `linked.md`), completing ⑧, moving a sprout
+  into leaves, "sprout를 leaf로", discarding, archiving, abandoning,
+  superseding, parking, splitting, invalidating, or closing LEAF work,
+  `leaf fall`, old folder names such as `seeds` / `01-seeds` / top-level
   `pressed`, "구조 마이그레이션", or `leaf doctor` warnings about old layout or
   legacy status fields. Do not use for capturing ideas, producing leaf content,
   execution, or wt artifacts.
@@ -17,13 +19,16 @@ description: |
 
 # LEAF Clean
 
-Tend the `.leaf/` workspace itself, not the content of any leaf. Three
+Tend the `.leaf/` workspace itself, not the content of any leaf. Four
 operations share this skill:
 
 - **Press** — compress a completed, reference-worthy leaf into a citable
   `pressed.md` digest plus a `## Press Abstract` in its `00-status.md`, and
   record cross-leaf citations in `linked.md` when the leaf cites or is cited by
   other leaves.
+- **Complete** — after `leaf-work` gate ⑧ Artifact / Execution explicitly
+  passes or is delivered, move the project folder from `.leaf/01-sprouts/` to
+  `.leaf/02-leaves/` so ⑨ Review and ⑩ Retrospect run on the leaf.
 - **Fall** — move work that should stop being carried, and is not worth keeping
   as a reference leaf, into `fallen` with an explicit fallen reason.
 - **Migrate** — repair an old workspace layout. `leaf doctor` detects legacy
@@ -64,6 +69,8 @@ Route from what you find:
   `legacy_fall_reason_field`) → run **Migrate** first, even when the user asked
   for press or fall; the other operations assume the canonical layout.
 - The user wants a citable digest → **Press**.
+- The user or `leaf-work` says ⑧ passed/delivered and Feedback should begin →
+  **Complete**.
 - The user wants work out of the carried set → **Fall**.
 
 ## Migrate
@@ -274,6 +281,56 @@ The digest must make those boundaries visible. If the source is too thin to
 support a useful citation, create a short `pressed.md` that says so instead of
 filling the gaps.
 
+## Complete
+
+Move a ⑧-passed sprout into leaves before Feedback. This operation changes the
+workspace stage only; it does not press, fall, rewrite gate content, or create
+execution artifacts.
+
+Complete-specific boundary:
+
+- Only complete a sprout after `leaf-work` gate ⑧ Artifact / Execution is
+  explicitly passed or delivered.
+- Do not use Complete for early drafts, unresolved execution, or work that the
+  user decided is not reference-worthy. Use **Fall** for completed work that
+  should not remain a leaf.
+- Do not create `pressed.md`; pressing is a separate post-retrospect decision.
+
+### Complete Check
+
+Before moving, verify:
+
+- `.leaf/01-sprouts/{slug}/` exists
+- `.leaf/02-leaves/{slug}/` and `.leaf/03-fallen/{slug}/` do not exist
+- `00-status.md` exists and can be updated
+- `03-Architect/08-execution.md` records that ⑧ passed or was delivered, or the
+  current user message explicitly states that ⑧ is complete
+
+If any check fails, stop and report the missing condition instead of guessing.
+
+### Complete Move
+
+Move the whole folder to leaves. Prefer `git mv` for tracked paths; otherwise
+use a normal move:
+
+```bash
+mv .leaf/01-sprouts/<slug> .leaf/02-leaves/<slug>
+```
+
+Then update `.leaf/02-leaves/<slug>/00-status.md`:
+
+- `stage: leaf`
+- `current phase: Feedback`
+- `current gate: ⑨ Review / Sync`
+- `first missing gate: ⑨ Review / Sync`
+- `next action`: run ⑨ Review / Sync against the delivered artifact
+- `last updated`: current local date
+
+If the status table has a ⑧ row, mark it complete or approved only when the
+source evidence supports that; otherwise leave the table untouched and report
+that the stage was moved based on explicit user approval. Re-run `leaf doctor`
+after the move and report any remaining findings by name.
+
 ## Fall
 
 Move LEAF work into `fallen` when it should stop being carried and should not
@@ -329,8 +386,8 @@ the same fields plus any evidence that caused closure.
 ## Report
 
 Report per `../leaf-soul/SKILL.md`. Always include which operations ran
-(migrate / press / fall) and confirmation that no `.wt/` or execution artifacts
-were created. Per operation, include:
+(migrate / press / complete / fall) and confirmation that no `.wt/` or execution
+artifacts were created. Per operation, include:
 
 - **Migrate**: each doctor finding repaired, each path moved or field
   rewritten, findings intentionally left for the user, and the post-repair
@@ -340,6 +397,9 @@ were created. Per operation, include:
   new digest or a refresh, `linked.md` written / refreshed / skipped with the
   cites and cited-by counts, and important missing source files or unresolved
   questions
+- **Complete**: source sprout path, destination leaf path, ⑧ pass evidence or
+  explicit approval used, status fields updated, and the post-move
+  `leaf doctor` result
 - **Fall**: fallen path, source path that was moved, fallen reason, whether the
   work was incomplete, discarded, or completed-not-reference-worthy, and
   closure fields filled or intentionally left blank

@@ -13,14 +13,16 @@ Use stage language in human-facing prose:
 
 ```text
 .leaf/
-├── 01-sprouts/  incomplete work: Learn through review/execution
-├── 02-leaves/   completed, reference-worthy leaf folders
+├── 01-sprouts/  incomplete work: Learn through ⑧ Artifact / Execution
+├── 02-leaves/   ⑧-passed work under Feedback and reference-worthy leaves
 └── 03-fallen/   discarded or archived work, including completed non-reference work
 ```
 
-Learn and post-Learn work stay in the same sprout until completion. At closure,
-explicitly decide whether the result is reference-worthy enough to become a leaf
-or should fall.
+Learn and post-Learn work stay in the same sprout through ⑧ Artifact /
+Execution. After ⑧ passes, invoke `leaf-clean` to move the project folder to
+`.leaf/02-leaves/<slug>/` before ⑨ Review / Sync and ⑩ Retrospect. At closure,
+explicitly decide whether the leaf should be pressed for citation or should
+fall.
 
 ## CLI Start
 
@@ -38,7 +40,7 @@ instead of creating a duplicate.
 ## Project Structure
 
 ```text
-.leaf/01-sprouts/<slug>/                         incomplete LEAF work
+.leaf/01-sprouts/<slug>/                         LEAF work through ⑧ Artifact / Execution
 ├── 00-status.md                              dashboard: stage, gate, progress, next action
 │
 ├── 01-Learn/
@@ -60,6 +62,15 @@ instead of creating a duplicate.
 │   ├── 07-tasks.md                           ⑦ Task graph
 │   └── 08-execution.md                       ⑧ execution log / handoff
 │
+└── 04-Feedback/
+    ├── 09-review.md                          ⑨ Review/sync
+    └── 10-retrospect.md                      ⑩ Retrospect
+```
+
+After ⑧ passes, `leaf-clean` moves the same project folder to:
+
+```text
+.leaf/02-leaves/<slug>/                          Feedback and reusable leaf record
 └── 04-Feedback/
     ├── 09-review.md                          ⑨ Review/sync
     └── 10-retrospect.md                      ⑩ Retrospect
