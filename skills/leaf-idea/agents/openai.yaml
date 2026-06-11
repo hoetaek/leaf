@@ -1,7 +1,7 @@
 interface:
   display_name: "LEAF Idea"
   short_description: "Capture ideas and run the LEAF Learn phase on sprouts"
-  default_prompt: "Use $leaf-idea to capture this idea as a .leaf sprout, triage it (kill/defer/enrich/split), and run Learn — lock ① Intent and resolve ② Unknowns & Context — then recommend whether to continue to ③ Example in the same sprout."
+  default_prompt: "Use $leaf-idea to capture this idea as a .leaf sprout, triage it (kill/defer/enrich/split), keep 00-status.md Overview aligned, and run Learn — lock ① Intent and resolve ② Unknowns & Context — then recommend whether to continue to ③ Example in the same sprout."
 
 policy:
   allow_implicit_invocation: true

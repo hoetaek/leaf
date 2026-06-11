@@ -24,6 +24,7 @@ trait TuiAdapter {
 
 const EVENT_POLL_INTERVAL: Duration = Duration::from_millis(100);
 const REVIEW_AUTO_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
+const DOUBLE_CLICK_INTERVAL: Duration = Duration::from_millis(400);
 
 struct RealTuiAdapter {
     repo_root: PathBuf,
@@ -80,6 +81,7 @@ fn event_loop<A: TuiAdapter>(
     session: &mut TerminalSession,
 ) -> Result<()> {
     let mut last_review_auto_refresh = Instant::now();
+    let mut click_tracker = ClickTracker::default();
     loop {
         maybe_auto_refresh_review(app, &mut last_review_auto_refresh, Instant::now());
 
@@ -93,6 +95,7 @@ fn event_loop<A: TuiAdapter>(
 
         match event::read().context("read leaf list TUI event")? {
             Event::Key(key) if key.kind == KeyEventKind::Press => {
+                click_tracker.reset();
                 if is_ctrl_c(key) {
                     break;
                 }
@@ -116,6 +119,8 @@ fn event_loop<A: TuiAdapter>(
                 let Some(input) = mouse_input(area, app, mouse) else {
                     continue;
                 };
+                let input =
+                    upgrade_double_click(&mut click_tracker, input, mouse.row, Instant::now());
 
                 let outcome = app.handle_mouse(input);
                 if outcome == Outcome::Quit {
@@ -176,24 +181,64 @@ fn mouse_input(area: Rect, app: &AppState, mouse: MouseEvent) -> Option<MouseInp
     }
 }
 
+#[derive(Default)]
+struct ClickTracker {
+    last_down: Option<(Instant, u16, usize)>,
+}
+
+impl ClickTracker {
+    fn reset(&mut self) {
+        self.last_down = None;
+    }
+}
+
+fn upgrade_double_click(
+    tracker: &mut ClickTracker,
+    input: MouseInput,
+    screen_row: u16,
+    now: Instant,
+) -> MouseInput {
+    match input {
+        MouseInput::Down { visible_index } => {
+            if let Some((at, last_screen_row, last_visible_index)) = tracker.last_down
+                && last_screen_row == screen_row
+                && now.duration_since(at) <= DOUBLE_CLICK_INTERVAL
+            {
+                tracker.last_down = None;
+                MouseInput::DoubleClick {
+                    visible_index: last_visible_index,
+                }
+            } else {
+                tracker.last_down = Some((now, screen_row, visible_index));
+                MouseInput::Down { visible_index }
+            }
+        }
+        MouseInput::Drag { .. } => {
+            tracker.reset();
+            input
+        }
+        _ => input,
+    }
+}
+
 fn handle_outcome<A: TuiAdapter>(app: &mut AppState, adapter: &A, outcome: Outcome) -> Result<()> {
     match outcome {
         Outcome::Continue | Outcome::Quit => {}
         Outcome::CopyRow { slug, text } => match adapter.copy_to_clipboard(&text) {
-            Ok(()) => app.set_status_message(format!("copied row {slug}")),
-            Err(err) => app.set_status_message(format!("copy failed: {err}")),
+            Ok(()) => app.set_notice(format!("copied row {slug}")),
+            Err(err) => app.set_notice(format!("copy failed: {err}")),
         },
         Outcome::CopyRows { count, text } => match adapter.copy_to_clipboard(&text) {
-            Ok(()) => app.set_status_message(format!("copied {count} {}", row_word(count))),
-            Err(err) => app.set_status_message(format!("copy failed: {err}")),
+            Ok(()) => app.set_notice(format!("copied {count} {}", row_word(count))),
+            Err(err) => app.set_notice(format!("copy failed: {err}")),
         },
         Outcome::Refresh => match adapter.load_inventory() {
             Ok(inventory) => {
                 app.replace_inventory(&inventory);
-                app.set_status_message("refreshed");
+                app.set_notice("refreshed");
             }
             Err(err) => {
-                app.set_status_message(format!("refresh failed: {err}"));
+                app.set_notice(format!("refresh failed: {err}"));
             }
         },
     }
@@ -322,7 +367,8 @@ mod tests {
         handle_outcome(&mut app, &adapter, Outcome::Refresh).expect("refresh outcome");
 
         assert_eq!(app.row_count(), 2);
-        assert!(app.status_line().contains("refreshed"));
+        assert_eq!(app.notice(), "refreshed");
+        assert!(!app.status_line().contains("refreshed"));
     }
 
     #[test]
@@ -341,7 +387,8 @@ mod tests {
 
         assert_eq!(app.row_count(), 1);
         assert_eq!(app.selected_row().map(ListRow::slug), Some("draft"));
-        assert!(app.status_line().contains("refresh failed"));
+        assert!(app.notice().contains("refresh failed"));
+        assert!(!app.status_line().contains("refresh failed"));
     }
 
     #[test]
@@ -369,7 +416,8 @@ mod tests {
                     .to_string()
             ]
         );
-        assert!(app.status_line().contains("copied row alpha"));
+        assert_eq!(app.notice(), "copied row alpha");
+        assert!(!app.status_line().contains("copied row alpha"));
     }
 
     #[test]
@@ -397,7 +445,8 @@ mod tests {
                     .to_string()
             ]
         );
-        assert!(app.status_line().contains("copied 2 rows"));
+        assert_eq!(app.notice(), "copied 2 rows");
+        assert!(!app.status_line().contains("copied 2 rows"));
     }
 
     #[test]
@@ -425,8 +474,9 @@ mod tests {
                     .to_string()
             ]
         );
-        assert!(app.status_line().contains("copied 1 row"));
-        assert!(!app.status_line().contains("copied 1 rows"));
+        assert_eq!(app.notice(), "copied 1 row");
+        assert!(!app.notice().contains("copied 1 rows"));
+        assert!(!app.status_line().contains("copied 1 row"));
     }
 
     #[test]
@@ -448,8 +498,10 @@ mod tests {
         )
         .expect("failure is reported in app status, not returned");
 
-        assert!(app.status_line().contains("copy failed"));
-        assert!(app.status_line().contains("clipboard unavailable"));
+        assert!(app.notice().contains("copy failed"));
+        assert!(app.notice().contains("clipboard unavailable"));
+        assert!(!app.status_line().contains("copy failed"));
+        assert!(!app.status_line().contains("clipboard unavailable"));
     }
 
     #[test]
@@ -577,6 +629,200 @@ mod tests {
     }
 
     #[test]
+    fn upgrade_double_click_promotes_second_click_on_same_row_within_interval() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        assert_eq!(
+            upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 1 }, 4, t0),
+            MouseInput::Down { visible_index: 1 }
+        );
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 1 },
+                4,
+                t0 + Duration::from_millis(300),
+            ),
+            MouseInput::DoubleClick { visible_index: 1 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_promotes_same_screen_row_with_first_visible_index() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        assert_eq!(
+            upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 6 }, 4, t0),
+            MouseInput::Down { visible_index: 6 }
+        );
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 3 },
+                4,
+                t0 + Duration::from_millis(300),
+            ),
+            MouseInput::DoubleClick { visible_index: 6 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_accepts_click_at_exact_interval_boundary() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 0 }, 4, t0);
+
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 0 },
+                4,
+                t0 + DOUBLE_CLICK_INTERVAL,
+            ),
+            MouseInput::DoubleClick { visible_index: 0 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_keeps_slow_second_click_as_single() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 1 }, 4, t0);
+
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 1 },
+                4,
+                t0 + DOUBLE_CLICK_INTERVAL + Duration::from_millis(1),
+            ),
+            MouseInput::Down { visible_index: 1 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_keeps_click_on_different_row_as_single() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 1 }, 4, t0);
+
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 2 },
+                5,
+                t0 + Duration::from_millis(100),
+            ),
+            MouseInput::Down { visible_index: 2 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_reset_clears_pending_click() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 1 }, 4, t0);
+        tracker.reset();
+
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 1 },
+                4,
+                t0 + Duration::from_millis(100),
+            ),
+            MouseInput::Down { visible_index: 1 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_resets_after_promotion_so_triple_click_starts_fresh() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 1 }, 4, t0);
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 1 },
+                4,
+                t0 + Duration::from_millis(100),
+            ),
+            MouseInput::DoubleClick { visible_index: 1 }
+        );
+
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 1 },
+                4,
+                t0 + Duration::from_millis(200),
+            ),
+            MouseInput::Down { visible_index: 1 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_passes_up_through_and_keeps_click_sequence() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 1 }, 4, t0);
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Up,
+                4,
+                t0 + Duration::from_millis(50),
+            ),
+            MouseInput::Up
+        );
+
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 1 },
+                4,
+                t0 + Duration::from_millis(200),
+            ),
+            MouseInput::DoubleClick { visible_index: 1 }
+        );
+    }
+
+    #[test]
+    fn upgrade_double_click_resets_on_drag() {
+        let mut tracker = ClickTracker::default();
+        let t0 = Instant::now();
+
+        upgrade_double_click(&mut tracker, MouseInput::Down { visible_index: 1 }, 4, t0);
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Drag { visible_index: 2 },
+                4,
+                t0 + Duration::from_millis(50),
+            ),
+            MouseInput::Drag { visible_index: 2 }
+        );
+
+        assert_eq!(
+            upgrade_double_click(
+                &mut tracker,
+                MouseInput::Down { visible_index: 1 },
+                4,
+                t0 + Duration::from_millis(100),
+            ),
+            MouseInput::Down { visible_index: 1 }
+        );
+    }
+
+    #[test]
     fn maps_left_mouse_down_drag_and_up_to_mouse_input() {
         let root = assert_fs::TempDir::new().expect("temp repo");
         let app = AppState::from_inventory(&test_inventory(
@@ -587,14 +833,14 @@ mod tests {
                 test_item(root.path(), StageDir::Leaves, "gamma"),
             ],
         ));
-        // Rect(0,0,80,10): table data rows start at y=4.
+        // Rect(0,0,80,10): header y=0..1, notice y=2, table data rows start at y=5.
         let area = Rect::new(0, 0, 80, 10);
 
         assert_eq!(
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Left), 20, 4)
+                mouse(MouseEventKind::Down(MouseButton::Left), 20, 5)
             ),
             Some(MouseInput::Down { visible_index: 0 })
         );
@@ -602,7 +848,7 @@ mod tests {
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Left), 2, 5)
+                mouse(MouseEventKind::Down(MouseButton::Left), 2, 6)
             ),
             Some(MouseInput::Down { visible_index: 1 })
         );
@@ -610,7 +856,7 @@ mod tests {
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Drag(MouseButton::Left), 20, 6)
+                mouse(MouseEventKind::Drag(MouseButton::Left), 20, 7)
             ),
             Some(MouseInput::Drag { visible_index: 2 })
         );
@@ -654,12 +900,12 @@ mod tests {
             mouse_input(area, &app, mouse(MouseEventKind::Moved, 20, 4)),
             None
         );
-        // Left down on the header row is not a data row.
+        // Left down on the table header row is not a data row.
         assert_eq!(
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Left), 20, 3)
+                mouse(MouseEventKind::Down(MouseButton::Left), 20, 4)
             ),
             None
         );
