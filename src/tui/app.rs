@@ -2106,7 +2106,7 @@ mod tests {
     }
 
     #[test]
-    fn tui_app_double_click_on_non_reviewable_row_reports_status_and_stays_in_list() {
+    fn tui_app_double_click_on_non_reviewable_row_reports_notice_and_stays_in_list() {
         let mut item = leaf_item(StageDir::Leaves, "digest", complete_leaf_status());
         item.review = None;
         let inventory = inventory_with_items(vec![item]);
@@ -2120,7 +2120,11 @@ mod tests {
         assert_eq!(app.mode(), Mode::List);
         assert!(app.review_state().is_none());
         assert!(
-            app.status_line()
+            app.notice()
+                .contains("review is only available for leaf work rows")
+        );
+        assert!(
+            !app.status_line()
                 .contains("review is only available for leaf work rows")
         );
     }
