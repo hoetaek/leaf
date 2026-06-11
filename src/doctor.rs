@@ -1,5 +1,5 @@
 use crate::fs_ext::{DirectoryStatus, directory_status};
-use crate::inventory::{BUCKETS, Bucket, parse_status_summary};
+use crate::inventory::{OLD_NUMBERED_STAGE_DIRS, Stage, StageDir, parse_status_summary};
 use anyhow::Result;
 use std::collections::BTreeMap;
 use std::fs;
@@ -67,116 +67,107 @@ pub(crate) fn check(repo_root: &Path) -> Result<DoctorReport> {
         }
     }
 
-    check_buckets(&leaf_root, &mut findings)?;
+    check_stage_dirs(&leaf_root, &mut findings)?;
     check_entries(&leaf_root, &mut findings)?;
 
     Ok(DoctorReport::new(".leaf", findings))
 }
 
-fn check_buckets(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<()> {
-    let mut all_lifecycle_buckets_readable = true;
+fn check_stage_dirs(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<()> {
+    let mut all_stage_dirs_readable = true;
 
-    for bucket in BUCKETS {
-        let legacy_name = bucket.legacy_dir_name();
-        let lifecycle_name = bucket.dir_name();
-        let legacy = leaf_root.join(legacy_name);
-        let lifecycle = leaf_root.join(lifecycle_name);
+    for stage_dir in stage_dirs() {
+        let stage_name = stage_dir.dir_name();
+        let stage_dir = leaf_root.join(stage_name);
+        let stage_status = directory_status(&stage_dir)?;
 
-        let legacy_is_dir = legacy.is_dir();
-        let lifecycle_status = directory_status(&lifecycle)?;
-        let lifecycle_is_dir = lifecycle_status == DirectoryStatus::Directory;
-
-        if legacy_is_dir && lifecycle_is_dir {
-            all_lifecycle_buckets_readable = false;
-            findings.push(
-                DoctorFinding::error(
-                    "legacy_bucket_conflict",
-                    format!("legacy bucket {legacy_name} conflicts with lifecycle bucket {lifecycle_name}"),
-                )
-                .with_paths([
-                    format!(".leaf/{legacy_name}"),
-                    format!(".leaf/{lifecycle_name}"),
-                ]),
-            );
-            continue;
-        }
-
-        if legacy_is_dir {
-            findings.push(
-                DoctorFinding::warn(
-                    "legacy_bucket_present",
-                    format!(
-                        "legacy bucket {legacy_name} is present; leaf list will migrate layout"
-                    ),
-                )
-                .with_path(format!(".leaf/{legacy_name}")),
-            );
-        }
-
-        match lifecycle_status {
+        match stage_status {
             DirectoryStatus::Directory => {
-                if let Err(err) = fs::read_dir(&lifecycle) {
-                    all_lifecycle_buckets_readable = false;
+                if let Err(err) = fs::read_dir(&stage_dir) {
+                    all_stage_dirs_readable = false;
                     findings.push(
                         DoctorFinding::error(
-                            "lifecycle_bucket_unreadable",
-                            format!("failed to read lifecycle bucket {lifecycle_name}: {err}"),
+                            "stage_dir_unreadable",
+                            format!("failed to read stage dir {stage_name}: {err}"),
                         )
-                        .with_path(format!(".leaf/{lifecycle_name}")),
+                        .with_path(format!(".leaf/{stage_name}")),
                     );
                 }
             }
             DirectoryStatus::NotDirectory => {
-                all_lifecycle_buckets_readable = false;
+                all_stage_dirs_readable = false;
                 findings.push(
                     DoctorFinding::error(
-                        "lifecycle_bucket_not_directory",
-                        format!("lifecycle bucket {lifecycle_name} is not a directory"),
+                        "stage_dir_not_directory",
+                        format!("stage dir {stage_name} is not a directory"),
                     )
-                    .with_path(format!(".leaf/{lifecycle_name}")),
+                    .with_path(format!(".leaf/{stage_name}")),
                 );
             }
             DirectoryStatus::Missing => {
-                all_lifecycle_buckets_readable = false;
+                all_stage_dirs_readable = false;
                 findings.push(
                     DoctorFinding::warn(
-                        "lifecycle_bucket_missing",
-                        format!("lifecycle bucket {lifecycle_name} is missing"),
+                        "stage_dir_missing",
+                        format!("stage dir {stage_name} is missing"),
                     )
-                    .with_path(format!(".leaf/{lifecycle_name}")),
+                    .with_path(format!(".leaf/{stage_name}")),
                 );
             }
         }
     }
 
-    if all_lifecycle_buckets_readable {
+    for stage_dir in OLD_NUMBERED_STAGE_DIRS {
+        let Some(old_name) = stage_dir.old_numbered_dir_name() else {
+            continue;
+        };
+        let old_dir = leaf_root.join(old_name);
+        if !old_dir.is_dir() {
+            continue;
+        }
+
+        let (code, message) = match stage_dir {
+            StageDir::Pressed => (
+                "pressed_stage_dir_present",
+                "top-level pressed dir is obsolete; move digests into matching leaf pressed.md"
+                    .to_string(),
+            ),
+            _ => (
+                "old_stage_dir_present",
+                format!("old stage dir {old_name} is present; run the migration operator"),
+            ),
+        };
+        findings.push(DoctorFinding::warn(code, message).with_path(format!(".leaf/{old_name}")));
+    }
+
+    if all_stage_dirs_readable {
         findings.push(DoctorFinding::ok(
-            "lifecycle_buckets_readable",
-            "lifecycle buckets readable",
+            "stage_dirs_readable",
+            "stage dirs readable",
         ));
     }
 
     Ok(())
 }
 
-/// Read-only pass over the raw entries of each lifecycle bucket.
+/// Read-only pass over the raw entries of each stage directory.
 ///
-/// Classifies every entry (visible leaf-work directory, pressed digest, or
-/// ignored stray), validates the status file of each visible item, and reports
-/// slugs that appear in more than one lifecycle bucket. Bucket-level problems
+/// Classifies every entry as visible leaf-work or ignored stray, validates the
+/// status file of each visible item, and reports
+/// slugs that appear in more than one lifecycle stage. Stage-dir problems
 /// (missing, unreadable, not-a-directory) are already reported by
-/// [`check_buckets`], so unreadable buckets are simply skipped here.
+/// [`check_stage_dirs`], so unreadable stages are simply skipped here.
 fn check_entries(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<()> {
-    // slug -> repo-relative directory paths, accumulated in lifecycle-bucket
+    // slug -> repo-relative directory paths, accumulated in stage
     // order so duplicate findings list their paths deterministically.
     let mut slug_paths: BTreeMap<String, Vec<PathBuf>> = BTreeMap::new();
 
-    for bucket in BUCKETS {
-        let dir_name = bucket.dir_name();
-        let bucket_dir = leaf_root.join(dir_name);
+    for stage_dir in stage_dirs() {
+        let dir_name = stage_dir.dir_name();
+        let stage_dir_path = leaf_root.join(dir_name);
 
         let mut entries: Vec<(String, PathBuf, fs::FileType)> = Vec::new();
-        match fs::read_dir(&bucket_dir) {
+        match fs::read_dir(&stage_dir_path) {
             Ok(read_dir) => {
                 for entry in read_dir {
                     let entry = entry?;
@@ -185,70 +176,36 @@ fn check_entries(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<
                     entries.push((name, entry.path(), file_type));
                 }
             }
-            // A missing or unreadable bucket is reported by check_buckets; skip it.
+            // A missing or unreadable stage dir is reported by check_stage_dirs; skip it.
             Err(_) => continue,
         }
 
         entries.sort_by(|left, right| left.0.cmp(&right.0));
 
         for (name, path, file_type) in entries {
-            match bucket {
-                Bucket::Pressed => {
-                    let is_md_file = file_type.is_file()
-                        && path.extension().and_then(|ext| ext.to_str()) == Some("md");
-                    if !is_md_file {
-                        findings.push(
-                            DoctorFinding::warn(
-                                "ignored_pressed_entry",
-                                format!("ignored non-digest entry in {dir_name}: {name}"),
-                            )
-                            .with_path(format!(".leaf/{dir_name}/{name}")),
-                        );
-                        continue;
-                    }
-                    // inventory::load reads each digest to project it into
-                    // `leaf list`; an unreadable .md surfaces there with
-                    // parse_state=error, so doctor reads it too and reports the
-                    // failure instead of trusting type/extension alone.
-                    if let Err(err) = fs::read_to_string(&path) {
-                        findings.push(
-                            DoctorFinding::error(
-                                "pressed_digest_unreadable",
-                                format!("failed to read pressed digest {dir_name}/{name}: {err}"),
-                            )
-                            .with_path(format!(".leaf/{dir_name}/{name}")),
-                        );
-                    }
-                }
-                Bucket::Seeds | Bucket::Leaves | Bucket::Fallen => {
-                    if !file_type.is_dir() {
-                        findings.push(
-                            DoctorFinding::warn(
-                                "ignored_lifecycle_entry",
-                                format!("ignored non-directory entry in {dir_name}: {name}"),
-                            )
-                            .with_path(format!(".leaf/{dir_name}/{name}")),
-                        );
-                        continue;
-                    }
-                    slug_paths
-                        .entry(name.clone())
-                        .or_default()
-                        .push(PathBuf::from(format!(".leaf/{dir_name}/{name}")));
-                    check_item_status(bucket, dir_name, &name, &path, findings);
-                }
+            if !file_type.is_dir() {
+                findings.push(
+                    DoctorFinding::warn(
+                        "ignored_stage_entry",
+                        format!("ignored non-directory entry in {dir_name}: {name}"),
+                    )
+                    .with_path(format!(".leaf/{dir_name}/{name}")),
+                );
+                continue;
             }
+            slug_paths
+                .entry(name.clone())
+                .or_default()
+                .push(PathBuf::from(format!(".leaf/{dir_name}/{name}")));
+            check_item_status(stage_dir, dir_name, &name, &path, findings);
         }
     }
 
     for paths in slug_paths.into_values() {
         if paths.len() > 1 {
             findings.push(
-                DoctorFinding::warn(
-                    "duplicate_slug",
-                    "slug appears in more than one lifecycle bucket",
-                )
-                .with_paths(paths),
+                DoctorFinding::warn("duplicate_slug", "slug appears in more than one stage")
+                    .with_paths(paths),
             );
         }
     }
@@ -258,7 +215,7 @@ fn check_entries(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<
 
 /// Read and validate `<item>/00-status.md` for one visible leaf-work directory.
 fn check_item_status(
-    bucket: Bucket,
+    stage_dir: StageDir,
     dir_name: &str,
     slug: &str,
     item_path: &Path,
@@ -281,7 +238,7 @@ fn check_item_status(
         }
     };
 
-    let summary = parse_status_summary(&content, bucket);
+    let summary = parse_status_summary(&content, stage_dir);
 
     if !summary.missing_fields.is_empty() {
         let labels = summary
@@ -290,8 +247,8 @@ fn check_item_status(
             .map(|&field| field.label())
             .collect::<Vec<_>>()
             .join(", ");
-        let severity = match bucket {
-            Bucket::Fallen => Severity::Error,
+        let severity = match stage_dir {
+            StageDir::Fallen => Severity::Error,
             _ => Severity::Warn,
         };
         findings.push(
@@ -304,27 +261,70 @@ fn check_item_status(
         );
     }
 
-    if let (Some(expected), Some(actual)) = (expected_state(bucket), summary.state.as_deref())
-        && actual != expected
+    if summary.legacy_state.is_some() {
+        findings.push(
+            DoctorFinding::warn(
+                "legacy_state_field",
+                "status uses old state field; write canonical stage instead",
+            )
+            .with_path(rel_status.clone()),
+        );
+    }
+
+    if has_status_field(&content, "fall reason") {
+        findings.push(
+            DoctorFinding::warn(
+                "legacy_fall_reason_field",
+                "status uses old fall reason field; write fallen reason instead",
+            )
+            .with_path(rel_status.clone()),
+        );
+    }
+
+    if let (Some(expected), Some(actual)) = (expected_stage(stage_dir), summary.stage.as_deref())
+        && actual != expected.label()
     {
         findings.push(
             DoctorFinding::error(
-                "state_bucket_mismatch",
-                format!("state {actual} conflicts with bucket {dir_name}; expected {expected}"),
+                "stage_dir_mismatch",
+                format!(
+                    "stage {actual} conflicts with directory {dir_name}; expected {}",
+                    expected.label()
+                ),
             )
             .with_path(rel_status),
         );
     }
 }
 
-/// The lifecycle `state` value expected for items living in `bucket`.
-fn expected_state(bucket: Bucket) -> Option<&'static str> {
-    match bucket {
-        Bucket::Seeds => Some("seed"),
-        Bucket::Leaves => Some("active"),
-        Bucket::Fallen => Some("fallen"),
-        Bucket::Pressed => None,
+fn stage_dirs() -> [StageDir; 3] {
+    [StageDir::Sprouts, StageDir::Leaves, StageDir::Fallen]
+}
+
+/// The canonical `stage` value expected for items living in `stage_dir`.
+fn expected_stage(stage_dir: StageDir) -> Option<Stage> {
+    match stage_dir {
+        StageDir::Sprouts => Some(Stage::Sprout),
+        StageDir::Leaves => Some(Stage::Leaf),
+        StageDir::Fallen => Some(Stage::Fallen),
+        StageDir::Pressed => None,
     }
+}
+
+fn has_status_field(content: &str, field: &str) -> bool {
+    content.lines().any(|line| {
+        let Some(rest) = line.trim_start().strip_prefix("- ") else {
+            return false;
+        };
+        let Some((raw_key, _)) = rest.split_once(':') else {
+            return false;
+        };
+        raw_key
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .eq_ignore_ascii_case(field)
+    })
 }
 
 impl DoctorReport {
@@ -407,10 +407,10 @@ mod tests {
             ".leaf",
             vec![
                 DoctorFinding::ok("leaf_root_present", ".leaf initialized").with_path(".leaf"),
-                DoctorFinding::warn("lifecycle_bucket_missing", "missing bucket")
-                    .with_path(".leaf/04-pressed"),
-                DoctorFinding::error("leaf_root_not_directory", ".leaf is not a directory")
-                    .with_path(".leaf"),
+                DoctorFinding::warn("stage_dir_missing", "missing stage dir")
+                    .with_path(".leaf/03-fallen"),
+                DoctorFinding::error("stage_dir_not_directory", "stage dir is not a directory")
+                    .with_path(".leaf/02-leaves"),
             ],
         );
 
@@ -459,18 +459,15 @@ mod tests {
     #[test]
     fn check_accepts_leaf_root_symlink_to_directory() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        root.child("leaf-store/01-seeds")
+        root.child("leaf-store/01-sprouts")
             .create_dir_all()
-            .expect("seed bucket");
+            .expect("sprout stage_dir");
         root.child("leaf-store/02-leaves")
             .create_dir_all()
-            .expect("leaf bucket");
+            .expect("leaf stage_dir");
         root.child("leaf-store/03-fallen")
             .create_dir_all()
-            .expect("fallen bucket");
-        root.child("leaf-store/04-pressed")
-            .create_dir_all()
-            .expect("pressed bucket");
+            .expect("fallen stage_dir");
         std::os::unix::fs::symlink(root.path().join("leaf-store"), root.path().join(".leaf"))
             .expect("leaf symlink");
 
@@ -486,9 +483,11 @@ mod tests {
     }
 
     #[test]
-    fn check_warns_for_missing_lifecycle_bucket() {
+    fn check_warns_for_missing_stage_dir() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        root.child(".leaf/01-seeds").create_dir_all().expect("seed");
+        root.child(".leaf/01-sprouts")
+            .create_dir_all()
+            .expect("sprout");
 
         let report = check(root.path()).expect("doctor report");
 
@@ -496,17 +495,17 @@ mod tests {
         assert_finding(
             &report,
             Severity::Warn,
-            "lifecycle_bucket_missing",
+            "stage_dir_missing",
             Some(Location::Path(".leaf/02-leaves".into())),
         );
     }
 
     #[test]
-    fn check_warns_for_legacy_only_bucket_without_migrating() {
+    fn check_warns_for_old_numbered_dir_without_migrating() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        root.child(".leaf/seeds/old")
+        root.child(".leaf/01-seeds/old")
             .create_dir_all()
-            .expect("legacy");
+            .expect("old numbered");
 
         let report = check(root.path()).expect("doctor report");
 
@@ -514,43 +513,35 @@ mod tests {
         assert_finding(
             &report,
             Severity::Warn,
-            "legacy_bucket_present",
-            Some(Location::Path(".leaf/seeds".into())),
+            "old_stage_dir_present",
+            Some(Location::Path(".leaf/01-seeds".into())),
         );
-        assert!(root.path().join(".leaf/seeds").is_dir());
-        assert!(!root.path().join(".leaf/01-seeds").exists());
+        assert!(root.path().join(".leaf/01-seeds").is_dir());
+        assert!(!root.path().join(".leaf/01-sprouts").exists());
     }
 
     #[test]
-    fn check_errors_when_legacy_and_lifecycle_buckets_conflict() {
+    fn check_warns_when_old_numbered_and_stage_dirs_coexist() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        root.child(".leaf/seeds").create_dir_all().expect("legacy");
-        root.child(".leaf/01-seeds")
+        root.child(".leaf/01-seeds").create_dir_all().expect("old");
+        root.child(".leaf/01-sprouts")
             .create_dir_all()
-            .expect("lifecycle");
+            .expect("stage");
 
         let report = check(root.path()).expect("doctor report");
 
-        assert!(report.has_errors());
+        assert!(!report.has_errors());
         assert_finding(
             &report,
-            Severity::Error,
-            "legacy_bucket_conflict",
-            Some(Location::Paths(vec![
-                ".leaf/seeds".into(),
-                ".leaf/01-seeds".into(),
-            ])),
+            Severity::Warn,
+            "old_stage_dir_present",
+            Some(Location::Path(".leaf/01-seeds".into())),
         );
     }
 
-    fn create_lifecycle_buckets(root: &assert_fs::TempDir) {
-        for path in [
-            ".leaf/01-seeds",
-            ".leaf/02-leaves",
-            ".leaf/03-fallen",
-            ".leaf/04-pressed",
-        ] {
-            root.child(path).create_dir_all().expect("bucket");
+    fn create_lifecycle_stage_dirs(root: &assert_fs::TempDir) {
+        for path in [".leaf/01-sprouts", ".leaf/02-leaves", ".leaf/03-fallen"] {
+            root.child(path).create_dir_all().expect("stage_dir");
         }
     }
 
@@ -559,13 +550,13 @@ mod tests {
     }
 
     #[test]
-    fn check_warns_for_partial_seed_status() {
+    fn check_warns_for_partial_sprout_status() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        create_lifecycle_buckets(&root);
+        create_lifecycle_stage_dirs(&root);
         write_status(
             &root,
-            ".leaf/01-seeds/draft/00-status.md",
-            "# Status\n\n- state: seed\n- current phase: Learn\n",
+            ".leaf/01-sprouts/draft/00-status.md",
+            "# Status\n\n- stage: sprout\n- current phase: Learn\n",
         );
 
         let report = check(root.path()).expect("doctor report");
@@ -575,7 +566,7 @@ mod tests {
             &report,
             Severity::Warn,
             "status_missing_fields",
-            Some(Location::Path(".leaf/01-seeds/draft/00-status.md".into())),
+            Some(Location::Path(".leaf/01-sprouts/draft/00-status.md".into())),
         );
         assert!(finding.message.contains("current_gate"));
         assert!(finding.message.contains("first_missing_gate"));
@@ -585,7 +576,7 @@ mod tests {
     #[test]
     fn check_errors_for_missing_active_status() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        create_lifecycle_buckets(&root);
+        create_lifecycle_stage_dirs(&root);
         root.child(".leaf/02-leaves/no-status/01-Learn")
             .create_dir_all()
             .expect("leaf");
@@ -604,13 +595,13 @@ mod tests {
     }
 
     #[test]
-    fn check_errors_for_fallen_status_missing_state() {
+    fn check_errors_for_fallen_status_missing_reason() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        create_lifecycle_buckets(&root);
+        create_lifecycle_stage_dirs(&root);
         write_status(
             &root,
             ".leaf/03-fallen/closed/00-status.md",
-            "# Leaf Status\n\n- fall reason: completed\n",
+            "# Leaf Status\n\n- stage: fallen\n",
         );
 
         let report = check(root.path()).expect("doctor report");
@@ -622,17 +613,17 @@ mod tests {
             "status_missing_fields",
             Some(Location::Path(".leaf/03-fallen/closed/00-status.md".into())),
         );
-        assert!(finding.message.contains("state"));
+        assert!(finding.message.contains("fallen_reason"));
     }
 
     #[test]
-    fn check_errors_for_active_state_bucket_mismatch() {
+    fn check_errors_for_stage_dir_mismatch() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        create_lifecycle_buckets(&root);
+        create_lifecycle_stage_dirs(&root);
         write_status(
             &root,
-            ".leaf/02-leaves/wrong-state/00-status.md",
-            "- state: seed\n\
+            ".leaf/02-leaves/wrong-stage/00-status.md",
+            "- stage: sprout\n\
              - current phase: Example\n\
              - current gate: ③ Criteria\n\
              - first missing gate: ④ Wireframe\n\
@@ -645,26 +636,26 @@ mod tests {
         let finding = assert_finding(
             &report,
             Severity::Error,
-            "state_bucket_mismatch",
+            "stage_dir_mismatch",
             Some(Location::Path(
-                ".leaf/02-leaves/wrong-state/00-status.md".into(),
+                ".leaf/02-leaves/wrong-stage/00-status.md".into(),
             )),
         );
         assert!(
             finding
                 .message
-                .contains("state seed conflicts with bucket 02-leaves")
+                .contains("stage sprout conflicts with directory 02-leaves")
         );
-        assert!(finding.message.contains("expected active"));
+        assert!(finding.message.contains("expected leaf"));
     }
 
     #[test]
-    fn check_warns_for_ignored_lifecycle_and_pressed_entries() {
+    fn check_warns_for_ignored_stage_entry_and_pressed_leftover() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        create_lifecycle_buckets(&root);
-        root.child(".leaf/01-seeds/loose.md")
+        create_lifecycle_stage_dirs(&root);
+        root.child(".leaf/01-sprouts/loose.md")
             .write_str("ignored\n")
-            .expect("loose seed file");
+            .expect("loose sprout file");
         root.child(".leaf/04-pressed/notes.txt")
             .write_str("ignored\n")
             .expect("pressed txt");
@@ -675,24 +666,24 @@ mod tests {
         assert_finding(
             &report,
             Severity::Warn,
-            "ignored_lifecycle_entry",
-            Some(Location::Path(".leaf/01-seeds/loose.md".into())),
+            "ignored_stage_entry",
+            Some(Location::Path(".leaf/01-sprouts/loose.md".into())),
         );
         assert_finding(
             &report,
             Severity::Warn,
-            "ignored_pressed_entry",
-            Some(Location::Path(".leaf/04-pressed/notes.txt".into())),
+            "pressed_stage_dir_present",
+            Some(Location::Path(".leaf/04-pressed".into())),
         );
     }
 
     #[test]
     #[cfg(unix)]
-    fn check_errors_for_unreadable_pressed_digest() {
+    fn check_warns_for_top_level_pressed_digest_leftover() {
         use std::os::unix::fs::PermissionsExt;
 
         let root = assert_fs::TempDir::new().expect("temp repo");
-        create_lifecycle_buckets(&root);
+        create_lifecycle_stage_dirs(&root);
         let digest = root.child(".leaf/04-pressed/locked.md");
         digest.write_str("# Locked\n").expect("digest");
         // An on-disk .md file that exists but cannot be read: inventory::load
@@ -707,32 +698,32 @@ mod tests {
         fs::set_permissions(digest.path(), fs::Permissions::from_mode(0o644))
             .expect("restore permission");
 
-        assert!(report.has_errors());
+        assert!(!report.has_errors());
         assert_finding(
             &report,
-            Severity::Error,
-            "pressed_digest_unreadable",
-            Some(Location::Path(".leaf/04-pressed/locked.md".into())),
+            Severity::Warn,
+            "pressed_stage_dir_present",
+            Some(Location::Path(".leaf/04-pressed".into())),
         );
     }
 
     #[test]
-    fn check_warns_for_duplicate_slug_across_lifecycle_buckets() {
+    fn check_warns_for_duplicate_slug_across_lifecycle_stages() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        create_lifecycle_buckets(&root);
+        create_lifecycle_stage_dirs(&root);
         write_status(
             &root,
-            ".leaf/01-seeds/duplicate/00-status.md",
-            "- state: seed\n\
+            ".leaf/01-sprouts/duplicate/00-status.md",
+            "- stage: sprout\n\
              - current phase: Learn\n\
              - current gate: ② Unknowns & Context\n\
              - first missing gate: ③ Criteria\n\
-             - next action: promote\n",
+             - next action: continue\n",
         );
         write_status(
             &root,
             ".leaf/02-leaves/duplicate/00-status.md",
-            "- state: active\n\
+            "- stage: leaf\n\
              - current phase: Architect\n\
              - current gate: ⑦ Tasks\n\
              - first missing gate: ⑧ Artifact\n\
@@ -747,7 +738,7 @@ mod tests {
             Severity::Warn,
             "duplicate_slug",
             Some(Location::Paths(vec![
-                ".leaf/01-seeds/duplicate".into(),
+                ".leaf/01-sprouts/duplicate".into(),
                 ".leaf/02-leaves/duplicate".into(),
             ])),
         );

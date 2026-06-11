@@ -21,7 +21,7 @@ by row, where learning has not yet reached judgment.
 | **Topology** | How many independent outcomes / components / surfaces / deliverables are in scope? | Each is named, or explicitly deferred. The count is not silently mutating between "one thing" and "a few related things." |
 | **Success** | How will completion be observed? | At least one acceptance check that a reviewer (or the user) could apply to a candidate result and disagree about, not "looks good." |
 | **Constraints** | What is non-negotiable — non-goals, boundaries, preserved behavior? | The things that must not change, the audience that must not be alienated, the prior decisions that must not be overturned are named. |
-| **Output form** | What artifact, lifecycle, and handoff shape? | The format, where it lives, who consumes it, and what counts as delivery are explicit — not assumed from the current conversation medium. |
+| **Output form** | What artifact, lifecycle, and handoff shape? | The format, where it lives, who consumes it, and what counts as delivery are explicit — not assumed from the current conversation medium. The artifact may be a concept, taxonomy, model, decision, or other durable thinking output, not only a document, UI, or code change. |
 
 ## The rule
 
@@ -30,7 +30,8 @@ by row, where learning has not yet reached judgment.
 If Intent is weak, do not start sourcing references (② External facts) — the
 question is what the user wants, not what others have done. If Output form is
 weak, do not start drafting criteria — the criteria depend on whether the
-deliverable is a document, a deck, or a code change.
+deliverable is a concept, a decision record, a document, a deck, a code change,
+or some other artifact.
 
 Read the rows in order each time you must choose what to ask. Weak rows
 upstream silently corrupt downstream gates: a weak Topology row makes ③

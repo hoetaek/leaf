@@ -1,6 +1,8 @@
-use anyhow::Result;
+use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use std::io::IsTerminal;
+use std::io::Write;
+use std::path::Path;
 use std::process::ExitCode;
 
 #[derive(Debug, Parser)]
@@ -16,19 +18,14 @@ pub(crate) struct Cli {
 enum Commands {
     /// Initialize .leaf storage in the current git repository.
     Init,
-    /// Create a new idea seed.
+    /// Create a new sprout.
     New {
-        /// Path-safe seed slug.
+        /// Path-safe sprout slug.
         slug: String,
     },
-    /// Promote an idea seed into an active leaf.
-    Promote {
-        /// Path-safe seed slug.
-        slug: String,
-    },
-    /// Move an active leaf into fallen trash.
+    /// Move a sprout or leaf into fallen.
     Fall {
-        /// Path-safe leaf slug.
+        /// Path-safe sprout or leaf slug.
         slug: String,
         /// Human-readable closure reason.
         #[arg(long)]
@@ -39,6 +36,11 @@ enum Commands {
         /// Write machine-readable JSON.
         #[arg(long)]
         json: bool,
+    },
+    /// Open the review reader for one leaf-work slug.
+    Review {
+        /// Leaf-work slug to review.
+        slug: String,
     },
     /// Diagnose .leaf readiness for leaf list.
     Doctor {
@@ -69,29 +71,24 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             let slug = crate::slug::validate(&slug)?;
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             crate::storage::ensure_leaf_root(&paths)?;
-            crate::scaffold::create_seed(&paths.root, &slug)?;
-            println!("created .leaf/01-seeds/{slug}/");
-            Ok(ExitCode::SUCCESS)
-        }
-        Commands::Promote { slug } => {
-            let slug = crate::slug::validate(&slug)?;
-            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
-            crate::storage::ensure_leaf_root(&paths)?;
-            crate::lifecycle::promote_seed(&paths.root, &slug)?;
-            println!("moved .leaf/01-seeds/{slug}/ to .leaf/02-leaves/{slug}/");
+            crate::scaffold::create_sprout(&paths.root, &slug)?;
+            println!("created .leaf/01-sprouts/{slug}/");
             Ok(ExitCode::SUCCESS)
         }
         Commands::Fall { slug, reason } => {
             let slug = crate::slug::validate(&slug)?;
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             crate::storage::ensure_leaf_root(&paths)?;
-            crate::lifecycle::fall_leaf(&paths.root, &slug, &reason)?;
-            println!("moved .leaf/02-leaves/{slug}/ to .leaf/03-fallen/{slug}/");
+            let result = crate::lifecycle::fall_leaf(&paths.root, &slug, &reason)?;
+            println!(
+                "moved {}/ to {}/",
+                repo_relative(&paths.root, &result.source),
+                repo_relative(&paths.root, &result.destination)
+            );
             Ok(ExitCode::SUCCESS)
         }
         Commands::List { json } => {
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
-            crate::storage::migrate_layout(&paths.root.join(".leaf"))?;
             let inventory = crate::inventory::load(&paths.root)?;
             if json {
                 let stdout = std::io::stdout();
@@ -103,6 +100,22 @@ fn execute(cli: Cli) -> Result<ExitCode> {
                 let stdout = std::io::stdout();
                 let mut stdout = stdout.lock();
                 crate::list_output::write_text(&mut stdout, &inventory)?;
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        Commands::Review { slug } => {
+            let slug = crate::slug::validate(&slug)?;
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            let inventory = crate::inventory::load(&paths.root)?;
+            let source = review_source_for_slug(&inventory, &slug)?;
+            if std::io::stdin().is_terminal() && std::io::stdout().is_terminal() {
+                crate::tui::run_review(&inventory, source)?;
+            } else {
+                let document = crate::review::build(&source)?;
+                let stdout = std::io::stdout();
+                let mut stdout = stdout.lock();
+                crate::review::write_text(&mut stdout, &document)?;
+                stdout.flush().context("flush leaf review text")?;
             }
             Ok(ExitCode::SUCCESS)
         }
@@ -123,4 +136,45 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             }
         }
     }
+}
+
+fn review_source_for_slug(
+    inventory: &crate::inventory::Inventory,
+    slug: &str,
+) -> Result<crate::review::ReviewSource> {
+    let matches = inventory
+        .stages
+        .iter()
+        .flat_map(|stage| stage.items.iter())
+        .filter(|item| {
+            item.kind == crate::inventory::ItemKind::LeafWork && item.slug.as_str() == slug
+        })
+        .collect::<Vec<_>>();
+
+    match matches.as_slice() {
+        [] => bail!("leaf work does not exist: {slug}"),
+        [item] => item
+            .review
+            .clone()
+            .context("review is only available for leaf work rows"),
+        items => {
+            let repo_root = inventory
+                .leaf_root
+                .parent()
+                .context("inventory leaf root has no parent")?;
+            let locations = items
+                .iter()
+                .map(|item| repo_relative(repo_root, &item.path))
+                .collect::<Vec<_>>()
+                .join(", ");
+            bail!("leaf work slug is ambiguous: {slug} ({locations})");
+        }
+    }
+}
+
+fn repo_relative(repo_root: &Path, path: &Path) -> String {
+    path.strip_prefix(repo_root)
+        .unwrap_or(path)
+        .display()
+        .to_string()
 }

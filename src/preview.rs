@@ -2326,7 +2326,7 @@ fn push_plain(spans: &mut Vec<PreviewSpan>, text: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::inventory::{self, Bucket};
+    use crate::inventory::{self, StageDir};
     use assert_fs::prelude::*;
 
     fn line_text(line: &PreviewLine) -> String {
@@ -3463,7 +3463,7 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
         root.child(".leaf/02-leaves/preview/00-status.md")
             .write_str(
                 "# Leaf Status\n\n\
-                 - state: active\n\
+                 - stage: leaf\n\
                  - current phase: Learn\n\
                  - current gate: G1\n\
                  - first missing gate: G2\n\
@@ -3475,18 +3475,18 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             .expect("intent");
 
         let inventory = inventory::load(root.path()).expect("inventory");
-        let item = inventory.buckets[1]
+        let item = inventory.stages[1]
             .items
             .iter()
-            .find(|item| item.bucket == Bucket::Leaves && item.slug == "preview")
+            .find(|item| item.stage_dir == StageDir::Leaves && item.slug == "preview")
             .expect("item");
 
         let preview = build_from_source(&item.slug, &item.preview).expect("preview");
         let text = preview_text(&preview);
         let status_index = text
             .iter()
-            .position(|line| line.contains("state: active"))
-            .expect("state status line");
+            .position(|line| line.contains("stage: leaf"))
+            .expect("stage status line");
         let intent_index = text
             .iter()
             .position(|line| line.contains("이 의도를 보여줘."))
@@ -3511,10 +3511,10 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             .expect("intent");
 
         let inventory = inventory::load(root.path()).expect("inventory");
-        let item = inventory.buckets[1]
+        let item = inventory.stages[1]
             .items
             .iter()
-            .find(|item| item.bucket == Bucket::Leaves && item.slug == "preview")
+            .find(|item| item.stage_dir == StageDir::Leaves && item.slug == "preview")
             .expect("item");
         let preview = build_from_source(&item.slug, &item.preview).expect("preview");
         let link = preview
@@ -3550,10 +3550,10 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             .expect("criteria");
 
         let inventory = inventory::load(root.path()).expect("inventory");
-        let item = inventory.buckets[1]
+        let item = inventory.stages[1]
             .items
             .iter()
-            .find(|item| item.bucket == Bucket::Leaves && item.slug == "preview")
+            .find(|item| item.stage_dir == StageDir::Leaves && item.slug == "preview")
             .expect("item");
 
         let preview = build_from_source(&item.slug, &item.preview).expect("preview");
@@ -3590,14 +3590,10 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             )
             .expect("digest");
 
-        let inventory = inventory::load(root.path()).expect("inventory");
-        let item = inventory.buckets[3]
-            .items
-            .iter()
-            .find(|item| item.bucket == Bucket::Pressed && item.slug == "research")
-            .expect("pressed item");
-
-        let preview = build_from_source(&item.slug, &item.preview).expect("preview");
+        let preview = build_pressed_digest(
+            "research",
+            &root.path().join(".leaf/04-pressed/research.md"),
+        );
         let text = preview_text(&preview);
 
         assert_eq!(preview.title, "Research Memo");
@@ -3622,7 +3618,7 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             .write_str(
                 "# Research Memo\n\n\
                  ## Citation Summary\n\n\
-                 See [source](../02-leaves/research/00-status.md#L2).\n",
+                 See [source](../leaves/research/00-status.md#L2).\n",
             )
             .expect("digest");
 
@@ -3642,7 +3638,7 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             })
             .expect("digest relative link");
 
-        assert_eq!(link.0, "../02-leaves/research/00-status.md:2");
-        assert_eq!(link.1, "../02-leaves/research/00-status.md#L2");
+        assert_eq!(link.0, "../leaves/research/00-status.md:2");
+        assert_eq!(link.1, "../leaves/research/00-status.md#L2");
     }
 }

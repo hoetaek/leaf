@@ -21,20 +21,21 @@ falsification, merge rule) live in `engine.md`. For per-domain templates, see
 ## ① Intent
 
 ① belongs to `leaf-idea`. Its detailed contract lives in
-`../../leaf-idea/references/learn-gates.md`; use that file as the pass/fail test
-for raw wording, why/what separation, provisional what, locked intent, split
-checks, and return conditions.
+`../../leaf-idea/references/gate-01-intent.md`; use that file as the pass/fail
+test for raw wording, why/what separation, provisional what, locked intent,
+split checks, and return conditions.
 
-`leaf-work` consumes ① only after promotion. If ③ or later reveals that the
-intent is wrong, return to `leaf-idea` or revise the promoted leaf's Learn files
-against `../../leaf-idea/references/learn-gates.md` before continuing.
+`leaf-work` consumes ① only after Learn passes. If ③ or later reveals that the
+intent is wrong, return to `leaf-idea` or revise the sprout's Learn files
+against `../../leaf-idea/references/gate-01-intent.md` before continuing.
 
 ## ② Unknowns & Context
 
 ② belongs to `leaf-idea`. Its detailed contract lives in
-`../../leaf-idea/references/learn-gates.md`; use that file as the pass/fail test
-for unknown categories, reference exploration, experiment boundaries, fact vs
-assumption labels, the Premise Inventory, and the Learn-close condition.
+`../../leaf-idea/references/gate-02-unknowns-context.md`; use that file as the
+pass/fail test for unknown categories, reference exploration, experiment
+boundaries, fact vs assumption labels, the Premise Inventory, and the
+Learn-close condition.
 
 `leaf-work` consumes ② as the basis for ③ Criteria: what the user can now choose
 between, what facts support the choice, and which explicit assumptions or user
@@ -215,9 +216,13 @@ alternatives; (for product artifacts) component boundaries, state model,
 interaction rules, responsive rules, accessibility/focus rules, visual system
 rules. Data/state contracts are *consumed* from the ④ contract, not decided here.
 
-**Brownfield designs** can open with a model of the existing system before the
-new design: a **Static Model** (Purpose, Components, Business Rules) and a
-**Dynamic Model** (workflow or behavior). Check brownfield assumptions —
+**Brownfield designs** open with an explicit before/after architecture sketch
+when structure, workflow, ownership, or component boundaries change. Draw the
+current architecture first, then the intended architecture: a **Static Model**
+(Purpose, Components, Business Rules) and a **Dynamic Model** (workflow or
+behavior) for both before and after. The sketch may be ASCII, Mermaid, boxes and
+arrows, or a compact table, but it must show what is preserved, what is replaced
+or extended, and where responsibility moves. Check brownfield assumptions —
 which existing component is extended vs replaced, whether the stated current
 structure is actually true — against local code, docs, or current rendered
 behavior where the check is cheap; do not design against a remembered system.
@@ -235,6 +240,9 @@ Gate to continue:
 - The design matches audience, criteria, and the validated wireframe.
 - It explains how the validated case generalizes to realistic data volume,
   breakpoints, states, and edge cases.
+- For brownfield structural change, the before/after architecture sketch is
+  present and cheap-checks the current model against the actual system before
+  committing to the after model.
 - Public terminology and model terms pass a project glossary / canonical
   terminology check: when a term conflicts with existing docs or the project
   glossary, the conflict is called out and the canonical term proposed before
@@ -276,6 +284,9 @@ Gate to continue:
 
 - Verdict is `APPROVE`, **or** `ITERATE` revisions have been applied and the
   design re-reviewed.
+- The critic explicitly checks whether the design is the best available answer
+  to the necessity / why locked at ① Intent, not merely whether it satisfies the
+  currently drafted ③ Criteria.
 - `REJECT` returns to ⑤ Design (and possibly to ② Unknowns when an
   assumption was overturned).
 - Even a quick self-pass leaves a one-line record of what was checked, so the
@@ -330,10 +341,10 @@ whatever — lives wherever you keep your work; `03-Architect/08-execution.md`
 records *what was done*, one entry per work session, not the artifact.
 
 Do not start this gate by default until the user explicitly approves the
-promoted Architect snapshot: ⑤ Design, ⑥ Critic verdict, ⑦ Task Graph,
+Architect snapshot: ⑤ Design, ⑥ Critic verdict, ⑦ Task Graph,
 execution scope, risks, and the first execution chunk. This is the exact line
 between scaffolding and execution. Skip it only when the user explicitly
-pre-authorized auto-execution for this leaf; if the work is too small or
+pre-authorized auto-execution for this sprout; if the work is too small or
 low-risk to justify that approval surface, it should not have invoked
 leaf-work.
 
@@ -358,7 +369,7 @@ says so.
 ## ⑨ Review / Sync
 
 Keep the plan true after drafting and feedback. This gate loops with ⑧ —
-expect it to run many times while the work is alive; ⑩ closes the leaf once.
+expect it to run many times while the work is alive; ⑩ closes the work once.
 
 Review checks: Does the artifact satisfy criteria? Are claims supported by
 evidence? Does section order still fit the argument? Did drafting reveal missing
@@ -382,7 +393,7 @@ conditions under which the conclusions do not apply. This is what makes a
 finished leaf citable as prior work: future work builds on the established
 part without re-deriving it, and the unresolved and boundary entries are
 where a future leaf's ① necessity is born — the same way a paper's
-limitations section seeds the next study. Write it to
+limitations section can start the next study. Write it to
 `10-retrospective/limitations.md` (or a Limitations section of the single
 retrospect file).
 

@@ -1,4 +1,5 @@
-use crate::inventory::{Bucket, Inventory};
+use crate::inventory::Inventory;
+use crate::review::ReviewSource;
 use crate::tui::app::{AppState, KeyInput, Mode, MouseInput, Outcome};
 use crate::tui::render::draw;
 use crate::tui::session::TerminalSession;
@@ -14,10 +15,9 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-/// Side-effect seam for the leaf list TUI so promotion, reload, and clipboard
-/// copy can be faked in tests without entering a real terminal or clipboard.
+/// Side-effect seam for the leaf list TUI so reload and clipboard copy can be
+/// faked in tests without entering a real terminal or clipboard.
 trait TuiAdapter {
-    fn promote_seed(&self, slug: &str) -> Result<()>;
     fn load_inventory(&self) -> Result<Inventory>;
     fn copy_to_clipboard(&self, text: &str) -> Result<()>;
 }
@@ -30,10 +30,6 @@ struct RealTuiAdapter {
 }
 
 impl TuiAdapter for RealTuiAdapter {
-    fn promote_seed(&self, slug: &str) -> Result<()> {
-        crate::lifecycle::promote_seed(&self.repo_root, slug).map(|_| ())
-    }
-
     fn load_inventory(&self) -> Result<Inventory> {
         crate::inventory::load(&self.repo_root)
     }
@@ -48,14 +44,24 @@ impl TuiAdapter for RealTuiAdapter {
 }
 
 pub(crate) fn run(inventory: &Inventory) -> Result<()> {
+    run_app(inventory, AppState::from_inventory(inventory))
+}
+
+pub(crate) fn run_review(inventory: &Inventory, source: ReviewSource) -> Result<()> {
+    let app = AppState::from_inventory_with_review_source(inventory, source)
+        .context("open leaf review reader")?;
+    run_app(inventory, app)
+}
+
+fn run_app(inventory: &Inventory, mut app: AppState) -> Result<()> {
     let repo_root = repo_root_from_inventory(inventory)?;
     let adapter = RealTuiAdapter { repo_root };
-    let mut app = AppState::from_inventory(inventory);
-    let session = TerminalSession::enter()?;
+    let mut session = TerminalSession::enter()?;
+    sync_mouse_capture(&mut session, app.mode())?;
     let backend = CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend).context("open leaf list TUI terminal")?;
 
-    let loop_result = event_loop(&mut terminal, &mut app, &adapter);
+    let loop_result = event_loop(&mut terminal, &mut app, &adapter, &mut session);
 
     let cursor_result = terminal
         .show_cursor()
@@ -71,6 +77,7 @@ fn event_loop<A: TuiAdapter>(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     app: &mut AppState,
     adapter: &A,
+    session: &mut TerminalSession,
 ) -> Result<()> {
     let mut last_review_auto_refresh = Instant::now();
     loop {
@@ -99,6 +106,7 @@ fn event_loop<A: TuiAdapter>(
                     break;
                 }
                 handle_outcome(app, adapter, outcome)?;
+                sync_mouse_capture(session, app.mode())?;
             }
             Event::Mouse(mouse) => {
                 let size = terminal
@@ -114,12 +122,23 @@ fn event_loop<A: TuiAdapter>(
                     break;
                 }
                 handle_outcome(app, adapter, outcome)?;
+                sync_mouse_capture(session, app.mode())?;
             }
             Event::Resize(_, _) => {}
             _ => {}
         }
     }
     Ok(())
+}
+
+fn mode_wants_mouse_capture(mode: Mode) -> bool {
+    mode != Mode::Review
+}
+
+fn sync_mouse_capture(session: &mut TerminalSession, mode: Mode) -> Result<()> {
+    session
+        .set_mouse_capture(mode_wants_mouse_capture(mode))
+        .context("sync leaf list TUI mouse capture")
 }
 
 fn maybe_auto_refresh_review(
@@ -139,11 +158,11 @@ fn maybe_auto_refresh_review(
 }
 
 fn mouse_input(area: Rect, app: &AppState, mouse: MouseEvent) -> Option<MouseInput> {
+    if app.mode() == Mode::Review {
+        return None;
+    }
+
     match mouse.kind {
-        MouseEventKind::Down(MouseButton::Left) if app.mode() == Mode::Review => {
-            crate::tui::render::review_hyperlink_target(area, app, mouse.column, mouse.row)
-                .map(|target| MouseInput::Link { target })
-        }
         MouseEventKind::Down(MouseButton::Left) => {
             crate::tui::render::table_mouse_target(area, app, mouse.column, mouse.row)
                 .map(|visible_index| MouseInput::Down { visible_index })
@@ -153,8 +172,6 @@ fn mouse_input(area: Rect, app: &AppState, mouse: MouseEvent) -> Option<MouseInp
                 .map(|visible_index| MouseInput::Drag { visible_index })
         }
         MouseEventKind::Up(MouseButton::Left) => Some(MouseInput::Up),
-        MouseEventKind::ScrollUp if app.mode() == Mode::Review => Some(MouseInput::ScrollUp),
-        MouseEventKind::ScrollDown if app.mode() == Mode::Review => Some(MouseInput::ScrollDown),
         _ => None,
     }
 }
@@ -170,10 +187,6 @@ fn handle_outcome<A: TuiAdapter>(app: &mut AppState, adapter: &A, outcome: Outco
             Ok(()) => app.set_status_message(format!("copied {count} {}", row_word(count))),
             Err(err) => app.set_status_message(format!("copy failed: {err}")),
         },
-        Outcome::CopyLink { target } => match adapter.copy_to_clipboard(&target) {
-            Ok(()) => app.set_status_message("copied link target"),
-            Err(err) => app.set_status_message(format!("copy failed: {err}")),
-        },
         Outcome::Refresh => match adapter.load_inventory() {
             Ok(inventory) => {
                 app.replace_inventory(&inventory);
@@ -183,25 +196,6 @@ fn handle_outcome<A: TuiAdapter>(app: &mut AppState, adapter: &A, outcome: Outco
                 app.set_status_message(format!("refresh failed: {err}"));
             }
         },
-        Outcome::PromoteSeed { slug } => {
-            if let Err(err) = adapter.promote_seed(&slug) {
-                app.set_status_message(format!("promote failed: {err}"));
-                return Ok(());
-            }
-            match adapter.load_inventory() {
-                Ok(inventory) => {
-                    app.replace_inventory(&inventory);
-                    app.select_bucket_slug(Bucket::Leaves, &slug);
-                    app.set_status_message(format!(
-                        "promoted seed {slug} to .leaf/{}/{slug}/",
-                        Bucket::Leaves.dir_name()
-                    ));
-                }
-                Err(err) => {
-                    app.set_status_message(format!("reload after promote failed: {err}"));
-                }
-            }
-        }
     }
     Ok(())
 }
@@ -250,10 +244,10 @@ fn row_word(count: usize) -> &'static str {
 mod tests {
     use super::*;
     use crate::inventory::{
-        Bucket, BucketInventory, Inventory, InventoryItem, ItemKind, ParseState, PreviewSource,
+        Inventory, InventoryItem, ItemKind, ParseState, PreviewSource, StageDir, StageInventory,
         StatusSummary,
     };
-    use crate::tui::app::{AppState, BucketFilter, KeyInput, ListRow, Outcome};
+    use crate::tui::app::{AppState, KeyInput, ListRow, Outcome};
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use std::cell::RefCell;
     use std::fs;
@@ -261,8 +255,6 @@ mod tests {
 
     struct RecordingTuiAdapter {
         reloaded: RefCell<Option<Inventory>>,
-        error: Option<String>,
-        promoted: RefCell<Vec<String>>,
         copied: RefCell<Vec<String>>,
         copy_error: Option<String>,
     }
@@ -271,8 +263,6 @@ mod tests {
         fn new(_repo_root: std::path::PathBuf) -> Self {
             Self {
                 reloaded: RefCell::new(None),
-                error: None,
-                promoted: RefCell::new(Vec::new()),
                 copied: RefCell::new(Vec::new()),
                 copy_error: None,
             }
@@ -284,20 +274,9 @@ mod tests {
             adapter
         }
 
-        fn failure(repo_root: std::path::PathBuf, message: &str) -> Self {
-            Self {
-                error: Some(message.to_string()),
-                ..Self::new(repo_root)
-            }
-        }
-
         fn with_copy_error(mut self, message: &str) -> Self {
             self.copy_error = Some(message.to_string());
             self
-        }
-
-        fn promoted_slugs(&self) -> Vec<String> {
-            self.promoted.borrow().clone()
         }
 
         fn copied_texts(&self) -> Vec<String> {
@@ -306,14 +285,6 @@ mod tests {
     }
 
     impl TuiAdapter for RecordingTuiAdapter {
-        fn promote_seed(&self, slug: &str) -> Result<()> {
-            self.promoted.borrow_mut().push(slug.to_string());
-            if let Some(message) = &self.error {
-                anyhow::bail!("{message}");
-            }
-            Ok(())
-        }
-
         fn load_inventory(&self) -> Result<Inventory> {
             self.reloaded
                 .borrow_mut()
@@ -331,66 +302,17 @@ mod tests {
     }
 
     #[test]
-    fn promote_outcome_calls_lifecycle_adapter_and_reloads_inventory() {
-        let root = assert_fs::TempDir::new().expect("temp repo");
-        let seed = test_item(root.path(), Bucket::Seeds, "draft");
-        let leaf = test_item(root.path(), Bucket::Leaves, "draft");
-        let initial = test_inventory(root.path(), vec![seed]);
-        let reloaded = test_inventory(root.path(), vec![leaf]);
-        let mut app = AppState::from_inventory(&initial);
-        let adapter = RecordingTuiAdapter::success(root.path().to_path_buf(), reloaded);
-
-        handle_outcome(
-            &mut app,
-            &adapter,
-            Outcome::PromoteSeed {
-                slug: "draft".to_string(),
-            },
-        )
-        .expect("promote outcome");
-
-        assert_eq!(adapter.promoted_slugs(), vec!["draft"]);
-        assert_eq!(app.active_bucket(), BucketFilter::Bucket(Bucket::Leaves));
-        assert_eq!(app.selected_row().map(ListRow::slug), Some("draft"));
-        assert!(app.status_line().contains("promoted seed draft"));
-    }
-
-    #[test]
-    fn promote_outcome_reports_adapter_failure_without_replacing_inventory() {
-        let root = assert_fs::TempDir::new().expect("temp repo");
-        let seed = test_item(root.path(), Bucket::Seeds, "draft");
-        let initial = test_inventory(root.path(), vec![seed]);
-        let mut app = AppState::from_inventory(&initial);
-        let adapter = RecordingTuiAdapter::failure(
-            root.path().to_path_buf(),
-            "active leaf already exists: draft",
-        );
-
-        handle_outcome(
-            &mut app,
-            &adapter,
-            Outcome::PromoteSeed {
-                slug: "draft".to_string(),
-            },
-        )
-        .expect("failure is reported in app status, not returned");
-
-        assert_eq!(app.selected_row().map(ListRow::slug), Some("draft"));
-        assert!(app.status_line().contains("active leaf already exists"));
-    }
-
-    #[test]
     fn refresh_outcome_reloads_inventory_and_reports_refreshed() {
         let root = assert_fs::TempDir::new().expect("temp repo");
         let initial = test_inventory(
             root.path(),
-            vec![test_item(root.path(), Bucket::Seeds, "draft")],
+            vec![test_item(root.path(), StageDir::Sprouts, "draft")],
         );
         let reloaded = test_inventory(
             root.path(),
             vec![
-                test_item(root.path(), Bucket::Leaves, "alpha"),
-                test_item(root.path(), Bucket::Leaves, "beta"),
+                test_item(root.path(), StageDir::Leaves, "alpha"),
+                test_item(root.path(), StageDir::Leaves, "beta"),
             ],
         );
         let mut app = AppState::from_inventory(&initial);
@@ -408,7 +330,7 @@ mod tests {
         let root = assert_fs::TempDir::new().expect("temp repo");
         let initial = test_inventory(
             root.path(),
-            vec![test_item(root.path(), Bucket::Seeds, "draft")],
+            vec![test_item(root.path(), StageDir::Sprouts, "draft")],
         );
         let mut app = AppState::from_inventory(&initial);
         // RecordingTuiAdapter::new configures no reloaded inventory, so load_inventory errors.
@@ -425,7 +347,7 @@ mod tests {
     #[test]
     fn copy_outcome_writes_row_to_clipboard_and_reports_status() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        let leaf = test_item(root.path(), Bucket::Leaves, "alpha");
+        let leaf = test_item(root.path(), StageDir::Leaves, "alpha");
         let mut app = AppState::from_inventory(&test_inventory(root.path(), vec![leaf]));
         let adapter = RecordingTuiAdapter::new(root.path().to_path_buf());
 
@@ -434,7 +356,7 @@ mod tests {
             &adapter,
             Outcome::CopyRow {
                 slug: "alpha".to_string(),
-                text: "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
+                text: "| STAGE | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
                     .to_string(),
             },
         )
@@ -443,7 +365,7 @@ mod tests {
         assert_eq!(
             adapter.copied_texts(),
             vec![
-                "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
+                "| STAGE | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
                     .to_string()
             ]
         );
@@ -453,7 +375,7 @@ mod tests {
     #[test]
     fn copy_rows_outcome_writes_joined_text_and_reports_count() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        let leaf = test_item(root.path(), Bucket::Leaves, "alpha");
+        let leaf = test_item(root.path(), StageDir::Leaves, "alpha");
         let mut app = AppState::from_inventory(&test_inventory(root.path(), vec![leaf]));
         let adapter = RecordingTuiAdapter::new(root.path().to_path_buf());
 
@@ -462,7 +384,7 @@ mod tests {
             &adapter,
             Outcome::CopyRows {
                 count: 2,
-                text: "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |\n| leaf | learn | intent | gamma | ok |"
+                text: "| STAGE | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |\n| leaf | learn | intent | gamma | ok |"
                     .to_string(),
             },
         )
@@ -471,7 +393,7 @@ mod tests {
         assert_eq!(
             adapter.copied_texts(),
             vec![
-                "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |\n| leaf | learn | intent | gamma | ok |"
+                "| STAGE | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |\n| leaf | learn | intent | gamma | ok |"
                     .to_string()
             ]
         );
@@ -481,7 +403,7 @@ mod tests {
     #[test]
     fn copy_rows_outcome_reports_singular_count() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        let leaf = test_item(root.path(), Bucket::Leaves, "alpha");
+        let leaf = test_item(root.path(), StageDir::Leaves, "alpha");
         let mut app = AppState::from_inventory(&test_inventory(root.path(), vec![leaf]));
         let adapter = RecordingTuiAdapter::new(root.path().to_path_buf());
 
@@ -490,7 +412,7 @@ mod tests {
             &adapter,
             Outcome::CopyRows {
                 count: 1,
-                text: "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
+                text: "| STAGE | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
                     .to_string(),
             },
         )
@@ -499,7 +421,7 @@ mod tests {
         assert_eq!(
             adapter.copied_texts(),
             vec![
-                "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
+                "| STAGE | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
                     .to_string()
             ]
         );
@@ -508,32 +430,9 @@ mod tests {
     }
 
     #[test]
-    fn copy_link_outcome_writes_target_to_clipboard() {
-        let root = assert_fs::TempDir::new().expect("temp repo");
-        let leaf = test_item(root.path(), Bucket::Leaves, "alpha");
-        let mut app = AppState::from_inventory(&test_inventory(root.path(), vec![leaf]));
-        let adapter = RecordingTuiAdapter::new(root.path().to_path_buf());
-
-        handle_outcome(
-            &mut app,
-            &adapter,
-            Outcome::CopyLink {
-                target: "https://example.com/docs".to_string(),
-            },
-        )
-        .expect("copy link outcome");
-
-        assert_eq!(
-            adapter.copied_texts(),
-            vec!["https://example.com/docs".to_string()]
-        );
-        assert!(app.status_line().contains("copied link target"));
-    }
-
-    #[test]
     fn copy_outcome_reports_clipboard_failure_without_exit() {
         let root = assert_fs::TempDir::new().expect("temp repo");
-        let leaf = test_item(root.path(), Bucket::Leaves, "alpha");
+        let leaf = test_item(root.path(), StageDir::Leaves, "alpha");
         let mut app = AppState::from_inventory(&test_inventory(root.path(), vec![leaf]));
         let adapter = RecordingTuiAdapter::new(root.path().to_path_buf())
             .with_copy_error("clipboard unavailable");
@@ -543,7 +442,7 @@ mod tests {
             &adapter,
             Outcome::CopyRow {
                 slug: "alpha".to_string(),
-                text: "| BUCKET | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
+                text: "| STAGE | PHASE | GATE | SLUG | STATUS |\n| --- | --- | --- | --- | --- |\n| leaf | learn | intent | alpha | ok |"
                     .to_string(),
             },
         )
@@ -554,48 +453,13 @@ mod tests {
     }
 
     #[test]
-    fn real_promote_adapter_promotes_seed_and_reloads_inventory() {
-        let root = assert_fs::TempDir::new().expect("temp repo");
-        let leaf_root = root.path().join(".leaf");
-        fs::create_dir_all(leaf_root.join("01-seeds/demo")).expect("seed dir");
-        fs::create_dir_all(leaf_root.join("02-leaves")).expect("leaves dir");
-        fs::create_dir_all(leaf_root.join("03-fallen")).expect("fallen dir");
-        fs::create_dir_all(leaf_root.join("04-pressed")).expect("pressed dir");
-        fs::write(
-            leaf_root.join("01-seeds/demo/00-status.md"),
-            "# Status\n\n- state: seed\n- current phase: Learn\n- current gate: Intent\n- first missing gate: Example\n- next action: promote\n",
-        )
-        .expect("seed status");
-        let initial = crate::inventory::load(root.path()).expect("initial inventory");
-        let mut app = AppState::from_inventory(&initial);
-        let adapter = RealTuiAdapter {
-            repo_root: root.path().to_path_buf(),
-        };
-
-        handle_outcome(
-            &mut app,
-            &adapter,
-            Outcome::PromoteSeed {
-                slug: "demo".to_string(),
-            },
-        )
-        .expect("real promote outcome");
-
-        assert!(leaf_root.join("02-leaves/demo").is_dir());
-        assert!(!leaf_root.join("01-seeds/demo").exists());
-        assert_eq!(app.active_bucket(), BucketFilter::Bucket(Bucket::Leaves));
-        assert_eq!(app.selected_row().map(ListRow::slug), Some("demo"));
-        assert!(app.status_line().contains("promoted seed demo"));
-    }
-
-    #[test]
     fn auto_refresh_review_polls_open_review_documents_after_interval() {
         let root = assert_fs::TempDir::new().expect("temp repo");
         let slug = "demo";
         let leaf_path = root
             .path()
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug);
         let intent_path = leaf_path.join("01-Learn/01-intent.md");
         fs::create_dir_all(intent_path.parent().unwrap()).expect("intent dir");
@@ -607,7 +471,7 @@ mod tests {
         fs::write(&intent_path, "# Intent\n\nold text\n").expect("old intent");
         let inventory = test_inventory(
             root.path(),
-            vec![test_item(root.path(), Bucket::Leaves, slug)],
+            vec![test_item(root.path(), StageDir::Leaves, slug)],
         );
         let mut app = AppState::from_inventory(&inventory);
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
@@ -644,53 +508,55 @@ mod tests {
     }
 
     fn test_inventory(root: &Path, items: Vec<InventoryItem>) -> Inventory {
-        let mut seeds = Vec::new();
+        let mut sprouts = Vec::new();
         let mut leaves = Vec::new();
         let mut fallen = Vec::new();
         let mut pressed = Vec::new();
 
         for item in items {
-            match item.bucket {
-                Bucket::Seeds => seeds.push(item),
-                Bucket::Leaves => leaves.push(item),
-                Bucket::Fallen => fallen.push(item),
-                Bucket::Pressed => pressed.push(item),
+            match item.stage_dir {
+                StageDir::Sprouts => sprouts.push(item),
+                StageDir::Leaves => leaves.push(item),
+                StageDir::Fallen => fallen.push(item),
+                StageDir::Pressed => pressed.push(item),
             }
         }
 
         Inventory {
             leaf_root: root.join(".leaf"),
-            buckets: vec![
-                BucketInventory {
-                    bucket: Bucket::Seeds,
-                    items: seeds,
+            stages: vec![
+                StageInventory {
+                    stage_dir: StageDir::Sprouts,
+                    items: sprouts,
                 },
-                BucketInventory {
-                    bucket: Bucket::Leaves,
+                StageInventory {
+                    stage_dir: StageDir::Leaves,
                     items: leaves,
                 },
-                BucketInventory {
-                    bucket: Bucket::Fallen,
+                StageInventory {
+                    stage_dir: StageDir::Fallen,
                     items: fallen,
                 },
-                BucketInventory {
-                    bucket: Bucket::Pressed,
+                StageInventory {
+                    stage_dir: StageDir::Pressed,
                     items: pressed,
                 },
             ],
         }
     }
 
-    fn test_item(root: &Path, bucket: Bucket, slug: &str) -> InventoryItem {
-        let path = root.join(".leaf").join(bucket.dir_name()).join(slug);
+    fn test_item(root: &Path, stage_dir: StageDir, slug: &str) -> InventoryItem {
+        let path = root.join(".leaf").join(stage_dir.dir_name()).join(slug);
         InventoryItem {
-            bucket,
+            stage_dir,
             slug: slug.to_string(),
             kind: ItemKind::LeafWork,
             path: path.clone(),
             status: StatusSummary {
                 parse_state: ParseState::Ok,
-                state: Some("active".to_string()),
+                stage: Some("sprout".to_string()),
+                legacy_state: Some("active".to_string()),
+                fallen_reason: None,
                 current_phase: Some("learn".to_string()),
                 current_gate: Some("intent".to_string()),
                 first_missing_gate: None,
@@ -705,7 +571,7 @@ mod tests {
             },
             review: Some(crate::review::ReviewSource::LeafWork {
                 root_path: path,
-                root_relative_path: format!(".leaf/{}/{slug}", bucket.dir_name()),
+                root_relative_path: format!(".leaf/{}/{slug}", stage_dir.dir_name()),
             }),
         }
     }
@@ -716,9 +582,9 @@ mod tests {
         let app = AppState::from_inventory(&test_inventory(
             root.path(),
             vec![
-                test_item(root.path(), Bucket::Leaves, "alpha"),
-                test_item(root.path(), Bucket::Leaves, "beta"),
-                test_item(root.path(), Bucket::Leaves, "gamma"),
+                test_item(root.path(), StageDir::Leaves, "alpha"),
+                test_item(root.path(), StageDir::Leaves, "beta"),
+                test_item(root.path(), StageDir::Leaves, "gamma"),
             ],
         ));
         // Rect(0,0,80,10): table data rows start at y=4.
@@ -764,7 +630,7 @@ mod tests {
         let root = assert_fs::TempDir::new().expect("temp repo");
         let app = AppState::from_inventory(&test_inventory(
             root.path(),
-            vec![test_item(root.path(), Bucket::Leaves, "alpha")],
+            vec![test_item(root.path(), StageDir::Leaves, "alpha")],
         ));
         let area = Rect::new(0, 0, 80, 10);
 
@@ -800,13 +666,21 @@ mod tests {
     }
 
     #[test]
-    fn maps_mouse_wheel_to_review_scroll_input() {
+    fn mode_wants_mouse_capture_only_outside_review() {
+        assert!(mode_wants_mouse_capture(Mode::List));
+        assert!(mode_wants_mouse_capture(Mode::RangeSelect));
+        assert!(mode_wants_mouse_capture(Mode::FilterInput));
+        assert!(!mode_wants_mouse_capture(Mode::Review));
+    }
+
+    #[test]
+    fn review_mode_mouse_input_is_ignored_for_native_terminal_selection() {
         let root = assert_fs::TempDir::new().expect("temp repo");
         let slug = "alpha";
         let leaf_path = root
             .path()
             .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
+            .join(StageDir::Leaves.dir_name())
             .join(slug);
         fs::create_dir_all(&leaf_path).expect("leaf dir");
         fs::write(
@@ -816,71 +690,32 @@ mod tests {
         .expect("status");
         let inventory = test_inventory(
             root.path(),
-            vec![test_item(root.path(), Bucket::Leaves, slug)],
+            vec![test_item(root.path(), StageDir::Leaves, slug)],
         );
         let mut app = AppState::from_inventory(&inventory);
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
         assert_eq!(app.mode(), Mode::Review);
-        let area = Rect::new(0, 0, 80, 10);
+        let area = Rect::new(0, 0, 80, 12);
 
         assert_eq!(
             mouse_input(area, &app, mouse(MouseEventKind::ScrollDown, 20, 4)),
-            Some(MouseInput::ScrollDown)
+            None
         );
-        assert_eq!(
-            mouse_input(area, &app, mouse(MouseEventKind::ScrollUp, 20, 4)),
-            Some(MouseInput::ScrollUp)
-        );
-    }
-
-    #[test]
-    fn maps_review_link_click_to_copy_link_input() {
-        let root = assert_fs::TempDir::new().expect("temp repo");
-        let slug = "link";
-        let leaf_path = root
-            .path()
-            .join(".leaf")
-            .join(Bucket::Leaves.dir_name())
-            .join(slug);
-        fs::create_dir_all(leaf_path.join("01-Learn")).expect("intent dir");
-        fs::write(
-            leaf_path.join("00-status.md"),
-            "# Status\n\n- current gate: ① Intent\n",
-        )
-        .expect("status");
-        fs::write(
-            leaf_path.join("01-Learn/01-intent.md"),
-            "See [docs](https://example.com/docs).\n",
-        )
-        .expect("intent");
-        let inventory = test_inventory(
-            root.path(),
-            vec![test_item(root.path(), Bucket::Leaves, slug)],
-        );
-        let mut app = AppState::from_inventory(&inventory);
-        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
-        assert_eq!(app.mode(), Mode::Review);
-
-        let area = Rect::new(0, 0, 80, 16);
-        let (column, row) = (0..area.height)
-            .find_map(|row| {
-                (0..area.width).find_map(|column| {
-                    (crate::tui::render::review_hyperlink_target(area, &app, column, row)
-                        .as_deref()
-                        == Some("https://example.com/docs"))
-                    .then_some((column, row))
-                })
-            })
-            .expect("visible link target coordinate");
         assert_eq!(
             mouse_input(
                 area,
                 &app,
-                mouse(MouseEventKind::Down(MouseButton::Left), column, row)
+                mouse(MouseEventKind::Down(MouseButton::Left), 20, 4)
             ),
-            Some(MouseInput::Link {
-                target: "https://example.com/docs".to_string(),
-            })
+            None
+        );
+        assert_eq!(
+            mouse_input(
+                area,
+                &app,
+                mouse(MouseEventKind::Drag(MouseButton::Left), 20, 4)
+            ),
+            None
         );
     }
 

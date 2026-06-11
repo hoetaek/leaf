@@ -8,6 +8,19 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+## 0.5.0 - 2026-06-11
+
+- Added `leaf review <slug>` to open the review reader for one leaf-work item
+  directly, with plain text output on non-TTY stdout.
+- Merged the `leaf-press` and `leaf-fall` skills into a single `leaf-clean`
+  skill that tends the `.leaf/` workspace: pressing citable digests, moving
+  non-reference-worthy work into fallen, and acting as the migration operator
+  for old layouts reported by `leaf doctor` (old stage dirs, top-level pressed
+  dir, legacy `state` / `fall reason` status fields).
+- Press now also records cross-leaf citations in a per-leaf `linked.md` —
+  outgoing `Cites` with evidence, plus a `Cited By` snapshot scanned from other
+  leaves' `linked.md` at press time.
+
 ## 0.4.1 - 2026-06-10
 
 - Improved `leaf list` review and preview Markdown rendering with

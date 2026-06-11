@@ -14,8 +14,8 @@ const DIRECTORIES: &[&str] = &[
 const FILES: &[(&str, &str)] = &[
     (
         "00-status.md",
-        "# Seed Status\n\n\
-         - state: seed\n\
+        "# Sprout Status\n\n\
+         - stage: sprout\n\
          - current phase: Learn\n\
          - current gate: ① Intent\n\
          - first missing gate: ① Intent\n\
@@ -51,32 +51,33 @@ const FILES: &[(&str, &str)] = &[
     ),
 ];
 
-pub(crate) fn create_seed(repo_root: &Path, slug: &str) -> Result<PathBuf> {
-    let seed = repo_root
+pub(crate) fn create_sprout(repo_root: &Path, slug: &str) -> Result<PathBuf> {
+    let sprout = repo_root
         .join(".leaf")
-        .join(crate::inventory::Bucket::Seeds.dir_name())
+        .join(crate::inventory::Stage::Sprout.dir_name())
         .join(slug);
-    match fs::create_dir(&seed) {
+    match fs::create_dir(&sprout) {
         Ok(()) => {}
         Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {
-            bail!("leaf seed already exists: {slug}");
+            bail!("leaf sprout already exists: {slug}");
         }
         Err(err) => {
-            return Err(err).with_context(|| format!("failed to create seed {}", seed.display()));
+            return Err(err)
+                .with_context(|| format!("failed to create sprout {}", sprout.display()));
         }
     }
 
     for directory in DIRECTORIES {
-        let path = seed.join(directory);
+        let path = sprout.join(directory);
         fs::create_dir_all(&path)
             .with_context(|| format!("failed to create directory {}", path.display()))?;
     }
 
     for (relative_path, body) in FILES {
-        write_new_file(&seed.join(relative_path), body)?;
+        write_new_file(&sprout.join(relative_path), body)?;
     }
 
-    Ok(seed)
+    Ok(sprout)
 }
 
 fn write_new_file(path: &Path, body: &str) -> Result<()> {
@@ -93,28 +94,29 @@ fn write_new_file(path: &Path, body: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::inventory::{Bucket, ParseState, parse_status_summary};
+    use crate::inventory::{ParseState, StageDir, parse_status_summary};
 
-    /// A freshly scaffolded seed must satisfy every status field `leaf doctor`
-    /// requires for the seeds bucket, so `leaf new` followed by `leaf doctor`
+    /// A freshly scaffolded sprout must satisfy every status field `leaf doctor`
+    /// requires for the sprout stage, so `leaf new` followed by `leaf doctor`
     /// reports no `status_missing_fields` warning.
     #[test]
-    fn seed_status_template_has_all_doctor_required_fields() {
+    fn sprout_status_template_has_all_doctor_required_fields() {
         let body = FILES
             .iter()
             .find(|(name, _)| *name == "00-status.md")
             .map(|(_, body)| *body)
-            .expect("seed scaffold includes 00-status.md");
+            .expect("sprout scaffold includes 00-status.md");
 
-        let summary = parse_status_summary(body, Bucket::Seeds);
+        let summary = parse_status_summary(body, StageDir::Sprouts);
 
         assert_eq!(summary.parse_state, ParseState::Ok);
         assert!(
             summary.missing_fields.is_empty(),
-            "fresh seed status is missing doctor-required fields: {:?}",
+            "fresh sprout status is missing doctor-required fields: {:?}",
             summary.missing_fields
         );
-        assert_eq!(summary.state.as_deref(), Some("seed"));
+        assert_eq!(summary.stage.as_deref(), Some("sprout"));
+        assert!(summary.legacy_state.is_none());
         assert_eq!(summary.current_phase.as_deref(), Some("Learn"));
         assert_eq!(summary.current_gate.as_deref(), Some("① Intent"));
     }

@@ -34,6 +34,10 @@ Use one verdict:
 
 Check:
 
+- Intent fit: the design is the best available answer to the necessity / why
+  locked at ① Intent, not only a plausible way to satisfy the current ③
+  Criteria. If a simpler, cheaper, or more direct design would resolve the why,
+  require iteration or record why it was rejected.
 - Principles and drivers: the chosen option follows the stated principles and
   decision drivers.
 - Fair alternatives: viable options are real, not strawmen. If only one option
@@ -44,6 +48,10 @@ Check:
   success criteria from gates ① through ④ (`references/clarity-ledger.md`).
 - Wireframe fit: the design generalizes the validated concrete case (the ④
   contract) instead of silently changing structure.
+- Architecture fit: for brownfield structural changes, the before/after
+  architecture sketch names preserved, replaced, extended, and moved
+  responsibilities, and the before model was checked against the real system
+  where cheap.
 - Evidence fit: claims about existing materials, audience, facts, examples, or
   system behavior are checked where cheap.
 - Risk mitigation: security, migration, compatibility, performance,
@@ -75,6 +83,7 @@ return to review. Do not expand into implementation planning; that belongs in
 
 The critic pass reads, but does not produce, these artifacts:
 
+- ① Intent — the locked necessity / why the design must answer.
 - ③ Criteria — the purpose and acceptance checks the design must satisfy.
 - ④ Wireframe — the locked contract and the validated concrete case.
 - ⑤ Design — the generator and, for non-obvious choices, the

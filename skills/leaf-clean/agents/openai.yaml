@@ -1,0 +1,7 @@
+interface:
+  display_name: "LEAF Clean"
+  short_description: "Press, fall, and migrate the .leaf workspace"
+  default_prompt: "Use $leaf-clean to tend the .leaf workspace: press a reference-worthy leaf into a citable pressed.md, move non-reference-worthy work into fallen with an explicit fallen reason, or migrate an old layout reported by leaf doctor."
+
+policy:
+  allow_implicit_invocation: true

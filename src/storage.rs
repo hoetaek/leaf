@@ -1,6 +1,6 @@
 use crate::fs_ext::{DirectoryStatus, directory_status};
 use crate::git::RepoPaths;
-use crate::inventory::{BUCKETS, Bucket};
+use crate::inventory::STAGES;
 use anyhow::{Context, Result, bail};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
@@ -13,56 +13,12 @@ pub(crate) fn ensure_leaf_root(paths: &RepoPaths) -> Result<bool> {
     let mut changed = false;
 
     changed |= ensure_directory(&leaf_root)?;
-    migrate_layout(&leaf_root)?;
-    for bucket in BUCKETS {
-        changed |= ensure_directory(&leaf_root.join(bucket.dir_name()))?;
+    for stage in STAGES {
+        changed |= ensure_directory(&leaf_root.join(stage.dir_name()))?;
     }
     changed |= ensure_exclude_line(&paths.exclude)?;
 
     Ok(changed)
-}
-
-/// Migrate a legacy `.leaf/` workspace to the lifecycle-ordered bucket names.
-///
-/// Pre-0.3 workspaces named the buckets `seeds`/`leaves`/`fallen`/`pressed`.
-/// This renames each surviving legacy directory to its prefixed name with a
-/// single `fs::rename`, leaving content untouched. It first scans every bucket
-/// and bails before moving anything if both the legacy and current names exist
-/// for any bucket, so a partial migration never happens. Returns whether any
-/// directory was migrated.
-pub(crate) fn migrate_layout(leaf_root: &Path) -> Result<bool> {
-    for bucket in BUCKETS {
-        let old = leaf_root.join(bucket.legacy_dir_name());
-        let new = leaf_root.join(bucket.dir_name());
-        if old.is_dir() && new.is_dir() {
-            bail!(
-                "cannot migrate .leaf/ layout: both '{}' and '{}' exist; merge manually, then re-run. no files were moved.",
-                bucket.legacy_dir_name(),
-                bucket.dir_name()
-            );
-        }
-    }
-
-    let mut migrated: Vec<Bucket> = Vec::new();
-    for bucket in BUCKETS {
-        let old = leaf_root.join(bucket.legacy_dir_name());
-        let new = leaf_root.join(bucket.dir_name());
-        if old.is_dir() && !new.exists() {
-            fs::rename(&old, &new).with_context(|| {
-                format!("failed to migrate {} to {}", old.display(), new.display())
-            })?;
-            migrated.push(bucket);
-        }
-    }
-
-    if !migrated.is_empty() {
-        eprintln!("migrated .leaf/ layout to lifecycle order:");
-        for bucket in &migrated {
-            eprintln!("  {} -> {}", bucket.legacy_dir_name(), bucket.dir_name());
-        }
-    }
-
-    Ok(!migrated.is_empty())
 }
 
 fn ensure_directory(path: &Path) -> Result<bool> {

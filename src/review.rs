@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Copy)]
@@ -171,6 +172,13 @@ pub(crate) fn build(source: &ReviewSource) -> Result<ReviewDocument> {
             root_relative_path,
         } => build_leaf_work(root_path.clone(), root_relative_path.clone()),
     }
+}
+
+pub(crate) fn write_text<W: Write>(writer: &mut W, document: &ReviewDocument) -> Result<()> {
+    for line in &document.lines {
+        writeln!(writer, "{}", line.visible_text()).context("write leaf review text")?;
+    }
+    Ok(())
 }
 
 fn build_leaf_work(root_path: PathBuf, root_relative_path: String) -> Result<ReviewDocument> {

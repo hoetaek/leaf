@@ -123,6 +123,15 @@ its contract; Design generalizes it into the reusable rules that produce *every*
 valid instance the contract allows. The contract is an **input** consumed from
 ④, never rediscovered here.
 
+For brownfield work where structure, workflow, ownership, or component
+boundaries change, start the generator with a before/after architecture sketch.
+Draw the existing architecture first, then the intended architecture: static
+model (purpose, components, business rules) and dynamic model (workflow or
+behavior). Make the delta visible — preserved parts, replaced parts, extended
+parts, new interfaces, and moved responsibilities — and cheap-check the before
+model against code, docs, or rendered behavior before relying on it. A design
+that cannot explain the before model is guessing at the after model.
+
 The central work is **behavior across the full range of each variation point** —
 the empty, overflow, and edge cases, responsive breakpoints, and state ranges a
 single mock instance could not reveal. Treat failure and timing as variation
