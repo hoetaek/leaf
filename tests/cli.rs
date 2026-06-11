@@ -31,6 +31,43 @@ fn write_status(repo: &assert_fs::TempDir, path: &str, body: &str) {
     repo.child(path).write_str(body).expect("write status");
 }
 
+fn write_leaf_status(repo: &assert_fs::TempDir, slug: &str, pressed: bool) {
+    write_status(
+        repo,
+        &format!(".leaf/02-leaves/{slug}/00-status.md"),
+        "- stage: leaf\n\
+         - current phase: Architect\n\
+         - current gate: ⑦ Tasks\n\
+         - first missing gate: ⑧ Artifact\n\
+         - next action: render tree\n",
+    );
+    if pressed {
+        repo.child(format!(".leaf/02-leaves/{slug}/pressed.md"))
+            .write_str("# Pressed\n")
+            .expect("pressed digest");
+    }
+}
+
+fn write_sprout_status(repo: &assert_fs::TempDir, slug: &str) {
+    write_status(
+        repo,
+        &format!(".leaf/01-sprouts/{slug}/00-status.md"),
+        "- stage: sprout\n\
+         - current phase: Learn\n\
+         - current gate: ② Unknowns\n\
+         - first missing gate: ③ Criteria\n\
+         - next action: continue\n",
+    );
+}
+
+fn write_fallen_status(repo: &assert_fs::TempDir, slug: &str) {
+    write_status(
+        repo,
+        &format!(".leaf/03-fallen/{slug}/00-status.md"),
+        "- stage: fallen\n- fallen reason: archived\n",
+    );
+}
+
 #[test]
 fn help_lists_init_and_new() {
     leaf_command()
@@ -43,6 +80,7 @@ fn help_lists_init_and_new() {
         .stdout(predicate::str::contains("fall"))
         .stdout(predicate::str::contains("list"))
         .stdout(predicate::str::contains("review"))
+        .stdout(predicate::str::contains("tree"))
         .stdout(predicate::str::contains("doctor"));
 }
 
@@ -56,6 +94,215 @@ fn version_flag_prints_package_version() {
             "leaf {}",
             env!("CARGO_PKG_VERSION")
         )));
+}
+
+#[test]
+fn leaf_tree_command_renders_color_by_default_even_when_stdout_is_captured() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_leaf_status(&repo, "alpha", true);
+    write_leaf_status(&repo, "beta", false);
+    write_sprout_status(&repo, "draft");
+    write_fallen_status(&repo, "archived");
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .arg("tree")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(
+        text.contains("\x1b["),
+        "default tree output must keep ANSI: {text:?}"
+    );
+    assert!(text.contains("leaf tree"));
+    assert!(text.contains("leaves 2"));
+    assert!(text.contains("pressed 1"));
+    assert!(text.contains("sprouts 1"));
+    assert!(text.contains("fallen 1"));
+    assert!(text.contains("active sprouts:"));
+    assert!(text.contains("gold fruit:"));
+    assert!(text.contains("green leaves:"));
+    assert!(text.contains("fallen:"));
+}
+
+#[test]
+fn leaf_tree_plain_removes_ansi_but_keeps_tree_semantics() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_leaf_status(&repo, "alpha", true);
+    write_leaf_status(&repo, "beta", false);
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(
+        !text.contains("\x1b["),
+        "plain tree output must not contain ANSI: {text:?}"
+    );
+    assert!(text.contains("leaf tree"));
+    assert!(text.contains("gold fruit:"));
+    assert!(text.contains("green leaves:"));
+    assert!(text.contains("alpha"));
+    assert!(text.contains("beta"));
+}
+
+#[test]
+fn leaf_tree_output_is_deterministic_for_same_workspace() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_leaf_status(&repo, "alpha", true);
+    write_leaf_status(&repo, "beta", false);
+    write_sprout_status(&repo, "draft");
+    write_fallen_status(&repo, "archived");
+
+    let first = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let second = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    assert_eq!(first, second);
+}
+
+#[test]
+fn leaf_tree_no_pressed_many_leaves_shows_green_crown_without_gold_fruit() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    for index in 1..=50 {
+        write_leaf_status(&repo, &format!("leaf-{index:02}"), false);
+    }
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(text.contains("leaves 50"));
+    assert!(text.contains("pressed 0"));
+    assert!(text.contains("green leaves:"));
+    assert!(text.contains("no gold fruit: no pressed leaf yet"));
+    assert!(text.contains("leaf-50"));
+}
+
+#[test]
+fn leaf_tree_all_pressed_omits_empty_green_leaf_legend() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    for slug in ["alpha", "beta", "gamma"] {
+        write_leaf_status(&repo, slug, true);
+    }
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(text.contains("pressed 3"));
+    assert!(text.contains("gold fruit:"));
+    assert!(!text.contains("green leaves:"));
+}
+
+#[test]
+fn leaf_tree_sprouts_heavy_uses_active_sprouts_seedlings() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_leaf_status(&repo, "citable-leaf", true);
+    for index in 1..=8 {
+        write_sprout_status(&repo, &format!("draft-{index}"));
+    }
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(text.contains("sprouts 8"));
+    assert!(text.contains("active sprouts:"));
+    assert!(text.contains(r"\|/"));
+    assert!(text.contains("draft-1"));
+}
+
+#[test]
+fn leaf_tree_fallen_items_render_below_living_sections() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_leaf_status(&repo, "alpha", true);
+    write_sprout_status(&repo, "draft");
+    write_fallen_status(&repo, "archived");
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    let sprouts_at = text.find("active sprouts:").expect("sprouts section");
+    let fallen_at = text.find("fallen:").expect("fallen section");
+    assert!(
+        fallen_at > sprouts_at,
+        "fallen must be below living sections:\n{text}"
+    );
+    assert!(text.contains("archived"));
+}
+
+#[test]
+fn leaf_tree_missing_leaf_root_fails_without_bootstrapping() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("tree")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            ".leaf/ is not initialized in this git repository",
+        ))
+        .stderr(predicate::str::contains("hint: run `leaf init`"));
+
+    repo.child(".leaf").assert(predicate::path::missing());
 }
 
 #[test]

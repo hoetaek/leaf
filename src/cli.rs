@@ -37,6 +37,12 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// Render the .leaf workspace as a terminal tree.
+    Tree {
+        /// Suppress ANSI color.
+        #[arg(long)]
+        plain: bool,
+    },
     /// Open the review reader for one leaf-work slug.
     Review {
         /// Leaf-work slug to review.
@@ -101,6 +107,23 @@ fn execute(cli: Cli) -> Result<ExitCode> {
                 let mut stdout = stdout.lock();
                 crate::list_output::write_text(&mut stdout, &inventory)?;
             }
+            Ok(ExitCode::SUCCESS)
+        }
+        Commands::Tree { plain } => {
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            let inventory = crate::inventory::load(&paths.root)?;
+            let model = crate::tree::TreeModel::from_inventory(&inventory);
+            let stdout = std::io::stdout();
+            let mut stdout = stdout.lock();
+            crate::tree::write_text(
+                &mut stdout,
+                &model,
+                crate::tree::TreeRenderOptions {
+                    color: !plain,
+                    width: 112,
+                },
+            )?;
+            stdout.flush().context("flush leaf tree text")?;
             Ok(ExitCode::SUCCESS)
         }
         Commands::Review { slug } => {

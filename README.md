@@ -123,6 +123,7 @@ leaf init
 leaf new <slug>
 leaf fall <slug> --reason <reason>
 leaf list [--json]
+leaf tree [--plain]
 leaf review <slug>
 leaf doctor [--json]
 ```
@@ -159,6 +160,12 @@ reasons such as `abandoned`, `superseded`, `parked`, `split`, `invalidated`, or
 
 `leaf list` shows the current stage inventory. Non-TTY output uses a deterministic
 `STAGE` table; `leaf list --json` outputs top-level `stages`.
+
+`leaf tree` renders the current `.leaf/` workspace as a bounded terminal tree:
+completed leaves fill the green crown, per-leaf `pressed.md` digests appear as
+gold fruit, active sprouts appear in an `active sprouts:` row, and fallen items
+stay below the living tree. It emits ANSI color by default even when redirected;
+use `leaf tree --plain` for clean text output.
 
 `leaf review <slug>` opens the same source-faithful review reader for one
 leaf-work item directly. In non-TTY output it writes the review document as
