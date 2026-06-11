@@ -511,12 +511,11 @@ fn row_style(app: &AppState, index: usize) -> Style {
         app.selected_index() == index,
         app.visible_row_is_marked(index),
     ) {
-        (true, true) => Style::default()
-            .bg(Color::Blue)
-            .fg(Color::White)
+        (true, true) => Style::default().add_modifier(Modifier::REVERSED | Modifier::BOLD),
+        (true, false) => Style::default().add_modifier(Modifier::REVERSED),
+        (false, true) => Style::default()
+            .fg(Color::Blue)
             .add_modifier(Modifier::BOLD),
-        (true, false) => Style::default().bg(Color::DarkGray).fg(Color::White),
-        (false, true) => Style::default().bg(Color::Blue).fg(Color::White),
         (false, false) => Style::default(),
     }
 }
@@ -1979,30 +1978,31 @@ mod tests {
         })
     }
 
-    fn text_has_style(
+    fn text_cell_style(
         buffer: &Buffer,
         width: u16,
         height: u16,
         text: &str,
-        fg: Color,
-        bg: Color,
-    ) -> bool {
-        (0..height).any(|y| {
-            (0..width).any(|x| {
+    ) -> Option<(Color, Color, Modifier)> {
+        let position = (2..height.saturating_sub(1)).find_map(|y| {
+            (0..width).find_map(|x| {
                 let mut cursor = x;
                 for ch in text.chars() {
-                    if cursor >= width {
-                        return false;
-                    }
-                    let cell = &buffer[(cursor, y)];
-                    if cell.symbol() != ch.to_string() || cell.fg != fg || cell.bg != bg {
-                        return false;
+                    if cursor >= width || buffer[(cursor, y)].symbol() != ch.to_string() {
+                        return None;
                     }
                     cursor = cursor.saturating_add(cell_width(ch));
                 }
-                true
+                Some((x, y))
             })
-        })
+        });
+
+        position
+            .or_else(|| text_position(buffer, width, height, text))
+            .map(|(x, y)| {
+                let cell = &buffer[(x, y)];
+                (cell.fg, cell.bg, cell.modifier)
+            })
     }
 
     fn cell_width(ch: char) -> u16 {
@@ -3437,22 +3437,64 @@ mod tests {
 
         let buffer = render_buffer(100, 12, &app);
 
-        assert!(text_has_style(
-            &buffer,
-            100,
-            12,
-            "leaf",
-            Color::White,
-            Color::DarkGray
-        ));
-        assert!(text_has_style(
-            &buffer,
-            100,
-            12,
-            "ok",
-            Color::White,
-            Color::DarkGray
-        ));
+        for text in ["leaf", "ok", "alpha"] {
+            let (fg, bg, modifier) =
+                text_cell_style(&buffer, 100, 12, text).expect("cursor row cell");
+            assert!(modifier.contains(Modifier::REVERSED), "{text} not reversed");
+            assert!(
+                !modifier.contains(Modifier::BOLD),
+                "{text} unexpectedly bold"
+            );
+            assert_eq!(fg, Color::Reset, "{text} fg must stay theme-default");
+            assert_eq!(bg, Color::Reset, "{text} bg must stay theme-default");
+        }
+    }
+
+    #[test]
+    fn marked_row_uses_blue_bold_text_without_background_fill() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![
+            fixture.plain_leaf("alpha"),
+            fixture.plain_leaf("beta"),
+        ]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.handle_key(KeyInput::Char(' '));
+        app.handle_key(KeyInput::Char('j'));
+
+        let buffer = render_buffer(100, 12, &app);
+
+        let (fg, bg, modifier) =
+            text_cell_style(&buffer, 100, 12, "alpha").expect("marked row cell");
+        assert_eq!(fg, Color::Blue);
+        assert_eq!(bg, Color::Reset);
+        assert!(modifier.contains(Modifier::BOLD));
+        assert!(!modifier.contains(Modifier::REVERSED));
+
+        let (cursor_fg, cursor_bg, cursor_modifier) =
+            text_cell_style(&buffer, 100, 12, "beta").expect("cursor row cell");
+        assert!(cursor_modifier.contains(Modifier::REVERSED));
+        assert_eq!(cursor_fg, Color::Reset);
+        assert_eq!(cursor_bg, Color::Reset);
+    }
+
+    #[test]
+    fn cursor_on_marked_row_uses_reversed_bold() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![
+            fixture.plain_leaf("alpha"),
+            fixture.plain_leaf("beta"),
+        ]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.handle_key(KeyInput::Char(' '));
+
+        let buffer = render_buffer(100, 12, &app);
+
+        let (fg, bg, modifier) =
+            text_cell_style(&buffer, 100, 12, "alpha").expect("marked cursor row cell");
+        assert!(modifier.contains(Modifier::REVERSED));
+        assert!(modifier.contains(Modifier::BOLD));
+        assert_eq!(fg, Color::Reset);
+        assert_eq!(bg, Color::Reset);
     }
 
     #[test]
