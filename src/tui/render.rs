@@ -90,11 +90,13 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
     ]);
     frame.render_widget(Paragraph::new(header), layout.header);
 
+    let notice = if review.status_message.is_empty() {
+        "READ ONLY - edit originals".to_string()
+    } else {
+        format!("READ ONLY - edit originals  {}", review.status_message)
+    };
     frame.render_widget(
-        Paragraph::new(Line::styled(
-            "READ ONLY - edit originals",
-            strong_style().fg(Color::Yellow),
-        )),
+        Paragraph::new(Line::styled(notice, strong_style().fg(Color::Yellow))),
         layout.notice,
     );
 
@@ -3683,6 +3685,36 @@ mod tests {
                 .add_modifier
                 .contains(Modifier::UNDERLINED)
         );
+    }
+
+    #[test]
+    fn review_mode_manual_refresh_renders_refreshed_status_message() {
+        let fixture = RenderFixture::new();
+        let slug = "refresh-demo";
+        let leaf_path = fixture
+            .root
+            .path()
+            .join(".leaf")
+            .join(Bucket::Leaves.dir_name())
+            .join(slug);
+        let status_path = leaf_path.join("00-status.md");
+        std::fs::create_dir_all(&leaf_path).expect("leaf dir");
+        std::fs::write(&status_path, "# Status\n\nold status\n").expect("old status");
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            Bucket::Leaves,
+            slug,
+            status(ParseState::Ok, Some("active"), Some("Learn"), Some("-")),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
+
+        std::fs::write(&status_path, "# Status\n\nnew status\n").expect("new status");
+        assert_eq!(app.handle_key(KeyInput::Char('r')), Outcome::Continue);
+
+        let text = buffer_text(120, 18, &app);
+
+        assert!(text.contains("new status"));
+        assert!(text.contains("refreshed from source"));
     }
 
     #[test]
