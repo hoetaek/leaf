@@ -414,7 +414,6 @@ Gate to future work:
 - The ② checklist for similar future work is updated with the categories or
   example questions the team kept missing.
 
-<<<<<<< Updated upstream
 ### Profile update
 
 After the retrospect is written, update the repo-local acquired profile at
@@ -454,8 +453,7 @@ replaced, or removed — so the user can review every profile change.
 A profile entry may specialize `leaf-soul` conduct but never negate it. When an
 episode repeatedly demands a negation, surface it as a `leaf-soul` change signal
 instead of writing the entry.
-||||||| Stash base
-=======
+
 **Close-out — hand off to `leaf-clean`.** ⑩ passing does not end the work;
 the sprout is still sitting in the workspace. Immediately after the retrospect
 passes, propose to the user whether this leaf is reference-worthy (**pressed**
@@ -464,7 +462,6 @@ explicit fallen reason). The user decides; then invoke the `leaf-clean` skill
 with the Skill tool to execute the press or fall. Do not stop at the
 retrospect file, and do not run the press/fall mechanics yourself — `leaf-clean`
 owns them.
->>>>>>> Stashed changes
 
 ---
 
