@@ -416,52 +416,28 @@ Gate to future work:
 
 ### Profile update
 
-After the retrospect is written, update the repo-local acquired profile at
-`.leaf/PROFILE.md`. If the file is missing in a pre-PROFILE workspace, create it
-with the same fixed header scaffolded by `leaf init`.
+After the retrospect is written, invoke `leaf-profile` if this episode revealed
+a user language preference, recurring requirement, agent mistake, wrong-answer
+note, reusable correction, or cross-leaf fact that should affect future leaf
+work.
 
-Extract candidates from this leaf's episode: the retrospect, review notes, and
-user corrections. Keep only behavior traits phrased as "when X, do Y", or
-recurring facts prefixed `(사실)` that are needed across leaves and cannot be
-cheaply derived from the repo.
+The test question is: "Would the next leaf's agent behave differently, or avoid
+repeating this mistake, for knowing this?" If yes, update `.leaf/PROFILE.md` and
+show the diff. If no, keep the note in the retrospect, review, or pressed file.
 
-Filter every candidate with this test question: "Would the next leaf's agent
-behave differently, or re-ask the same question, for not knowing this?" Drop the
-candidate when the answer is no.
-
-Consolidate against existing entries:
-
-- Same meaning: increment ×N, append this leaf's `leaf:{slug}` handle, keep up
-  to the 3 most recent handles, and promote to `## Settled` at ×2 or higher.
-- Contradiction: replace the old entry, restart at ×1, and place it under
-  `## Provisional`.
-- New: add it at ×1 under `## Provisional`.
-
-Count at most one observation per leaf. Use this entry format:
-`- [(사실) ]<sentence> ×<count> — <leaf:slug[, ...]>`.
-
-Move new and re-observed entries to the bottom of their section; order encodes
-recency without dates. When the file exceeds 30 lines, evict from the top of
-`## Provisional` first.
-
-Preserve hand-edited content: never reformat the whole file. Leave lines that
-do not match the entry format untouched and name them in the report.
-
-Show the profile update as a diff in the report — what was added, promoted,
-replaced, or removed — so the user can review every profile change.
-
-A profile entry may specialize `leaf-soul` conduct but never negate it. When an
+PROFILE entries may specialize `leaf-soul` conduct but never negate it. When an
 episode repeatedly demands a negation, surface it as a `leaf-soul` change signal
 instead of writing the entry.
 
-**Close-out — hand off to `leaf-clean`.** ⑩ passing does not end the work;
+**Close-out — 반드시 `leaf-clean`으로 끝낸다.** ⑩ passing does not end the work;
 the sprout is still sitting in the workspace. Immediately after the retrospect
 passes, propose to the user whether this leaf is reference-worthy (**pressed**
 — future work will cite it) or not (**fallen** — carried no further, with an
-explicit fallen reason). The user decides; then invoke the `leaf-clean` skill
-with the Skill tool to execute the press or fall. Do not stop at the
-retrospect file, and do not run the press/fall mechanics yourself — `leaf-clean`
-owns them.
+explicit fallen reason). The user decides; then you must invoke the `leaf-clean`
+skill with the Skill tool to execute the press or fall. Do not stop at the
+retrospect file, and do not report leaf-work complete before `leaf-clean`
+finishes the pressed/fallen close-out. Do not run the press/fall mechanics
+yourself — `leaf-clean` owns them.
 
 ---
 

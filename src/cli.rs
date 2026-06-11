@@ -42,6 +42,9 @@ enum Commands {
         /// Suppress ANSI color.
         #[arg(long)]
         plain: bool,
+        /// Show a top-to-bottom growth demo instead of the current workspace.
+        #[arg(long)]
+        demo: bool,
     },
     /// Open the review reader for one leaf-work slug.
     Review {
@@ -109,20 +112,22 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             }
             Ok(ExitCode::SUCCESS)
         }
-        Commands::Tree { plain } => {
-            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
-            let inventory = crate::inventory::load(&paths.root)?;
-            let model = crate::tree::TreeModel::from_inventory(&inventory);
+        Commands::Tree { plain, demo } => {
+            let width = tree_output_width();
             let stdout = std::io::stdout();
             let mut stdout = stdout.lock();
-            crate::tree::write_text(
-                &mut stdout,
-                &model,
-                crate::tree::TreeRenderOptions {
-                    color: !plain,
-                    width: 112,
-                },
-            )?;
+            let options = crate::tree::TreeRenderOptions {
+                color: !plain,
+                width,
+            };
+            if demo {
+                crate::tree::write_demo_text(&mut stdout, options)?;
+            } else {
+                let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+                let inventory = crate::inventory::load(&paths.root)?;
+                let model = crate::tree::TreeModel::from_inventory(&inventory);
+                crate::tree::write_text(&mut stdout, &model, options)?;
+            }
             stdout.flush().context("flush leaf tree text")?;
             Ok(ExitCode::SUCCESS)
         }
@@ -159,6 +164,15 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             }
         }
     }
+}
+
+fn tree_output_width() -> usize {
+    if std::io::stdout().is_terminal()
+        && let Ok((columns, _)) = crossterm::terminal::size()
+    {
+        return usize::from(columns.max(1));
+    }
+    112
 }
 
 fn review_source_for_slug(

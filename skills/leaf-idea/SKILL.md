@@ -57,13 +57,17 @@ Read only what the current move needs:
    `leaf new <slug>` unless a matching sprout already exists.
 3. **Capture the snapshot.** In `01-Learn/01-intent.md`, preserve raw wording and
    current hunch. In `01-Learn/02-unknowns.md`, record checked context and open
-   questions.
+   questions. Also update `00-status.md` `## Overview` so a reader can see what
+   this LEAF is doing without opening every gate file.
 4. **Run ① Intent.** Use `references/gate-01-intent.md` as the contract. Separate
    raw wording, sharp why, provisional what, and locked intent. Surface guessed
-   facts before locking the intent.
+   facts before locking the intent. When ① changes the why, what, core noun,
+   split decision, or output form, update the status overview in the same turn.
 5. **Run ② Unknowns & Context.** Use `references/gate-02-unknowns-context.md` as the
    contract. Group unknowns, gather references or internal facts, expose
-   premises, and keep fact/assumption/user-review boundaries visible.
+   premises, and keep fact/assumption/user-review boundaries visible. When ②
+   changes the viable direction, assumptions, scope, or next choice, update the
+   status overview in the same turn.
 6. **Ask the Learn-close question with the evidence in view.** Before asking,
    show what was actually gathered so the user judges sufficiency from the
    files, not from memory. If anything remains, keep the sprout enriched and
@@ -86,6 +90,22 @@ Learn-close question:
 > 정말로 이 일을 판단하고 기준화하기 위해 배우고 알아야 하는 사실을 다
 > 알았나요? 아직 확인해야 할 사실, 참고해야 할 사례, 내부 맥락, 또는
 > 검증하지 않은 가정이 남아 있나요?
+
+## Status Overview
+
+`00-status.md` is the reader's table of contents for the LEAF. It is not the
+source of truth for detailed reasoning, but it must summarize the current shape:
+
+- `request`: the user's request in the user's words;
+- `purpose`: why this LEAF exists, after ① separates why from what;
+- `expected output`: the artifact, decision, model, document, code change, or
+  result this LEAF is currently aiming at;
+- `current scope`: what is included, excluded, split, or still undecided;
+- `consistency rule`: reminder that this overview changes when the LEAF changes.
+
+Do not let `00-status.md` become stale. Whenever `01-intent.md`,
+`02-unknowns.md`, split decisions, Learn-close status, or a later return changes
+what the LEAF is doing, revise the overview before reporting back.
 
 ## Learn Handoff
 

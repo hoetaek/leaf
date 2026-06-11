@@ -123,7 +123,7 @@ leaf init
 leaf new <slug>
 leaf fall <slug> --reason <reason>
 leaf list [--json]
-leaf tree [--plain]
+leaf tree [--plain] [--demo]
 leaf review <slug>
 leaf doctor [--json]
 ```
@@ -165,7 +165,12 @@ reasons such as `abandoned`, `superseded`, `parked`, `split`, `invalidated`, or
 completed leaves fill the green crown, per-leaf `pressed.md` digests appear as
 gold fruit, active sprouts appear in an `active sprouts:` row, and fallen items
 stay below the living tree. It emits ANSI color by default even when redirected;
-use `leaf tree --plain` for clean text output.
+use `leaf tree --plain` for clean text output. `leaf tree --demo` renders the
+same tree renderer repeatedly with synthetic 0, 3, 10, 20, 50, and 100 leaf
+folders, stacked from small to saturated, without requiring an initialized `.leaf/`
+workspace. In an interactive terminal, `leaf tree` uses the current terminal
+width up to 112 columns; below 32 columns it falls back to a compact summary
+instead of forcing broken tree art.
 
 `leaf review <slug>` opens the same source-faithful review reader for one
 leaf-work item directly. In non-TTY output it writes the review document as

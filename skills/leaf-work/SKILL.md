@@ -34,9 +34,9 @@ Learn runs in `leaf-idea`; `leaf-work` continues the same sprout at ③ Example
 after Learn passes. Learn's detailed gate contracts live in
 `../leaf-idea/references/gate-01-intent.md` and
 `../leaf-idea/references/gate-02-unknowns-context.md`; `references/gates.md`
-covers the handoff plus ③ onward. ⑩ Retrospect also consolidates the leaf's
-lessons into the repo-local acquired profile `.leaf/PROFILE.md` per the
-`### Profile update` contract in `references/gates.md`.
+covers the handoff plus ③ onward. ⑩ Retrospect invokes `leaf-profile` when the
+leaf reveals a user language preference, recurring requirement, agent mistake,
+wrong-answer note, or cross-leaf fact that belongs in `.leaf/PROFILE.md`.
 
 ## Always-on rules
 
@@ -63,7 +63,8 @@ lessons into the repo-local acquired profile `.leaf/PROFILE.md` per the
   start and follow it — do not just read its file; the rules here are the gate
   *method* specific to this skill. Whenever the work needs another LEAF skill —
   `leaf-idea` for Learn, `leaf-clean` to make it citable or retire it — invoke
-  that skill with the Skill tool rather than only referencing its file.
+  that skill with the Skill tool rather than only referencing its file. Use
+  `leaf-profile` when `.leaf/PROFILE.md` needs to be read or updated.
 - **The scaffold is the foundation — so the work stands firm.** Learn, Example,
   and Architect lay that foundation; execution builds only once it is solid, not
   on guesses. The sprout carries the CLI scaffold — `00-status.md` and the four
@@ -90,7 +91,10 @@ lessons into the repo-local acquired profile `.leaf/PROFILE.md` per the
 - **Keep `00-status.md` current.** Update it when a gate starts, becomes ready
   for review, completes, needs explicit approval, is approved, returns to an
   earlier gate, is blocked/deferred, or when the next action changes
-  materially. Treat returns as log events, not gate statuses; note
+  materially. Keep its `## Overview` aligned with the gate files: if Criteria,
+  Wireframe, Design, Tasks, Review, or a return changes the purpose, expected
+  output, scope, split decision, or what the LEAF is doing, update the overview
+  in the same pass. Treat returns as log events, not gate statuses; note
   blocked/deferred reasons in `Next / Waiting on`, not as separate statuses.
 - **Gates loop; they are not a pipeline.** When a downstream gate overturns an
   assumption or surfaces a new unknown, return to the earliest gate the
@@ -122,9 +126,11 @@ lessons into the repo-local acquired profile `.leaf/PROFILE.md` per the
   Architect, execution, and Feedback continue in the same project folder that
   Learn created. Immediately after ⑩ Retrospect passes, decide explicitly with
   the user whether the leaf becomes a reference-worthy **pressed** leaf or a
-  **fallen** archive, then invoke the `leaf-clean` skill with the Skill tool to
-  execute it — the work is not closed while the sprout still sits in the
-  workspace. That final stage choice is not a prerequisite for starting ③.
+  **fallen** archive. After the user decides, you must invoke the `leaf-clean`
+  skill with the Skill tool and execute that close-out. This handoff is
+  mandatory: leaf-work is not complete, and must not be reported complete, while
+  the sprout still sits in the workspace without a pressed/fallen outcome. That
+  final stage choice is not a prerequisite for starting ③.
 - **Persistent files live inside one project folder.** Keep the four phase
   folders and two-digit gate prefixes inside the sprout project folder. For all
   naming and file-vs-folder-by-count, read `references/layout.md`.
@@ -177,6 +183,7 @@ diagram.
 | Read | When |
 |---|---|
 | `../leaf-soul/SKILL.md` | the shared conduct/voice: how to report, show rendered work, hand off reviewables, separate fact from guess, and which language to write |
+| `../leaf-profile/SKILL.md` | the repo-local acquired profile: user language, recurring requirements, mistakes, wrong-answer notes, and facts that apply across leaf work |
 | `references/gates.md` | when judging gate readiness, creating/revising a gate artifact, handling a return, or needing examples |
 | `references/gate-authoring.md` | when drafting, grilling, revising, or presenting a gate artifact for review or approval |
 | `references/engine.md` | you are inside ③–⑤ and need the full contract / variation point / generator mechanics + diagram |

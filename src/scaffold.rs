@@ -19,7 +19,20 @@ const FILES: &[(&str, &str)] = &[
          - current phase: Learn\n\
          - current gate: ① Intent\n\
          - first missing gate: ① Intent\n\
-         - next action: draft the one-sentence intent in 01-Learn/01-intent.md\n",
+         - next action: draft the one-sentence intent in 01-Learn/01-intent.md\n\n\
+         ## Overview\n\n\
+         - request: TODO capture the user's request in the user's words\n\
+         - purpose: TODO state why this LEAF should exist\n\
+         - expected output: TODO name the artifact, decision, or result this LEAF is aiming at\n\
+         - current scope: TODO state what is included, excluded, split, or still undecided\n\
+         - consistency rule: update this overview whenever intent, scope, output, or gate files change what this LEAF is doing\n\n\
+         ## Document Map\n\n\
+         - ① Intent: `01-Learn/01-intent.md`\n\
+         - ② Unknowns & Context: `01-Learn/02-unknowns.md`\n\
+         - ③ Criteria: `02-Example/03-criteria.md`\n\
+         - ④ Wireframe: `02-Example/04-wireframe.md`\n\
+         - ⑤ Design / ⑦ Tasks: `03-Architect/05-design.md`, `03-Architect/07-tasks.md`\n\
+         - ⑨ Review / ⑩ Retrospect: `04-Feedback/`\n",
     ),
     (
         "01-Learn/01-intent.md",
@@ -119,5 +132,35 @@ mod tests {
         assert!(summary.legacy_state.is_none());
         assert_eq!(summary.current_phase.as_deref(), Some("Learn"));
         assert_eq!(summary.current_gate.as_deref(), Some("① Intent"));
+    }
+
+    #[test]
+    fn sprout_status_template_has_live_overview_section() {
+        let body = FILES
+            .iter()
+            .find(|(name, _)| *name == "00-status.md")
+            .map(|(_, body)| *body)
+            .expect("sprout scaffold includes 00-status.md");
+
+        assert!(
+            body.contains("## Overview"),
+            "00-status.md should summarize what this LEAF is doing"
+        );
+        assert!(
+            body.contains("- request:"),
+            "overview should preserve the user's request at status level"
+        );
+        assert!(
+            body.contains("- purpose:"),
+            "overview should show why the LEAF exists"
+        );
+        assert!(
+            body.contains("- expected output:"),
+            "overview should show what artifact/result this LEAF is aiming at"
+        );
+        assert!(
+            body.contains("- consistency rule:"),
+            "overview should remind agents to keep status and gate docs aligned"
+        );
     }
 }

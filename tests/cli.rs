@@ -85,6 +85,17 @@ fn help_lists_init_and_new() {
 }
 
 #[test]
+fn tree_help_describes_demo_as_top_to_bottom_not_left_to_right() {
+    leaf_command()
+        .args(["tree", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--demo"))
+        .stdout(predicate::str::contains("top-to-bottom"))
+        .stdout(predicate::str::contains("left-to-right").not());
+}
+
+#[test]
 fn version_flag_prints_package_version() {
     leaf_command()
         .arg("--version")
@@ -156,6 +167,99 @@ fn leaf_tree_plain_removes_ansi_but_keeps_tree_semantics() {
     assert!(text.contains("green leaves:"));
     assert!(text.contains("alpha"));
     assert!(text.contains("beta"));
+}
+
+#[test]
+fn leaf_tree_demo_plain_renders_python_g_style_stacked_stages_without_leaf_root() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--demo", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(
+        !text.contains("\x1b["),
+        "plain demo output must not contain ANSI: {text:?}"
+    );
+    assert!(text.contains("leaf tree demo"));
+    assert!(
+        !text.contains("left -> right"),
+        "demo must not be the compressed left-to-right strip:\n{text}"
+    );
+
+    let stages = [
+        "===== 0 leaves / seedling demo =====",
+        "===== 3 leaves / young demo =====",
+        "===== 10 leaves / branching demo =====",
+        "===== 20 leaves / grown demo =====",
+        "===== 50 leaves / mature demo =====",
+        "===== 100 leaves / saturated demo =====",
+    ];
+    let mut previous = 0;
+    for stage in stages {
+        let position = text
+            .find(stage)
+            .unwrap_or_else(|| panic!("missing {stage:?} in stacked demo:\n{text}"));
+        assert!(
+            position >= previous,
+            "stage sections must be ordered top to bottom:\n{text}"
+        );
+        previous = position;
+    }
+    assert!(
+        !text.contains("===== 5 leaves / small demo ====="),
+        "5-leaf stage is visually too close to adjacent stages and should not be in the public demo:\n{text}"
+    );
+}
+
+#[test]
+fn leaf_tree_demo_uses_color_by_default() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--demo"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(
+        text.contains("\x1b["),
+        "default demo output must keep ANSI: {text:?}"
+    );
+    assert!(text.contains("leaf tree demo"));
+}
+
+#[test]
+fn leaf_tree_demo_plain_uses_full_size_stage_trees_not_tiny_panels() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--demo", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(
+        text.lines().count() > 80,
+        "demo should stack full-size stage trees like the Python g-mode, not tiny panels:\n{text}"
+    );
 }
 
 #[test]

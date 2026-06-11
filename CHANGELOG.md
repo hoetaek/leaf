@@ -8,6 +8,17 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+## 0.5.1 - 2026-06-12
+
+- Added `leaf tree --demo` as a public growth preview that stacks full-size
+  recursive tree renders for 0, 3, 10, 20, 50, and 100 synthetic leaves; the
+  demo keeps color by default, supports `--plain`, and deliberately excludes
+  the compressed left-to-right strip because it loses the approved tree shape.
+- Made `leaf tree` responsive to terminal width: it scales tree art within a
+  112-column maximum, wraps headers and legends, and falls back to a compact
+  semantic summary below 32 columns instead of overflowing.
+- Tuned the `leaf tree` foliage model so larger leaf counts visibly fill in the
+  green crown through the 100-leaf saturated stage while keeping growth bounded.
 - `leaf init` now scaffolds `.leaf/PROFILE.md`; leaf-work ⑩ Retrospect
   consolidates behavior traits and recurring facts into it with
   strengthen/replace/evict rules and a 30-line cap; and `leaf-soul` recalls it
