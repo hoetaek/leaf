@@ -79,6 +79,7 @@ pub(crate) struct AppState {
     preview_open: bool,
     mode: Mode,
     status_line: String,
+    notice: String,
     selected_keys: HashSet<String>,
     range_anchor: Option<usize>,
     mouse_anchor: Option<usize>,
@@ -254,6 +255,7 @@ impl AppState {
             preview_open: true,
             mode: Mode::List,
             status_line: String::new(),
+            notice: String::new(),
             selected_keys: HashSet::new(),
             range_anchor: None,
             mouse_anchor: None,
@@ -319,6 +321,10 @@ impl AppState {
         &self.status_line
     }
 
+    pub(crate) fn notice(&self) -> &str {
+        &self.notice
+    }
+
     pub(crate) fn review_state(&self) -> Option<&ReviewState> {
         self.review_state.as_ref()
     }
@@ -355,6 +361,7 @@ impl AppState {
     }
 
     pub(crate) fn handle_key(&mut self, input: KeyInput) -> Outcome {
+        self.notice.clear();
         match self.mode {
             Mode::List => self.handle_list_key(input),
             Mode::RangeSelect => self.handle_range_key(input),
@@ -364,6 +371,7 @@ impl AppState {
     }
 
     pub(crate) fn handle_mouse(&mut self, input: MouseInput) -> Outcome {
+        self.notice.clear();
         if matches!(self.mode, Mode::FilterInput) {
             return Outcome::Continue;
         }
@@ -494,14 +502,14 @@ impl AppState {
             .and_then(|row| row.review_source())
             .cloned()
         else {
-            self.status_line = "review is only available for leaf work rows".to_string();
+            self.set_notice("review is only available for leaf work rows");
             return;
         };
 
         match self.open_review_source(source) {
             Ok(()) => {}
             Err(err) => {
-                self.status_line = format!("review failed: {err}");
+                self.set_notice(format!("review failed: {err}"));
             }
         }
     }
@@ -628,7 +636,7 @@ impl AppState {
                     text: markdown_copy_table(&[row]),
                 },
                 None => {
-                    self.status_line = "no row selected to copy".to_string();
+                    self.set_notice("no row selected to copy");
                     Outcome::Continue
                 }
             },
@@ -722,7 +730,7 @@ impl AppState {
         } else {
             self.selected_keys.clear();
             self.range_anchor = None;
-            self.status_line = "selection cleared".to_string();
+            self.set_notice("selection cleared");
             Outcome::Continue
         }
     }
@@ -940,6 +948,10 @@ impl AppState {
 
     pub(crate) fn set_status_message(&mut self, message: impl Into<String>) {
         self.status_line = message.into();
+    }
+
+    pub(crate) fn set_notice(&mut self, message: impl Into<String>) {
+        self.notice = message.into();
     }
 }
 
@@ -1420,7 +1432,8 @@ mod tests {
         assert_eq!(app.handle_key(KeyInput::Enter), Outcome::Continue);
 
         assert_eq!(app.mode(), Mode::List);
-        assert!(app.status_line().contains("review is only available"));
+        assert!(app.notice().contains("review is only available"));
+        assert!(!app.status_line().contains("review is only available"));
     }
 
     #[test]
@@ -1658,7 +1671,7 @@ mod tests {
 
         app.replace_inventory(&leaf_inventory);
         app.select_stage_slug(StageDir::Leaves, "draft");
-        app.set_status_message("refreshed");
+        app.set_notice("refreshed");
 
         assert_eq!(app.active_stage(), StageFilter::Stage(StageDir::Leaves));
         assert_eq!(app.selected_row().map(ListRow::slug), Some("draft"));
@@ -1666,7 +1679,8 @@ mod tests {
             preview_text(&app.selected_preview().expect("leaf preview"))
                 .contains("new leaf preview")
         );
-        assert!(app.status_line().contains("refreshed"));
+        assert_eq!(app.notice(), "refreshed");
+        assert!(!app.status_line().contains("refreshed"));
     }
 
     #[test]
@@ -1686,12 +1700,49 @@ mod tests {
     }
 
     #[test]
-    fn tui_app_copy_row_with_no_selection_reports_status() {
+    fn tui_app_copy_row_with_no_selection_reports_notice() {
         let inventory = inventory_with_items(Vec::new());
         let mut app = AppState::from_inventory(&inventory);
 
         assert_eq!(app.handle_key(KeyInput::Char('y')), Outcome::Continue);
-        assert!(app.status_line().contains("no row selected to copy"));
+        assert_eq!(app.notice(), "no row selected to copy");
+        assert!(!app.status_line().contains("no row selected to copy"));
+    }
+
+    #[test]
+    fn tui_app_copy_without_selection_sets_notice_not_status_line() {
+        let inventory = inventory_with_items(Vec::new());
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Char('y')), Outcome::Continue);
+        assert_eq!(app.notice(), "no row selected to copy");
+        assert!(!app.status_line().contains("no row selected to copy"));
+    }
+
+    #[test]
+    fn tui_app_next_input_clears_notice() {
+        let inventory = inventory_with_slugs(&["alpha", "beta"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.set_notice("copied row alpha");
+        assert_eq!(app.notice(), "copied row alpha");
+
+        app.handle_key(KeyInput::Char('j'));
+        assert_eq!(app.notice(), "");
+
+        app.set_notice("copied row alpha");
+        app.handle_mouse(MouseInput::Down { visible_index: 0 });
+        assert_eq!(app.notice(), "");
+    }
+
+    #[test]
+    fn tui_app_status_line_keeps_row_count_after_notice() {
+        let inventory = inventory_with_slugs(&["alpha", "beta"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.set_notice("refreshed");
+        assert!(app.status_line().contains("2 rows"));
+        assert_eq!(app.notice(), "refreshed");
     }
 
     #[test]
@@ -1923,7 +1974,8 @@ mod tests {
         assert_eq!(app.handle_key(KeyInput::Esc), Outcome::Continue);
         assert_eq!(app.selected_row_count(), 0);
         assert_eq!(app.mode(), Mode::List);
-        assert!(app.status_line().contains("selection cleared"));
+        assert_eq!(app.notice(), "selection cleared");
+        assert!(!app.status_line().contains("selection cleared"));
 
         assert_eq!(app.handle_key(KeyInput::Esc), Outcome::Quit);
     }
