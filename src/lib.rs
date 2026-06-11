@@ -14,6 +14,7 @@ mod scaffold;
 mod slug;
 mod storage;
 mod syntax;
+mod tree;
 mod tui;
 
 pub fn run() -> anyhow::Result<std::process::ExitCode> {

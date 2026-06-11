@@ -168,7 +168,11 @@ Gate to continue:
 - The user can say what to choose between and on what basis; learning has reached
   judgment, not just collection.
 
-Before closing Learn, always ask the user this explicitly:
+Before closing Learn, always ask the user this explicitly — and show the
+`01-Learn/02-references/` file tree first, with a one-line note per file, so
+the user judges sufficiency from the gathered files rather than from memory.
+An empty or thin tree must be named plainly, with the reason references were
+not needed:
 
 > 정말로 이 일을 판단하고 기준화하기 위해 배우고 알아야 하는 사실을 다
 > 알았나요? 아직 확인해야 할 사실, 참고해야 할 사례, 내부 맥락, 또는

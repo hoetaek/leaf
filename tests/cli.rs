@@ -31,6 +31,43 @@ fn write_status(repo: &assert_fs::TempDir, path: &str, body: &str) {
     repo.child(path).write_str(body).expect("write status");
 }
 
+fn write_leaf_status(repo: &assert_fs::TempDir, slug: &str, pressed: bool) {
+    write_status(
+        repo,
+        &format!(".leaf/02-leaves/{slug}/00-status.md"),
+        "- stage: leaf\n\
+         - current phase: Architect\n\
+         - current gate: ⑦ Tasks\n\
+         - first missing gate: ⑧ Artifact\n\
+         - next action: render tree\n",
+    );
+    if pressed {
+        repo.child(format!(".leaf/02-leaves/{slug}/pressed.md"))
+            .write_str("# Pressed\n")
+            .expect("pressed digest");
+    }
+}
+
+fn write_sprout_status(repo: &assert_fs::TempDir, slug: &str) {
+    write_status(
+        repo,
+        &format!(".leaf/01-sprouts/{slug}/00-status.md"),
+        "- stage: sprout\n\
+         - current phase: Learn\n\
+         - current gate: ② Unknowns\n\
+         - first missing gate: ③ Criteria\n\
+         - next action: continue\n",
+    );
+}
+
+fn write_fallen_status(repo: &assert_fs::TempDir, slug: &str) {
+    write_status(
+        repo,
+        &format!(".leaf/03-fallen/{slug}/00-status.md"),
+        "- stage: fallen\n- fallen reason: archived\n",
+    );
+}
+
 #[test]
 fn help_lists_init_and_new() {
     leaf_command()
@@ -43,7 +80,19 @@ fn help_lists_init_and_new() {
         .stdout(predicate::str::contains("fall"))
         .stdout(predicate::str::contains("list"))
         .stdout(predicate::str::contains("review"))
+        .stdout(predicate::str::contains("tree"))
         .stdout(predicate::str::contains("doctor"));
+}
+
+#[test]
+fn tree_help_describes_demo_as_top_to_bottom_not_left_to_right() {
+    leaf_command()
+        .args(["tree", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--demo"))
+        .stdout(predicate::str::contains("top-to-bottom"))
+        .stdout(predicate::str::contains("left-to-right").not());
 }
 
 #[test]
@@ -56,6 +105,308 @@ fn version_flag_prints_package_version() {
             "leaf {}",
             env!("CARGO_PKG_VERSION")
         )));
+}
+
+#[test]
+fn leaf_tree_command_renders_color_by_default_even_when_stdout_is_captured() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_leaf_status(&repo, "alpha", true);
+    write_leaf_status(&repo, "beta", false);
+    write_sprout_status(&repo, "draft");
+    write_fallen_status(&repo, "archived");
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .arg("tree")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(
+        text.contains("\x1b["),
+        "default tree output must keep ANSI: {text:?}"
+    );
+    assert!(text.contains("leaf tree"));
+    assert!(text.contains("leaves 2"));
+    assert!(text.contains("pressed 1"));
+    assert!(text.contains("sprouts 1"));
+    assert!(text.contains("fallen 1"));
+    assert!(text.contains("active sprouts:"));
+    assert!(text.contains("gold fruit:"));
+    assert!(text.contains("green leaves:"));
+    assert!(text.contains("fallen:"));
+}
+
+#[test]
+fn leaf_tree_plain_removes_ansi_but_keeps_tree_semantics() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_leaf_status(&repo, "alpha", true);
+    write_leaf_status(&repo, "beta", false);
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(
+        !text.contains("\x1b["),
+        "plain tree output must not contain ANSI: {text:?}"
+    );
+    assert!(text.contains("leaf tree"));
+    assert!(text.contains("gold fruit:"));
+    assert!(text.contains("green leaves:"));
+    assert!(text.contains("alpha"));
+    assert!(text.contains("beta"));
+}
+
+#[test]
+fn leaf_tree_demo_plain_renders_python_g_style_stacked_stages_without_leaf_root() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--demo", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(
+        !text.contains("\x1b["),
+        "plain demo output must not contain ANSI: {text:?}"
+    );
+    assert!(text.contains("leaf tree demo"));
+    assert!(
+        !text.contains("left -> right"),
+        "demo must not be the compressed left-to-right strip:\n{text}"
+    );
+
+    let stages = [
+        "===== 0 leaves / seedling demo =====",
+        "===== 3 leaves / young demo =====",
+        "===== 10 leaves / branching demo =====",
+        "===== 20 leaves / grown demo =====",
+        "===== 50 leaves / mature demo =====",
+        "===== 100 leaves / saturated demo =====",
+    ];
+    let mut previous = 0;
+    for stage in stages {
+        let position = text
+            .find(stage)
+            .unwrap_or_else(|| panic!("missing {stage:?} in stacked demo:\n{text}"));
+        assert!(
+            position >= previous,
+            "stage sections must be ordered top to bottom:\n{text}"
+        );
+        previous = position;
+    }
+    assert!(
+        !text.contains("===== 5 leaves / small demo ====="),
+        "5-leaf stage is visually too close to adjacent stages and should not be in the public demo:\n{text}"
+    );
+}
+
+#[test]
+fn leaf_tree_demo_uses_color_by_default() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--demo"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(
+        text.contains("\x1b["),
+        "default demo output must keep ANSI: {text:?}"
+    );
+    assert!(text.contains("leaf tree demo"));
+}
+
+#[test]
+fn leaf_tree_demo_plain_uses_full_size_stage_trees_not_tiny_panels() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--demo", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(
+        text.lines().count() > 80,
+        "demo should stack full-size stage trees like the Python g-mode, not tiny panels:\n{text}"
+    );
+}
+
+#[test]
+fn leaf_tree_output_is_deterministic_for_same_workspace() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_leaf_status(&repo, "alpha", true);
+    write_leaf_status(&repo, "beta", false);
+    write_sprout_status(&repo, "draft");
+    write_fallen_status(&repo, "archived");
+
+    let first = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let second = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    assert_eq!(first, second);
+}
+
+#[test]
+fn leaf_tree_no_pressed_many_leaves_shows_green_crown_without_gold_fruit() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    for index in 1..=50 {
+        write_leaf_status(&repo, &format!("leaf-{index:02}"), false);
+    }
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(text.contains("leaves 50"));
+    assert!(text.contains("pressed 0"));
+    assert!(text.contains("green leaves:"));
+    assert!(text.contains("no gold fruit: no pressed leaf yet"));
+    assert!(text.contains("leaf-50"));
+}
+
+#[test]
+fn leaf_tree_all_pressed_omits_empty_green_leaf_legend() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    for slug in ["alpha", "beta", "gamma"] {
+        write_leaf_status(&repo, slug, true);
+    }
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(text.contains("pressed 3"));
+    assert!(text.contains("gold fruit:"));
+    assert!(!text.contains("green leaves:"));
+}
+
+#[test]
+fn leaf_tree_sprouts_heavy_uses_active_sprouts_seedlings() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_leaf_status(&repo, "citable-leaf", true);
+    for index in 1..=8 {
+        write_sprout_status(&repo, &format!("draft-{index}"));
+    }
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(text.contains("sprouts 8"));
+    assert!(text.contains("active sprouts:"));
+    assert!(text.contains(r"\|/"));
+    assert!(text.contains("draft-1"));
+}
+
+#[test]
+fn leaf_tree_fallen_items_render_below_living_sections() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_leaf_status(&repo, "alpha", true);
+    write_sprout_status(&repo, "draft");
+    write_fallen_status(&repo, "archived");
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["tree", "--plain"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    let sprouts_at = text.find("active sprouts:").expect("sprouts section");
+    let fallen_at = text.find("fallen:").expect("fallen section");
+    assert!(
+        fallen_at > sprouts_at,
+        "fallen must be below living sections:\n{text}"
+    );
+    assert!(text.contains("archived"));
+}
+
+#[test]
+fn leaf_tree_missing_leaf_root_fails_without_bootstrapping() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("tree")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            ".leaf/ is not initialized in this git repository",
+        ))
+        .stderr(predicate::str::contains("hint: run `leaf init`"));
+
+    repo.child(".leaf").assert(predicate::path::missing());
 }
 
 #[test]
@@ -108,6 +459,53 @@ fn init_is_idempotent() {
             .filter(|line| *line == "/.leaf")
             .count(),
         1
+    );
+}
+
+#[test]
+fn init_creates_profile_file() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    repo.child(".leaf/PROFILE.md")
+        .assert(predicate::path::is_file());
+    let body = fs::read_to_string(repo.path().join(".leaf/PROFILE.md")).expect("profile readable");
+    assert!(body.starts_with("# Profile"));
+    assert!(body.contains("## Settled"));
+    assert!(body.contains("## Provisional"));
+}
+
+#[test]
+fn init_preserves_existing_profile_file() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    let custom = "# Profile\n\ncustom content that must survive\n\n## Settled\n\n## Provisional\n";
+    repo.child(".leaf/PROFILE.md")
+        .write_str(custom)
+        .expect("write custom profile");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    assert_eq!(
+        fs::read_to_string(repo.path().join(".leaf/PROFILE.md")).expect("profile readable"),
+        custom
     );
 }
 

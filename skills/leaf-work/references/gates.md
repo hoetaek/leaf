@@ -414,6 +414,31 @@ Gate to future work:
 - The ② checklist for similar future work is updated with the categories or
   example questions the team kept missing.
 
+### Profile update
+
+After the retrospect is written, invoke `leaf-profile` if this episode revealed
+a user language preference, recurring requirement, agent mistake, wrong-answer
+note, reusable correction, or cross-leaf fact that should affect future leaf
+work.
+
+The test question is: "Would the next leaf's agent behave differently, or avoid
+repeating this mistake, for knowing this?" If yes, update `.leaf/PROFILE.md` and
+show the diff. If no, keep the note in the retrospect, review, or pressed file.
+
+PROFILE entries may specialize `leaf-soul` conduct but never negate it. When an
+episode repeatedly demands a negation, surface it as a `leaf-soul` change signal
+instead of writing the entry.
+
+**Close-out — 반드시 `leaf-clean`으로 끝낸다.** ⑩ passing does not end the work;
+the sprout is still sitting in the workspace. Immediately after the retrospect
+passes, propose to the user whether this leaf is reference-worthy (**pressed**
+— future work will cite it) or not (**fallen** — carried no further, with an
+explicit fallen reason). The user decides; then you must invoke the `leaf-clean`
+skill with the Skill tool to execute the press or fall. Do not stop at the
+retrospect file, and do not report leaf-work complete before `leaf-clean`
+finishes the pressed/fallen close-out. Do not run the press/fall mechanics
+yourself — `leaf-clean` owns them.
+
 ---
 
 ## Anti-Patterns
@@ -432,3 +457,5 @@ Gate to future work:
 - Asking for broad review when the artifact needs a specific gate check.
 - ⑤ inventing a schema/shape the ④ contract should have locked.
 - Skipping the retrospective's review of mid-process discoveries.
+- Stopping after the retrospect file is written, leaving the sprout in the
+  workspace without a pressed/fallen decision and the `leaf-clean` handoff.

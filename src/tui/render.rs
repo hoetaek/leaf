@@ -31,6 +31,14 @@ enum PreviewPlacement {
     Bottom,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct ListChunks {
+    header: Rect,
+    notice: Rect,
+    body: Rect,
+    status: Rect,
+}
+
 pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
     let area = frame.area();
     if app.mode() == Mode::Review {
@@ -38,22 +46,18 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
         return;
     }
 
-    let chunks = Layout::vertical([
-        Constraint::Length(LIST_HEADER_HEIGHT),
-        Constraint::Min(1),
-        Constraint::Length(1),
-    ])
-    .split(area);
-    draw_header(frame, chunks[0], app);
+    let chunks = list_chunks(area);
+    draw_header(frame, chunks.header, app);
+    draw_notice(frame, chunks.notice, app);
 
     match preview_placement(area, app) {
-        PreviewPlacement::Hidden => draw_table(frame, chunks[1], app),
+        PreviewPlacement::Hidden => draw_table(frame, chunks.body, app),
         PreviewPlacement::Bottom => {
             let body_chunks = Layout::vertical([
                 Constraint::Min(1),
-                Constraint::Length(bottom_preview_height(chunks[1])),
+                Constraint::Length(bottom_preview_height(chunks.body)),
             ])
-            .split(chunks[1]);
+            .split(chunks.body);
             draw_table(frame, body_chunks[0], app);
             draw_preview(frame, body_chunks[1], app);
         }
@@ -63,12 +67,29 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
                 Constraint::Min(MIN_TABLE_WIDTH_FOR_RIGHT_PREVIEW),
                 Constraint::Length(preview_width),
             ])
-            .split(chunks[1]);
+            .split(chunks.body);
             draw_table(frame, body_chunks[0], app);
             draw_preview(frame, body_chunks[1], app);
         }
     }
-    draw_status(frame, chunks[2], app);
+    draw_status(frame, chunks.status, app);
+}
+
+fn list_chunks(area: Rect) -> ListChunks {
+    let chunks = Layout::vertical([
+        Constraint::Length(LIST_HEADER_HEIGHT),
+        Constraint::Length(1),
+        Constraint::Min(1),
+        Constraint::Length(1),
+    ])
+    .split(area);
+
+    ListChunks {
+        header: chunks[0],
+        notice: chunks[1],
+        body: chunks[2],
+        status: chunks[3],
+    }
 }
 
 fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
@@ -295,7 +316,12 @@ fn draw_table(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
     let visible_rows = app.visible_rows();
     if visible_rows.is_empty() {
         let empty = Paragraph::new("No leaf items match the current view.");
-        frame.render_widget(empty, content_area);
+        let empty_area = if content_area.height == 0 {
+            area
+        } else {
+            content_area
+        };
+        frame.render_widget(empty, empty_area);
         return;
     }
 
@@ -345,6 +371,20 @@ fn draw_preview(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
     frame.render_widget(
         Paragraph::new(lines),
         padded_content_inner(block.inner(area)),
+    );
+}
+
+fn draw_notice(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
+    if app.notice().is_empty() {
+        return;
+    }
+
+    frame.render_widget(
+        Paragraph::new(Line::styled(
+            app.notice().to_string(),
+            strong_style().fg(Color::Yellow),
+        )),
+        area,
     );
 }
 
@@ -422,13 +462,7 @@ fn row_is_active(app: &AppState, index: usize) -> bool {
 /// Computes the table chunk for a full terminal `Rect`, mirroring the layout
 /// `draw` uses so mouse hit-testing maps onto the same rows `draw_table` renders.
 fn table_chunk(area: Rect, app: &AppState) -> Rect {
-    let chunks = Layout::vertical([
-        Constraint::Length(LIST_HEADER_HEIGHT),
-        Constraint::Min(1),
-        Constraint::Length(1),
-    ])
-    .split(area);
-    let body = chunks[1];
+    let body = list_chunks(area).body;
     match preview_placement(area, app) {
         PreviewPlacement::Hidden => body,
         PreviewPlacement::Bottom => Layout::vertical([
@@ -511,12 +545,11 @@ fn row_style(app: &AppState, index: usize) -> Style {
         app.selected_index() == index,
         app.visible_row_is_marked(index),
     ) {
-        (true, true) => Style::default()
-            .bg(Color::Blue)
-            .fg(Color::White)
+        (true, true) => Style::default().add_modifier(Modifier::REVERSED | Modifier::BOLD),
+        (true, false) => Style::default().add_modifier(Modifier::REVERSED),
+        (false, true) => Style::default()
+            .fg(Color::Blue)
             .add_modifier(Modifier::BOLD),
-        (true, false) => Style::default().bg(Color::DarkGray).fg(Color::White),
-        (false, true) => Style::default().bg(Color::Blue).fg(Color::White),
         (false, false) => Style::default(),
     }
 }
@@ -734,6 +767,72 @@ fn review_hyperlink_line(line: &ReviewLine) -> HyperlinkLine {
     }
 }
 
+const USER_REVIEW_MARKER: &str = "USER REVIEW NEEDED";
+
+fn highlight_user_review_markers(line: HyperlinkLine) -> HyperlinkLine {
+    let text = line_text(&line.line);
+    let ranges = text
+        .match_indices(USER_REVIEW_MARKER)
+        .map(|(start, marker)| {
+            let mut end = start + marker.len();
+            if text.as_bytes().get(end) == Some(&b':') {
+                end += 1;
+            }
+            start..end
+        })
+        .collect::<Vec<_>>();
+    if ranges.is_empty() {
+        return line;
+    }
+
+    let mut highlighted_spans = Vec::new();
+    let mut span_start = 0;
+    for span in line.line.spans {
+        let content = span.content.into_owned();
+        let span_end = span_start + content.len();
+        let mut offset = 0;
+        while offset < content.len() {
+            let absolute = span_start + offset;
+            let range = ranges
+                .iter()
+                .find(|range| range.start <= absolute && absolute < range.end);
+            let next_boundary = ranges
+                .iter()
+                .filter_map(|range| {
+                    if range.start > absolute && range.start < span_end {
+                        Some(range.start)
+                    } else if range.end > absolute && range.end < span_end {
+                        Some(range.end)
+                    } else {
+                        None
+                    }
+                })
+                .min()
+                .unwrap_or(span_end);
+            let relative_end = next_boundary - span_start;
+            let mut style = span.style;
+            if range.is_some() {
+                style = style.patch(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
+            }
+            highlighted_spans.push(Span::styled(
+                content[offset..relative_end].to_string(),
+                style,
+            ));
+            offset = relative_end;
+        }
+        span_start = span_end;
+    }
+
+    HyperlinkLine {
+        line: Line {
+            style: line.line.style,
+            alignment: line.line.alignment,
+            spans: highlighted_spans,
+        },
+        hyperlinks: line.hyperlinks,
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct RenderedReviewLine {
     content: HyperlinkLine,
@@ -875,8 +974,17 @@ fn wrapped_review_lines(document: &ReviewDocument, width: u16) -> Vec<RenderedRe
                     .map(|content| RenderedReviewLine { content }),
             );
         } else {
+            let content = review_hyperlink_line(line);
+            let content = if matches!(
+                line,
+                ReviewLine::Markdown(PreviewLine::Code(_) | PreviewLine::CodeSpans(_))
+            ) {
+                content
+            } else {
+                highlight_user_review_markers(content)
+            };
             rendered.extend(
-                wrap_hyperlink_line(review_hyperlink_line(line), width)
+                wrap_hyperlink_line(content, width)
                     .into_iter()
                     .map(|content| RenderedReviewLine { content }),
             );
@@ -1028,6 +1136,7 @@ fn review_table_lines(line: &ReviewLine, width: usize) -> Option<Vec<HyperlinkLi
     Some(
         annotate_table_link_fragments(table_line, table_lines, style)
             .into_iter()
+            .map(highlight_user_review_markers)
             .map(|line| prepend_blockquote_prefix(prefix, line))
             .collect(),
     )
@@ -1054,11 +1163,20 @@ fn review_list_lines(line: &ReviewLine, width: usize) -> Option<Vec<HyperlinkLin
     preview_list_lines(line, width)
 }
 
+// Review-only caller; preview panel rendering goes through preview_line/preview_lines_with_rhythm.
 fn wrap_preview_line(line: &PreviewLine, width: usize) -> Vec<HyperlinkLine> {
-    preview_list_lines(line, width)
-        .unwrap_or_else(|| wrap_hyperlink_line(preview_hyperlink_line(line), width))
+    preview_list_lines(line, width).unwrap_or_else(|| {
+        let content = preview_hyperlink_line(line);
+        let content = if matches!(line, PreviewLine::Code(_) | PreviewLine::CodeSpans(_)) {
+            content
+        } else {
+            highlight_user_review_markers(content)
+        };
+        wrap_hyperlink_line(content, width)
+    })
 }
 
+// Review-only caller; preview panel rendering goes through preview_line/preview_lines_with_rhythm.
 fn preview_list_lines(line: &PreviewLine, width: usize) -> Option<Vec<HyperlinkLine>> {
     let continuation_width = match line {
         PreviewLine::ListItem { marker, .. } => text_width(marker) + 1,
@@ -1066,7 +1184,7 @@ fn preview_list_lines(line: &PreviewLine, width: usize) -> Option<Vec<HyperlinkL
         _ => return None,
     };
     Some(wrap_hyperlink_line_with_continuation(
-        preview_hyperlink_line(line),
+        highlight_user_review_markers(preview_hyperlink_line(line)),
         width,
         continuation_width,
     ))
@@ -1949,6 +2067,10 @@ mod tests {
             .collect::<String>()
     }
 
+    fn row_text(buffer: &Buffer, width: u16, y: u16) -> String {
+        buffer_line(buffer, width, y)
+    }
+
     fn line_contains_text(buffer: &Buffer, width: u16, height: u16, text: &str) -> bool {
         (0..height).any(|y| {
             (0..width).any(|x| {
@@ -1979,30 +2101,31 @@ mod tests {
         })
     }
 
-    fn text_has_style(
+    fn text_cell_style(
         buffer: &Buffer,
         width: u16,
         height: u16,
         text: &str,
-        fg: Color,
-        bg: Color,
-    ) -> bool {
-        (0..height).any(|y| {
-            (0..width).any(|x| {
+    ) -> Option<(Color, Color, Modifier)> {
+        let position = (2..height.saturating_sub(1)).find_map(|y| {
+            (0..width).find_map(|x| {
                 let mut cursor = x;
                 for ch in text.chars() {
-                    if cursor >= width {
-                        return false;
-                    }
-                    let cell = &buffer[(cursor, y)];
-                    if cell.symbol() != ch.to_string() || cell.fg != fg || cell.bg != bg {
-                        return false;
+                    if cursor >= width || buffer[(cursor, y)].symbol() != ch.to_string() {
+                        return None;
                     }
                     cursor = cursor.saturating_add(cell_width(ch));
                 }
-                true
+                Some((x, y))
             })
-        })
+        });
+
+        position
+            .or_else(|| text_position(buffer, width, height, text))
+            .map(|(x, y)| {
+                let cell = &buffer[(x, y)];
+                (cell.fg, cell.bg, cell.modifier)
+            })
     }
 
     fn cell_width(ch: char) -> u16 {
@@ -2092,6 +2215,47 @@ mod tests {
         let selected = render_buffer(120, 24, &app);
 
         assert!(buffer_line(&selected, 120, 1).contains("selected 1"));
+    }
+
+    #[test]
+    fn list_notice_renders_below_header_in_strong_yellow() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.plain_leaf("alpha")]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.set_notice("copied row alpha");
+
+        let buffer = render_buffer(80, 12, &app);
+
+        assert!(row_text(&buffer, 80, 2).contains("copied row alpha"));
+        assert!(!row_text(&buffer, 80, 11).contains("copied row alpha"));
+        let position =
+            text_position(&buffer, 80, 12, "copied row alpha").expect("notice should render");
+        let first_cell = &buffer[(position.0, position.1)];
+        assert_eq!(first_cell.fg, Color::Yellow);
+        assert!(first_cell.modifier.contains(Modifier::BOLD));
+    }
+
+    #[test]
+    fn list_notice_line_is_blank_when_no_notice() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.plain_leaf("alpha")]);
+        let app = AppState::from_inventory(&inventory);
+
+        let buffer = render_buffer(80, 12, &app);
+
+        assert_eq!(row_text(&buffer, 80, 2).trim(), "");
+    }
+
+    #[test]
+    fn small_terminal_render_with_notice_does_not_panic() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.plain_leaf("alpha")]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.set_notice("refreshed");
+
+        let buffer = render_buffer(40, 6, &app);
+        let text = buffer_to_text(&buffer, 40, 6);
+        assert!(text.contains("refreshed"));
     }
 
     #[test]
@@ -2610,6 +2774,240 @@ mod tests {
             line.spans
                 .iter()
                 .any(|span| span.style.add_modifier.contains(Modifier::BOLD))
+        );
+    }
+
+    #[test]
+    fn highlight_user_review_markers_styles_marker_span_red_bold() {
+        let line = HyperlinkLine::new(Line::from(
+            "USER REVIEW NEEDED: 강조 marker 범위를 정해야 한다.",
+        ));
+
+        let highlighted = highlight_user_review_markers(line.clone());
+
+        assert_eq!(line_text(&highlighted.line), line_text(&line.line));
+        let marker_span = &highlighted.line.spans[0];
+        assert_eq!(marker_span.content.as_ref(), "USER REVIEW NEEDED:");
+        assert_eq!(marker_span.style.fg, Some(Color::Red));
+        assert!(marker_span.style.add_modifier.contains(Modifier::BOLD));
+        let rest = &highlighted.line.spans[1];
+        assert_ne!(rest.style.fg, Some(Color::Red));
+    }
+
+    #[test]
+    fn highlight_user_review_markers_highlights_every_occurrence() {
+        let line = HyperlinkLine::new(Line::from(
+            "USER REVIEW NEEDED: surface와 USER REVIEW NEEDED 강조 방식",
+        ));
+
+        let highlighted = highlight_user_review_markers(line);
+
+        let red: Vec<&str> = highlighted
+            .line
+            .spans
+            .iter()
+            .filter(|span| span.style.fg == Some(Color::Red))
+            .map(|span| span.content.as_ref())
+            .collect();
+        assert_eq!(red, vec!["USER REVIEW NEEDED:", "USER REVIEW NEEDED"]);
+    }
+
+    #[test]
+    fn highlight_user_review_markers_matches_across_span_boundaries() {
+        let line = HyperlinkLine::new(Line::from(vec![
+            Span::raw("USER REVIEW "),
+            Span::styled("NEEDED", strong_style()),
+            Span::raw(" 확인"),
+        ]));
+
+        let highlighted = highlight_user_review_markers(line);
+
+        let red_text: String = highlighted
+            .line
+            .spans
+            .iter()
+            .filter(|span| {
+                span.style.fg == Some(Color::Red)
+                    && span.style.add_modifier.contains(Modifier::BOLD)
+            })
+            .map(|span| span.content.as_ref())
+            .collect();
+        assert_eq!(red_text, "USER REVIEW NEEDED");
+    }
+
+    #[test]
+    fn highlight_user_review_markers_no_marker_is_identity() {
+        let line = HyperlinkLine::new(Line::from("일반 본문 줄입니다."));
+        assert_eq!(highlight_user_review_markers(line.clone()), line);
+    }
+
+    #[test]
+    fn highlight_user_review_markers_ignores_lowercase() {
+        let line = HyperlinkLine::new(Line::from("user review needed: 소문자"));
+        assert_eq!(highlight_user_review_markers(line.clone()), line);
+    }
+
+    #[test]
+    fn highlight_user_review_markers_preserves_hyperlinks() {
+        let mut line = HyperlinkLine::new(Line::from(vec![
+            Span::raw("USER REVIEW NEEDED: see "),
+            Span::styled("docs", link_style()),
+        ]));
+        line.hyperlinks.push(TerminalHyperlink {
+            columns: 24..28,
+            destination: "https://example.com".to_string(),
+        });
+
+        let highlighted = highlight_user_review_markers(line.clone());
+
+        assert_eq!(highlighted.hyperlinks, line.hyperlinks);
+        assert_eq!(line_text(&highlighted.line), line_text(&line.line));
+    }
+
+    #[test]
+    fn wrapped_review_lines_keep_marker_highlight_across_wrap() {
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/01-sprouts/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/01-sprouts/demo/00-status.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![ReviewLine::Markdown(PreviewLine::Plain(
+                "aaaa aaaa aaaa USER REVIEW NEEDED: tail".to_string(),
+            ))],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 20);
+
+        let red_chars: String = rendered
+            .iter()
+            .flat_map(|line| line.content.line.spans.iter())
+            .filter(|span| {
+                span.style.fg == Some(Color::Red)
+                    && span.style.add_modifier.contains(Modifier::BOLD)
+            })
+            .map(|span| span.content.as_ref().to_string())
+            .collect();
+        assert_eq!(red_chars.replace(' ', ""), "USERREVIEWNEEDED:");
+    }
+
+    #[test]
+    fn wrapped_review_lines_do_not_highlight_markers_in_code_blocks() {
+        let document = ReviewDocument {
+            title: "demo".to_string(),
+            root_relative_path: ".leaf/01-sprouts/demo".to_string(),
+            sections: vec![crate::review::ReviewSection {
+                relative_path: ".leaf/01-sprouts/demo/00-status.md".to_string(),
+                start_line: 0,
+            }],
+            lines: vec![ReviewLine::Markdown(PreviewLine::Code(
+                "USER REVIEW NEEDED: code sample".to_string(),
+            ))],
+            source_count: 1,
+        };
+
+        let rendered = wrapped_review_lines(&document, 80);
+
+        assert!(
+            rendered
+                .iter()
+                .flat_map(|line| line.content.line.spans.iter())
+                .all(|span| span.style.fg != Some(Color::Red))
+        );
+    }
+
+    #[test]
+    fn review_table_lines_highlight_marker_cells() {
+        let line = ReviewLine::Markdown(PreviewLine::TableRow {
+            headers: vec!["Status".to_string()],
+            cells: vec!["USER REVIEW NEEDED".to_string()],
+            links: vec![],
+            widths: vec![18],
+            alignments: vec![crate::preview::TableAlignment::None],
+        });
+
+        let rendered = review_table_lines(&line, 80).expect("table row");
+
+        assert!(rendered[0].line.spans.iter().any(|span| {
+            span.content.as_ref() == "USER REVIEW NEEDED"
+                && span.style.fg == Some(Color::Red)
+                && span.style.add_modifier.contains(Modifier::BOLD)
+        }));
+    }
+
+    #[test]
+    fn review_blockquote_lines_highlight_marker_but_not_inner_code() {
+        let quoted = ReviewLine::Markdown(PreviewLine::BlockQuote {
+            depth: 1,
+            prefix: "> ".to_string(),
+            line: Box::new(PreviewLine::Plain(
+                "USER REVIEW NEEDED: 인용 본문".to_string(),
+            )),
+        });
+        let rendered = review_blockquote_lines(&quoted, 80).expect("blockquote");
+        let red_text: String = rendered[0]
+            .line
+            .spans
+            .iter()
+            .filter(|span| {
+                span.style.fg == Some(Color::Red)
+                    && span.style.add_modifier.contains(Modifier::BOLD)
+            })
+            .map(|span| span.content.as_ref())
+            .collect();
+        assert_eq!(red_text, "USER REVIEW NEEDED:");
+
+        let quoted_code = ReviewLine::Markdown(PreviewLine::BlockQuote {
+            depth: 1,
+            prefix: "> ".to_string(),
+            line: Box::new(PreviewLine::Code("USER REVIEW NEEDED: code".to_string())),
+        });
+        let rendered = review_blockquote_lines(&quoted_code, 80).expect("blockquote");
+        assert!(
+            rendered
+                .iter()
+                .flat_map(|line| line.line.spans.iter())
+                .all(|span| span.style.fg != Some(Color::Red))
+        );
+    }
+
+    #[test]
+    fn review_list_lines_highlight_marker_items() {
+        let line = ReviewLine::Markdown(PreviewLine::ListItem {
+            marker: "-".to_string(),
+            spans: vec![PreviewSpan::Plain(
+                "USER REVIEW NEEDED: 항목 판단".to_string(),
+            )],
+        });
+
+        let rendered = review_list_lines(&line, 80).expect("list item");
+
+        let red_text: String = rendered[0]
+            .line
+            .spans
+            .iter()
+            .filter(|span| {
+                span.style.fg == Some(Color::Red)
+                    && span.style.add_modifier.contains(Modifier::BOLD)
+            })
+            .map(|span| span.content.as_ref())
+            .collect();
+        assert_eq!(red_text, "USER REVIEW NEEDED:");
+    }
+
+    #[test]
+    fn preview_line_does_not_highlight_user_review_marker() {
+        let line = PreviewLine::Plain("USER REVIEW NEEDED: preview는 불변".to_string());
+
+        let rendered = preview_line(&line);
+
+        assert!(
+            rendered
+                .spans
+                .iter()
+                .all(|span| span.style.fg != Some(Color::Red))
         );
     }
 
@@ -3437,22 +3835,64 @@ mod tests {
 
         let buffer = render_buffer(100, 12, &app);
 
-        assert!(text_has_style(
-            &buffer,
-            100,
-            12,
-            "leaf",
-            Color::White,
-            Color::DarkGray
-        ));
-        assert!(text_has_style(
-            &buffer,
-            100,
-            12,
-            "ok",
-            Color::White,
-            Color::DarkGray
-        ));
+        for text in ["leaf", "ok", "alpha"] {
+            let (fg, bg, modifier) =
+                text_cell_style(&buffer, 100, 12, text).expect("cursor row cell");
+            assert!(modifier.contains(Modifier::REVERSED), "{text} not reversed");
+            assert!(
+                !modifier.contains(Modifier::BOLD),
+                "{text} unexpectedly bold"
+            );
+            assert_eq!(fg, Color::Reset, "{text} fg must stay theme-default");
+            assert_eq!(bg, Color::Reset, "{text} bg must stay theme-default");
+        }
+    }
+
+    #[test]
+    fn marked_row_uses_blue_bold_text_without_background_fill() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![
+            fixture.plain_leaf("alpha"),
+            fixture.plain_leaf("beta"),
+        ]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.handle_key(KeyInput::Char(' '));
+        app.handle_key(KeyInput::Char('j'));
+
+        let buffer = render_buffer(100, 12, &app);
+
+        let (fg, bg, modifier) =
+            text_cell_style(&buffer, 100, 12, "alpha").expect("marked row cell");
+        assert_eq!(fg, Color::Blue);
+        assert_eq!(bg, Color::Reset);
+        assert!(modifier.contains(Modifier::BOLD));
+        assert!(!modifier.contains(Modifier::REVERSED));
+
+        let (cursor_fg, cursor_bg, cursor_modifier) =
+            text_cell_style(&buffer, 100, 12, "beta").expect("cursor row cell");
+        assert!(cursor_modifier.contains(Modifier::REVERSED));
+        assert_eq!(cursor_fg, Color::Reset);
+        assert_eq!(cursor_bg, Color::Reset);
+    }
+
+    #[test]
+    fn cursor_on_marked_row_uses_reversed_bold() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![
+            fixture.plain_leaf("alpha"),
+            fixture.plain_leaf("beta"),
+        ]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.handle_key(KeyInput::Char(' '));
+
+        let buffer = render_buffer(100, 12, &app);
+
+        let (fg, bg, modifier) =
+            text_cell_style(&buffer, 100, 12, "alpha").expect("marked cursor row cell");
+        assert!(modifier.contains(Modifier::REVERSED));
+        assert!(modifier.contains(Modifier::BOLD));
+        assert_eq!(fg, Color::Reset);
+        assert_eq!(bg, Color::Reset);
     }
 
     #[test]
@@ -3484,15 +3924,15 @@ mod tests {
             fixture.plain_leaf("gamma"),
         ]));
 
-        // Terminal Rect(0,0,80,10): header y=0..1, table y=2 height=7, status y=9.
+        // Terminal Rect(0,0,80,10): header y=0..1, notice y=2, table y=3 height=6, status y=9.
         // Data rows begin below the table border/header, and roomy tables add 1ch content padding.
         let area = Rect::new(0, 0, 80, 10);
 
-        assert_eq!(table_mouse_target(area, &app, 20, 4), Some(0));
-        assert_eq!(table_mouse_target(area, &app, 2, 5), Some(1));
-        assert_eq!(table_mouse_target(area, &app, 1, 6), None);
-        assert_eq!(table_mouse_target(area, &app, 3, 6), Some(2));
-        assert_eq!(table_mouse_target(area, &app, 4, 6), Some(2));
+        assert_eq!(table_mouse_target(area, &app, 20, 5), Some(0));
+        assert_eq!(table_mouse_target(area, &app, 2, 6), Some(1));
+        assert_eq!(table_mouse_target(area, &app, 1, 7), None);
+        assert_eq!(table_mouse_target(area, &app, 3, 7), Some(2));
+        assert_eq!(table_mouse_target(area, &app, 4, 7), Some(2));
     }
 
     #[test]
@@ -3507,9 +3947,9 @@ mod tests {
         }
         assert_eq!(app.selected_index(), 9);
 
-        // table height 7 -> capacity 4 -> offset = 9 - 3 = 6.
+        // table height 6 -> capacity 3 -> offset = 9 - 2 = 7.
         let area = Rect::new(0, 0, 80, 10);
-        assert_eq!(table_mouse_target(area, &app, 20, 4), Some(6));
+        assert_eq!(table_mouse_target(area, &app, 20, 5), Some(7));
         assert_eq!(table_mouse_target(area, &app, 20, 7), Some(9));
     }
 
@@ -3523,8 +3963,8 @@ mod tests {
         ]));
         let area = Rect::new(0, 0, 160, 24);
 
-        assert_eq!(table_mouse_target(area, &app, 20, 4), Some(0));
-        assert_eq!(table_mouse_target(area, &app, 110, 4), None);
+        assert_eq!(table_mouse_target(area, &app, 20, 5), Some(0));
+        assert_eq!(table_mouse_target(area, &app, 110, 5), None);
     }
 
     #[test]
@@ -3536,13 +3976,14 @@ mod tests {
         ]));
         let area = Rect::new(0, 0, 80, 10);
 
-        assert_eq!(table_mouse_target(area, &app, 20, 2), None); // top border
-        assert_eq!(table_mouse_target(area, &app, 20, 3), None); // header
+        assert_eq!(table_mouse_target(area, &app, 20, 2), None); // notice
+        assert_eq!(table_mouse_target(area, &app, 20, 3), None); // top border
+        assert_eq!(table_mouse_target(area, &app, 20, 4), None); // header
         assert_eq!(table_mouse_target(area, &app, 20, 8), None); // bottom border
         assert_eq!(table_mouse_target(area, &app, 20, 9), None); // status line
-        assert_eq!(table_mouse_target(area, &app, 20, 6), None); // beyond last row
-        assert_eq!(table_mouse_target(area, &app, 0, 4), None); // left border
-        assert_eq!(table_mouse_target(area, &app, 79, 4), None); // right border
+        assert_eq!(table_mouse_target(area, &app, 20, 7), None); // beyond last row
+        assert_eq!(table_mouse_target(area, &app, 0, 5), None); // left border
+        assert_eq!(table_mouse_target(area, &app, 79, 5), None); // right border
     }
 
     #[test]
