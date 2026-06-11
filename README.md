@@ -165,12 +165,11 @@ This repository ships Agent Skills:
 |---|---|
 | [`leaf-idea`](skills/leaf-idea/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
 | [`leaf-work`](skills/leaf-work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
-| [`leaf-press`](skills/leaf-press/SKILL.md) | Creating citable Markdown digests from LEAF work |
-| [`leaf-fall`](skills/leaf-fall/SKILL.md) | Moving non-reference-worthy work into fallen |
+| [`leaf-clean`](skills/leaf-clean/SKILL.md) | Tending the `.leaf/` workspace: pressing citable digests, moving non-reference-worthy work into fallen, and migrating old layouts reported by `leaf doctor` |
 | [`leaf-soul`](skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
 Install the LEAF skills together as a family — they are not independent.
-`leaf-idea`, `leaf-work`, `leaf-press`, and `leaf-fall` read `leaf-soul` through
+`leaf-idea`, `leaf-work`, and `leaf-clean` read `leaf-soul` through
 the sibling path `../leaf-soul/SKILL.md`; `leaf-idea` and `leaf-work` also read
 the gate references under `leaf-work` through `../leaf-work/references/`. The
 Quick Start command above installs the whole family; installing a single skill

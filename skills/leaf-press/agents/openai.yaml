@@ -1,7 +1,0 @@
-interface:
-  display_name: "LEAF Press"
-  short_description: "Create citable LEAF Markdown digests"
-  default_prompt: "Use $leaf-press to write a status abstract and create or refresh a citable pressed.md digest inside the source leaf folder."
-
-policy:
-  allow_implicit_invocation: true

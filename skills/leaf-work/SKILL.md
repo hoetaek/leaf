@@ -60,8 +60,8 @@ covers the handoff plus ③ onward.
   the `leaf-soul` skill. Invoke the `leaf-soul` skill with the Skill tool at the
   start and follow it — do not just read its file; the rules here are the gate
   *method* specific to this skill. Whenever the work needs another LEAF skill —
-  `leaf-idea` for Learn, `leaf-press` to make it citable, `leaf-fall` to retire
-  it — invoke that skill with the Skill tool rather than only referencing its file.
+  `leaf-idea` for Learn, `leaf-clean` to make it citable or retire it — invoke
+  that skill with the Skill tool rather than only referencing its file.
 - **The scaffold is the foundation — so the work stands firm.** Learn, Example,
   and Architect lay that foundation; execution builds only once it is solid, not
   on guesses. The sprout carries the CLI scaffold — `00-status.md` and the four
