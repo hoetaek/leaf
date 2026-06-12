@@ -363,7 +363,9 @@ fn append_file_section(
     } else {
         append_section_separator(relative_path, "Source", "Source", sections, lines);
     }
-    append_markdown_lines(lines, &content, root_path);
+    let source_path = root_path.join(source_relative_path);
+    let cwd = source_path.parent().unwrap_or(root_path);
+    append_markdown_lines(lines, &content, cwd);
 }
 
 fn append_section_separator(
@@ -717,6 +719,40 @@ mod tests {
         assert!(text.contains("━━━━━━━━━━━"));
         assert!(text.contains("사용자가 이해한다"));
         assert!(text.contains("    WHEN names render"));
+    }
+
+    #[test]
+    fn review_build_resolves_local_links_from_each_source_file_directory() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        let target = root
+            .path()
+            .join(".leaf/02-leaves/demo/01-Learn/notes/guide.md");
+        write_file(
+            &root,
+            slug,
+            "00-status.md",
+            "# Status\n\n- current gate: ① Intent\n",
+        );
+        write_file(
+            &root,
+            slug,
+            "01-Learn/01-intent.md",
+            &format!("[guide](file://{})\n", target.display()),
+        );
+
+        let document = build(&source(&root, slug)).expect("review document");
+        let link_text = document.lines.iter().find_map(|line| match line {
+            ReviewLine::Markdown(crate::preview::PreviewLine::Styled(spans)) => {
+                spans.iter().find_map(|span| match span {
+                    crate::preview::PreviewSpan::Link { text, .. } => Some(text.as_str()),
+                    _ => None,
+                })
+            }
+            _ => None,
+        });
+
+        assert_eq!(link_text, Some("notes/guide.md"));
     }
 
     #[test]

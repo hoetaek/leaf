@@ -121,23 +121,16 @@ fn check_stage_dirs(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Resu
         let Some(old_name) = stage_dir.old_numbered_dir_name() else {
             continue;
         };
-        let old_dir = leaf_root.join(old_name);
-        if !old_dir.is_dir() {
-            continue;
-        }
+        push_legacy_stage_dir_warning(leaf_root, findings, stage_dir, old_name);
+    }
 
-        let (code, message) = match stage_dir {
-            StageDir::Pressed => (
-                "pressed_stage_dir_present",
-                "top-level pressed dir is obsolete; move digests into matching leaf pressed.md"
-                    .to_string(),
-            ),
-            _ => (
-                "old_stage_dir_present",
-                format!("old stage dir {old_name} is present; run the migration operator"),
-            ),
-        };
-        findings.push(DoctorFinding::warn(code, message).with_path(format!(".leaf/{old_name}")));
+    for (stage_dir, old_name) in [
+        (StageDir::Sprouts, "seeds"),
+        (StageDir::Leaves, "leaves"),
+        (StageDir::Fallen, "fallen"),
+        (StageDir::Pressed, "pressed"),
+    ] {
+        push_legacy_stage_dir_warning(leaf_root, findings, stage_dir, old_name);
     }
 
     if all_stage_dirs_readable {
@@ -148,6 +141,31 @@ fn check_stage_dirs(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Resu
     }
 
     Ok(())
+}
+
+fn push_legacy_stage_dir_warning(
+    leaf_root: &Path,
+    findings: &mut Vec<DoctorFinding>,
+    stage_dir: StageDir,
+    old_name: &str,
+) {
+    let old_dir = leaf_root.join(old_name);
+    if !old_dir.is_dir() {
+        return;
+    }
+
+    let (code, message) = match stage_dir {
+        StageDir::Pressed => (
+            "pressed_stage_dir_present",
+            "top-level pressed dir is obsolete; move digests into matching leaf pressed.md"
+                .to_string(),
+        ),
+        _ => (
+            "old_stage_dir_present",
+            format!("old stage dir {old_name} is present; run the migration operator"),
+        ),
+    };
+    findings.push(DoctorFinding::warn(code, message).with_path(format!(".leaf/{old_name}")));
 }
 
 /// Read-only pass over the raw entries of each stage directory.

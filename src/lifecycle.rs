@@ -16,9 +16,19 @@ pub(crate) fn fall_leaf(repo_root: &Path, slug: &str, reason: &str) -> Result<Fa
     let leaf = leaf_root.join(Stage::Leaf.dir_name()).join(slug);
     let destination = leaf_root.join(Stage::Fallen.dir_name()).join(slug);
 
-    let source = if sprout.is_dir() {
+    let sprout_exists = sprout.is_dir();
+    let leaf_exists = leaf.is_dir();
+    if sprout_exists && leaf_exists {
+        bail!(
+            "ambiguous leaf slug: {slug} exists in both {} and {}; run leaf doctor and disambiguate",
+            sprout.display(),
+            leaf.display()
+        );
+    }
+
+    let source = if sprout_exists {
         sprout
-    } else if leaf.is_dir() {
+    } else if leaf_exists {
         leaf
     } else {
         bail!(

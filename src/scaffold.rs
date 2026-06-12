@@ -65,10 +65,23 @@ const FILES: &[(&str, &str)] = &[
 ];
 
 pub(crate) fn create_sprout(repo_root: &Path, slug: &str) -> Result<PathBuf> {
-    let sprout = repo_root
-        .join(".leaf")
+    let leaf_root = repo_root.join(".leaf");
+    let sprout = leaf_root
         .join(crate::inventory::Stage::Sprout.dir_name())
         .join(slug);
+    for stage in [
+        crate::inventory::Stage::Leaf,
+        crate::inventory::Stage::Fallen,
+    ] {
+        let existing = leaf_root.join(stage.dir_name()).join(slug);
+        if existing.is_dir() {
+            bail!(
+                "leaf slug already exists in lifecycle stage: {}",
+                existing.display()
+            );
+        }
+    }
+
     match fs::create_dir(&sprout) {
         Ok(()) => {}
         Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {

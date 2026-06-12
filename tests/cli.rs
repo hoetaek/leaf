@@ -1120,6 +1120,37 @@ fn new_rejects_existing_sprout_without_overwrite() {
 }
 
 #[test]
+fn new_rejects_existing_leaf_or_fallen_slug_without_creating_duplicate_sprout() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+    write_leaf_status(&repo, "research-memo", false);
+    write_fallen_status(&repo, "archived-memo");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("leaf slug already exists"));
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "archived-memo"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("leaf slug already exists"));
+
+    repo.child(".leaf/01-sprouts/research-memo")
+        .assert(predicate::path::missing());
+    repo.child(".leaf/01-sprouts/archived-memo")
+        .assert(predicate::path::missing());
+}
+
+#[test]
 fn new_rejects_invalid_slugs() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
@@ -1376,6 +1407,29 @@ fn fall_rejects_existing_fallen_without_overwrite() {
 }
 
 #[test]
+fn fall_rejects_ambiguous_sprout_and_leaf_sources_without_moving_either() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_sprout_status(&repo, "research-memo");
+    write_leaf_status(&repo, "research-memo", false);
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["fall", "research-memo", "--reason", "superseded"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("ambiguous leaf slug"))
+        .stderr(predicate::str::contains("run leaf doctor"));
+
+    repo.child(".leaf/01-sprouts/research-memo/00-status.md")
+        .assert(predicate::path::is_file());
+    repo.child(".leaf/02-leaves/research-memo/00-status.md")
+        .assert(predicate::path::is_file());
+    repo.child(".leaf/03-fallen/research-memo")
+        .assert(predicate::path::missing());
+}
+
+#[test]
 fn fall_rejects_blank_reason() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
@@ -1461,6 +1515,33 @@ fn new_does_not_migrate_old_numbered_conflicts() {
     repo.child(".leaf/01-seeds/whatever/00-status.md")
         .assert(predicate::path::is_file());
     repo.child(".leaf/01-sprouts/whatever/00-status.md")
+        .assert(predicate::path::is_file());
+}
+
+#[test]
+fn doctor_warns_for_unnumbered_legacy_dirs_without_migrating() {
+    let repo = assert_fs::TempDir::new().expect("tempdir");
+    git_init(repo.path());
+    repo.child(".leaf/seeds/legacy-item/00-status.md")
+        .write_str("- state: seed\n")
+        .expect("old unnumbered seed");
+    repo.child(".leaf/pressed/reference.md")
+        .write_str("# Reference\n")
+        .expect("old unnumbered pressed");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("old_stage_dir_present"))
+        .stdout(predicate::str::contains(".leaf/seeds"))
+        .stdout(predicate::str::contains("pressed_stage_dir_present"))
+        .stdout(predicate::str::contains(".leaf/pressed"));
+
+    repo.child(".leaf/seeds/legacy-item/00-status.md")
+        .assert(predicate::path::is_file());
+    repo.child(".leaf/pressed/reference.md")
         .assert(predicate::path::is_file());
 }
 

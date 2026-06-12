@@ -792,9 +792,11 @@ impl MarkdownState {
             return;
         }
         if self.link.is_none()
-            && let Some(span) = bare_url_span(text, range.clone())
+            && let Some(spans) = bare_url_spans(text, range.clone())
         {
-            self.push_span_to_context(span);
+            for span in spans {
+                self.push_span_to_context(span);
+            }
             self.line_ends_with_local_link_target = false;
             return;
         }
@@ -1195,9 +1197,17 @@ impl MarkdownState {
         if !(target.starts_with("https://") || target.starts_with("http://")) {
             return false;
         }
-        link_text.push_str(text);
-        target.push_str(text);
-        source_range.end = range.end;
+        let (url_suffix, trailing) = split_bare_url_trailing_punctuation(text);
+        if url_suffix.is_empty() {
+            spans.push(PreviewSpan::Plain(trailing.to_string()));
+            return true;
+        }
+        link_text.push_str(url_suffix);
+        target.push_str(url_suffix);
+        source_range.end = range.start + url_suffix.len();
+        if !trailing.is_empty() {
+            spans.push(PreviewSpan::Plain(trailing.to_string()));
+        }
         true
     }
 }
@@ -1206,19 +1216,32 @@ fn span_text(spans: &[PreviewSpan]) -> String {
     spans.iter().map(PreviewSpan::text).collect()
 }
 
-fn bare_url_span(text: &str, range: Range<usize>) -> Option<PreviewSpan> {
+fn bare_url_spans(text: &str, range: Range<usize>) -> Option<Vec<PreviewSpan>> {
     if text.is_empty() || text.chars().any(char::is_whitespace) {
         return None;
     }
     if !(text.starts_with("https://") || text.starts_with("http://")) {
         return None;
     }
-    Some(PreviewSpan::Link {
-        text: text.to_string(),
-        target: text.to_string(),
-        source_range: range.into(),
+    let (url_text, trailing) = split_bare_url_trailing_punctuation(text);
+    if url_text.is_empty() {
+        return None;
+    }
+    let mut spans = vec![PreviewSpan::Link {
+        text: url_text.to_string(),
+        target: url_text.to_string(),
+        source_range: (range.start..range.start + url_text.len()).into(),
         local: false,
-    })
+    }];
+    if !trailing.is_empty() {
+        spans.push(PreviewSpan::Plain(trailing.to_string()));
+    }
+    Some(spans)
+}
+
+fn split_bare_url_trailing_punctuation(text: &str) -> (&str, &str) {
+    let trimmed = text.trim_end_matches(['.', ',', ';', ':', '!', '?', ')']);
+    text.split_at(trimmed.len())
 }
 
 impl PreviewSpan {
@@ -2774,6 +2797,29 @@ Here is a code block:
                 && target == destination
                 && *source_range == (PreviewSourceRange { start: 0, end: source.len() })
         ));
+    }
+
+    #[test]
+    fn preview_markdown_bare_url_keeps_sentence_punctuation_out_of_link_target() {
+        let input = "https://example.com/docs.";
+        let lines = render_markdown_with_cwd(input, None);
+
+        assert_eq!(line_text(&lines[0]), input);
+        let PreviewLine::Styled(spans) = &lines[0] else {
+            panic!("expected styled bare URL line, got {:?}", lines[0]);
+        };
+        assert!(matches!(
+            &spans[0],
+            PreviewSpan::Link {
+                text,
+                target,
+                source_range,
+                local: false,
+            } if text == "https://example.com/docs"
+                && target == "https://example.com/docs"
+                && *source_range == (PreviewSourceRange { start: 0, end: "https://example.com/docs".len() })
+        ));
+        assert!(matches!(&spans[1], PreviewSpan::Plain(text) if text == "."));
     }
 
     #[test]
