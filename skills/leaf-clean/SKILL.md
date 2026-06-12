@@ -1,14 +1,11 @@
 ---
 name: leaf-clean
 description: |
-  Use when a LEAF document needs to be cleaned into a simple, complete current
-  report: closing a gate, removing stale options, cutting process chatter,
-  simplifying why/what, checking whether a leaf reads as one coherent report,
-  asking an independent reviewer/subagent to judge document quality, or
-  migrating an old workspace layout reported by `leaf doctor`
-  (old_stage_dir_present, pressed_stage_dir_present, legacy status fields).
-  Do not use for producing the artifact, deciding press/fall close-out, or
-  maintaining external execution artifacts.
+  Use before user review or gate close when a LEAF document needs to read as a
+  simple current report, not draft notes. Preserve source truth while removing
+  stale options, process chatter, duplicate reasoning, status drift, or
+  doctor-reported legacy layout/status fields. Do not use to create the artifact,
+  decide press/fall close-out, or maintain execution artifacts.
 ---
 
 # LEAF Clean
@@ -50,7 +47,7 @@ leaf review <slug>
 
 Then identify the smallest document surface to clean:
 
-- one gate file before it is closed;
+- one gate file before it is shown to the user or closed;
 - `00-status.md` when overview, current gate, or next action drifted;
 - a whole `leaf review <slug>` report when the user asks whether the leaf reads
   coherently end to end.
@@ -87,6 +84,7 @@ Read the whole target before editing. Rewrite only after you can answer:
 - 무엇이 실제로 결정되었고 무엇이 폐기되었는가?
 - 어떤 evidence가 결론을 지탱하는가?
 - 다음 agent가 소비해야 할 입력은 무엇인가?
+- 사용자가 검토해야 하는 결정이나 질문은 무엇인가?
 - 남은 질문은 왜 이 gate를 막지 않는가, 아니면 무엇을 막는가?
 
 Then edit toward the current report:
@@ -95,6 +93,7 @@ Then edit toward the current report:
 - keep the strongest evidence close to the claim it supports;
 - collapse old alternatives into one sentence when only the decision matters;
 - remove stale TODOs, dead options, repeated caveats, and template headings;
+- present user review needs as decision points, not process history;
 - state assumptions and unresolved limits plainly;
 - keep Korean prose when the user is working in Korean.
 

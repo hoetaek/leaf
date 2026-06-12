@@ -90,11 +90,12 @@ wrong-answer note, or cross-leaf fact that belongs in `.leaf/PROFILE.md`.
   `../leaf-idea/references/gate-02-unknowns-context.md` for ②; for ③ onward,
   use `references/gates.md`. SKILL.md gives the shape; the relevant gate
   reference gives the pass/fail test you act on.
-- **Delegate document cleanup to `leaf-clean`.** When a gate file or full
-  `leaf review` output reads like a transcript instead of a current report,
-  invoke `leaf-clean`. `leaf-work` owns gate progress; `leaf-clean` owns the
-  final simplicity pass. Before invoking `leaf-clean`, run `leaf checkpoint`
-  for the gate being cleaned.
+- **Delegate document cleanup to `leaf-clean`.** Before asking the user to review
+  or approve a gate, invoke `leaf-clean` on the touched gate/status surface. Also
+  invoke it when a gate file or full `leaf review` output reads like a transcript
+  instead of a current report. `leaf-work` owns gate progress; `leaf-clean` owns
+  the final simplicity pass. Before invoking `leaf-clean` for a gate file, run
+  `leaf checkpoint` for the gate being cleaned.
 - **Keep `00-status.md` current.** Update it when a gate starts, becomes ready
   for review, completes, needs explicit approval, is approved, returns to an
   earlier gate, is blocked/deferred, or when the next action changes

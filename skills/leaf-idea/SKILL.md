@@ -68,11 +68,13 @@ Read only what the current move needs:
    premises, and keep fact/assumption/user-review boundaries visible. When ②
    changes the viable direction, assumptions, scope, or next choice, update the
    status overview in the same turn.
-6. **Ask the Learn-close question with the evidence in view.** Before asking,
-   show what was actually gathered so the user judges sufficiency from the
-   files, not from memory. If anything remains, keep the sprout enriched and
-   continue Learn. If the user confirms no Learn-blocking unknowns remain,
-   recommend `continue to Example`.
+6. **Ask the Learn-close question with the evidence in view.** Before asking the
+   user to review Learn or answer the Learn-close question, invoke `leaf-clean`
+   for the touched Learn/status surface so the user reviews the current report,
+   not draft notes. Then show what was actually gathered so the user judges
+   sufficiency from the files, not from memory. If anything remains, keep the
+   sprout enriched and continue Learn. If the user confirms no Learn-blocking
+   unknowns remain, recommend `continue to Example`.
 
 Show the gathered references as a file tree first:
 
