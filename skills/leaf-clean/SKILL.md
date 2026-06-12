@@ -53,6 +53,8 @@ Then identify the smallest document surface to clean:
 - a whole `leaf review <slug>` report when the user asks whether the leaf reads
   coherently end to end.
 
+Before editing a gate document, run `leaf checkpoint <slug> --<gate>`.
+
 ## Clean Pass
 
 Read the whole target before editing. Rewrite only after you can answer:
