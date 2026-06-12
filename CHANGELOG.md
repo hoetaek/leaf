@@ -6,7 +6,7 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
-## Unreleased
+## 0.6.1 - 2026-06-12
 
 - `leaf checkpoint` now snapshots folder-based gate sources
   (`02-Example/04-wireframe/`, `04-Feedback/09-reviews/`,
@@ -15,7 +15,13 @@ minor version instead of moving to `x.0.0`.
   are checkpointed.
 - Restored the old-layout migration procedure in `leaf-clean`, which the
   `leaf doctor` `old_stage_dir_present` warning routes to; it was dropped in
-  the `leaf-done` split.
+  the `leaf-done` split. The repair table now maps each old stage dir to its
+  own canonical dir, covers both legacy pressed paths, and translates legacy
+  `state` values while renaming the field.
+- Pinned the transitive `time` dependency below the broken 0.3.48 release so
+  fresh resolutions (e.g. `cargo install` without `--locked`) no longer fail
+  to compile `ratatui-widgets`; remove the pin once a fixed `time` ships or
+  0.3.48 is yanked.
 
 ## 0.6.0 - 2026-06-12
 
