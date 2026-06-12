@@ -6,6 +6,17 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## Unreleased
+
+- `leaf checkpoint` now snapshots folder-based gate sources
+  (`02-Example/04-wireframe/`, `04-Feedback/09-reviews/`,
+  `04-Feedback/10-retrospective/`) by copying the folder recursively with the
+  timestamp prefix; when a gate has both a canonical file and a folder, both
+  are checkpointed.
+- Restored the old-layout migration procedure in `leaf-clean`, which the
+  `leaf doctor` `old_stage_dir_present` warning routes to; it was dropped in
+  the `leaf-done` split.
+
 ## 0.6.0 - 2026-06-12
 
 - Added a machine-global profile at `~/.config/leaf/profile.md`

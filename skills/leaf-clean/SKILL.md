@@ -3,10 +3,12 @@ name: leaf-clean
 description: |
   Use when a LEAF document needs to be cleaned into a simple, complete current
   report: closing a gate, removing stale options, cutting process chatter,
-  simplifying why/what, checking whether a leaf reads as one coherent report, or
-  asking an independent reviewer/subagent to judge document quality. Do not use
-  for producing the artifact, deciding press/fall close-out, or maintaining
-  external execution artifacts.
+  simplifying why/what, checking whether a leaf reads as one coherent report,
+  asking an independent reviewer/subagent to judge document quality, or
+  migrating an old workspace layout reported by `leaf doctor`
+  (old_stage_dir_present, pressed_stage_dir_present, legacy status fields).
+  Do not use for producing the artifact, deciding press/fall close-out, or
+  maintaining external execution artifacts.
 ---
 
 # LEAF Clean
@@ -54,6 +56,27 @@ Then identify the smallest document surface to clean:
   coherently end to end.
 
 Before editing a gate document, run `leaf checkpoint <slug> --<gate>`.
+
+If `leaf doctor` reports layout findings (`old_stage_dir_present`,
+`pressed_stage_dir_present`, `legacy_state_field`, `legacy_fall_reason_field`),
+run **Migrate** first, even when the user asked for something else.
+
+## Migrate
+
+This skill is the migration operator that `leaf doctor` routes old-layout
+findings to.
+
+| Finding | Repair |
+|---------|--------|
+| `old_stage_dir_present` (e.g. `.leaf/01-seeds`) | If the canonical dir (`.leaf/01-sprouts`) is missing or empty, rename the old dir to the canonical name. If both hold items, move item folders one by one into the canonical dir; on a slug collision, stop and ask. |
+| `pressed_stage_dir_present` (top-level `.leaf/04-pressed/`) | Move each `{slug}.md` digest into the matching item folder as `pressed.md`. If no matching folder exists, report it and leave the digest in place. |
+| `legacy_state_field` | Rewrite the status `state` field as the canonical `stage` field. |
+| `legacy_fall_reason_field` | Rewrite `fall reason` as `fallen reason`. |
+
+- Never merge folders by overwriting; a collision means stop.
+- Migration changes locations and field names, never meaning: do not rewrite
+  prose while migrating.
+- Re-run `leaf doctor` after migrating and confirm the findings are gone.
 
 ## Clean Pass
 
