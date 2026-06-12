@@ -191,9 +191,12 @@ behind a source marker. On conflict the local layer wins. The global location
 honors `LEAF_CONFIG_DIR`, then `$XDG_CONFIG_HOME/leaf`, then `~/.config/leaf`.
 Outside a git repository it still prints the global layer.
 
-`leaf checkpoint <slug> --<gate>` copies one canonical gate document next to its
-source with a UTC `YYMMDD-HHMM` prefix, for example
-`260612-1430 03-criteria.md`. Gate flags accept names such as `--criteria` and
+`leaf checkpoint <slug> --<gate>` copies each existing canonical gate source
+next to its original with a UTC `YYMMDD-HHMM` prefix, for example
+`260612-1430 03-criteria.md`. Folder-based gate sources such as
+`02-Example/04-wireframe/`, `04-Feedback/09-reviews/`, and
+`04-Feedback/10-retrospective/` are copied recursively, for example
+`260612-1430 04-wireframe/`. Gate flags accept names such as `--criteria` and
 numbers such as `--3`; `--gate <gate>` is also accepted.
 
 `leaf doctor` checks whether `.leaf/` is ready for `leaf list` and reports old

@@ -1228,6 +1228,49 @@ fn checkpoint_accepts_numeric_gate_flag() {
 }
 
 #[test]
+fn checkpoint_copies_folder_based_wireframe() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+    std::fs::remove_file(
+        repo.path()
+            .join(".leaf/01-sprouts/research-memo/02-Example/04-wireframe.md"),
+    )
+    .expect("replace scaffolded wireframe file with folder layout");
+    repo.child(".leaf/01-sprouts/research-memo/02-Example/04-wireframe/index.html")
+        .write_str("<html></html>\n")
+        .expect("wireframe html");
+    repo.child(".leaf/01-sprouts/research-memo/02-Example/04-wireframe/contracts.md")
+        .write_str("# Contracts\n")
+        .expect("wireframe contracts");
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["checkpoint", "research-memo", "--wireframe"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "checkpointed .leaf/01-sprouts/research-memo/02-Example/04-wireframe to .leaf/01-sprouts/research-memo/02-Example/",
+        ))
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+    let checkpoint_path = text.trim().split(" to ").nth(1).expect("checkpoint path");
+
+    assert!(checkpoint_path.ends_with(" 04-wireframe"));
+    repo.child(format!("{checkpoint_path}/index.html"))
+        .assert("<html></html>\n");
+    repo.child(format!("{checkpoint_path}/contracts.md"))
+        .assert("# Contracts\n");
+}
+
+#[test]
 fn checkpoint_requires_exactly_one_gate() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());

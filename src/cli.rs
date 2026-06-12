@@ -239,12 +239,14 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             let inventory = crate::inventory::load(&paths.root)?;
             let root_path = leaf_work_path_for_slug(&inventory, &slug)?;
-            let result = crate::checkpoint::create(&root_path, gate)?;
-            println!(
-                "checkpointed {} to {}",
-                repo_relative(&paths.root, &result.source),
-                repo_relative(&paths.root, &result.checkpoint)
-            );
+            let results = crate::checkpoint::create(&root_path, gate)?;
+            for result in &results {
+                println!(
+                    "checkpointed {} to {}",
+                    repo_relative(&paths.root, &result.source),
+                    repo_relative(&paths.root, &result.checkpoint)
+                );
+            }
             Ok(ExitCode::SUCCESS)
         }
         Commands::Doctor { json } => {
