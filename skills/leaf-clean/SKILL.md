@@ -68,9 +68,9 @@ findings to.
 
 | Finding | Repair |
 |---------|--------|
-| `old_stage_dir_present` (e.g. `.leaf/01-seeds`) | If the canonical dir (`.leaf/01-sprouts`) is missing or empty, rename the old dir to the canonical name. If both hold items, move item folders one by one into the canonical dir; on a slug collision, stop and ask. |
-| `pressed_stage_dir_present` (top-level `.leaf/04-pressed/`) | Move each `{slug}.md` digest into the matching item folder as `pressed.md`. If no matching folder exists, report it and leave the digest in place. |
-| `legacy_state_field` | Rewrite the status `state` field as the canonical `stage` field. |
+| `old_stage_dir_present` | Map the old dir to its own canonical stage dir: `seeds`/`01-seeds` → `01-sprouts`, `leaves` → `02-leaves`, `fallen` → `03-fallen`. If the canonical dir is missing or empty, rename the old dir to the canonical name. If both hold items, move item folders one by one into the canonical dir; on a slug collision, stop and ask. |
+| `pressed_stage_dir_present` (top-level `.leaf/04-pressed/` or `.leaf/pressed/`) | Move each `{slug}.md` digest into the matching item folder as `pressed.md`, then remove the emptied pressed dir — doctor warns as long as the dir exists. If a digest has no matching folder, report it, leave it in place, and tell the user the warning will persist until it is resolved. |
+| `legacy_state_field` | Rewrite the status `state` field as the canonical `stage` field and translate the value: `seed`/`active` → `sprout`; `complete`/`completed` → `leaf`; `fallen` stays `fallen`. For an unrecognized value, use the stage matching the directory the item lives in; if that is ambiguous, stop and ask. |
 | `legacy_fall_reason_field` | Rewrite `fall reason` as `fallen reason`. |
 
 - Never merge folders by overwriting; a collision means stop.
