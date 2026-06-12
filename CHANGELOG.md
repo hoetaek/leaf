@@ -6,7 +6,7 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
-## Unreleased
+## 0.6.0 - 2026-06-12
 
 - Added a machine-global profile at `~/.config/leaf/profile.md`
   (`LEAF_CONFIG_DIR` → `$XDG_CONFIG_HOME/leaf` → `~/.config/leaf`); `leaf init`
@@ -16,6 +16,19 @@ minor version instead of moving to `x.0.0`.
   layered with the repo-local `.leaf/PROFILE.md` behind source markers, local
   winning on conflict. It also works outside a git repository with the global
   layer alone.
+- Added `leaf checkpoint <slug> --<gate>`, which copies one canonical gate
+  document next to its source with a UTC `YYMMDD-HHMM` prefix, for example
+  `260612-1430 03-criteria.md`. Gate flags accept names such as `--criteria`,
+  numbers such as `--3`, and the explicit `--gate <gate>` form.
+- Split the press/fall close-out decision into a new `leaf-done` skill;
+  `leaf-clean` now focuses on cleaning gate documents into a simple, complete
+  current report.
+- `leaf new` now rejects slugs that already exist as an active leaf or fallen
+  item instead of creating a duplicate sprout, and `leaf fall` refuses to move
+  anything when both a sprout and an active leaf match the slug.
+- Preview rendering keeps trailing sentence punctuation out of bare URL link
+  targets, and the review reader resolves local links relative to each source
+  file's directory.
 
 ## 0.5.1 - 2026-06-12
 
