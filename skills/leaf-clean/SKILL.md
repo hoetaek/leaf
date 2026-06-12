@@ -73,6 +73,15 @@ Then edit toward the current report:
 - state assumptions and unresolved limits plainly;
 - keep Korean prose when the user is working in Korean.
 
+Extra checks: drift, surface, archive, fallen.
+
+- drift: `00-status.md` must match the existing gate files.
+- surface: separate canonical report, checkpoint history, pressed digest, and
+  fallen closure.
+- archive: checkpoint files are history; do not rewrite them unless asked.
+- fallen: fallen items should lead with fallen reason, closure, lesson, and
+  limits.
+
 ## Subagent Review
 
 Before calling a cleanup complete, ask for an independent reviewer/subagent when
@@ -87,6 +96,7 @@ Return:
 - keep: the sentences or sections that carry the essence
 - cut: stale, duplicated, decorative, or non-load-bearing text
 - unclear: why/what/evidence/decision gaps
+- drift/surface: status/file mismatch, archive confusion, or fallen closure gaps
 - verdict: pass or revise
 ```
 
@@ -98,8 +108,10 @@ A cleaned LEAF document passes when:
 
 - a new agent can state the why and what after one read;
 - the current decision is easier to find than the history of how it was reached;
+- current stage, gate, decision, and next action match the existing artifacts;
 - every remaining section either carries meaning, evidence, a risk, or a next
   input;
+- checkpoint/archive and fallen closure do not confuse the current report;
 - no removed text changes the source truth;
 - `leaf doctor` still reports the workspace as usable, or remaining findings are
   named precisely.
