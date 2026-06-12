@@ -34,6 +34,11 @@ ratatui = "0.30.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 syntect = "5"
+# Constraint-only dependency: time 0.3.48 breaks ratatui-widgets' blanket
+# `From` impls with E0119 under fresh resolution (e.g. `cargo install`
+# without --locked). Remove once a fixed time release ships or 0.3.48 is
+# yanked.
+time = { version = ">=0.3.47, <0.3.48", default-features = false }
 toml = "1.1.2"
 two-face = { version = "0.5", default-features = false, features = ["syntect-default-onig"] }
 unicode-width = "0.2"
