@@ -1,7 +1,7 @@
 interface:
   display_name: "LEAF Clean"
-  short_description: "Complete, press, fall, and migrate the .leaf workspace"
-  default_prompt: "Use $leaf-clean to tend the .leaf workspace: move ⑧-passed sprouts into leaves, press reference-worthy leaves into citable pressed.md digests, move non-reference-worthy work into fallen, or migrate old layouts reported by leaf doctor."
+  short_description: "Clean LEAF documents into simple current reports"
+  default_prompt: "Use $leaf-clean to clean LEAF documents: remove stale options, compress process chatter, clarify why/what/evidence/decision, and judge with a Feynman-like simplicity standard."
 
 policy:
   allow_implicit_invocation: true

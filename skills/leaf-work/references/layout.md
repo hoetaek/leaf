@@ -19,10 +19,10 @@ Use stage language in human-facing prose:
 ```
 
 Learn and post-Learn work stay in the same sprout through ⑧ Artifact /
-Execution. After ⑧ passes, invoke `leaf-clean` to move the project folder to
-`.leaf/02-leaves/<slug>/` before ⑨ Review / Sync and ⑩ Retrospect. At closure,
-explicitly decide whether the leaf should be pressed for citation or should
-fall.
+Execution. After ⑧ passes, `leaf-work` moves the project folder to
+`.leaf/02-leaves/<slug>/`, updates `00-status.md` for Feedback, and runs
+`leaf doctor` before ⑨ Review / Sync and ⑩ Retrospect. Immediately after ⑩,
+invoke `leaf-done`.
 
 ## CLI Start
 
@@ -67,7 +67,7 @@ instead of creating a duplicate.
     └── 10-retrospect.md                      ⑩ Retrospect
 ```
 
-After ⑧ passes, `leaf-clean` moves the same project folder to:
+After ⑧ passes, `leaf-work` moves the same project folder to:
 
 ```text
 .leaf/02-leaves/<slug>/                          Feedback and reusable leaf record
@@ -76,7 +76,8 @@ After ⑧ passes, `leaf-clean` moves the same project folder to:
     └── 10-retrospect.md                      ⑩ Retrospect
 ```
 
-Completed reference-worthy leaves may also contain:
+Completed reference-worthy leaves may also contain after `leaf-done` presses
+them:
 
 ```text
 .leaf/02-leaves/<slug>/pressed.md                citable digest for future reference

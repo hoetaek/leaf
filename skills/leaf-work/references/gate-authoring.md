@@ -21,6 +21,16 @@ review them.
    it before downstream gates consume the artifact. Otherwise record the
    self-review result and continue inside the current phase.
 
+## Cleanup Handoff
+
+Before closing a gate, asking for approval on it, or letting a downstream gate
+consume it, make sure the canonical gate file reads as a current report rather
+than a transcript. If the file has stale options, duplicated reasoning, template
+residue, or unclear why/what, invoke `leaf-clean`.
+
+`leaf-work` should not grow its own cleanup ritual. It drafts, grills, revises,
+and records gate readiness; `leaf-clean` performs the simplicity pass.
+
 ## Grill Foci
 
 - ① Intent: raw wording preserved, why followed to its real endpoint, core noun

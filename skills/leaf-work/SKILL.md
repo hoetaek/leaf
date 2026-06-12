@@ -31,8 +31,8 @@ LEAF names the four kinds of uncertainty to close, in order:
 | **Feedback** | Confirm it still holds, then settle what was established and what was learned | ⑨ Review/sync · ⑩ Retrospect |
 
 Learn runs in `leaf-idea`; `leaf-work` continues the same sprout at ③ Example
-after Learn passes, carries it through ⑧ Artifact / Execution, then invokes
-`leaf-clean` to move the passed sprout into `.leaf/02-leaves/` before ⑨ Review.
+after Learn passes, carries it through ⑧ Artifact / Execution, then moves the
+passed sprout into `.leaf/02-leaves/` before ⑨ Review.
 Learn's detailed gate contracts live in
 `../leaf-idea/references/gate-01-intent.md` and
 `../leaf-idea/references/gate-02-unknowns-context.md`; `references/gates.md`
@@ -45,9 +45,9 @@ wrong-answer note, or cross-leaf fact that belongs in `.leaf/PROFILE.md`.
 - **Use the leaf CLI as the persistent body of the work.** `leaf-work` assumes
   work lives in one repo-local `.leaf/` project folder. Work remains a sprout
   through Learn, Example, Architect, and ⑧ Artifact / Execution. Once ⑧ is
-  explicitly passed or delivered, invoke `leaf-clean` to move that same folder
-  from `.leaf/01-sprouts/` to `.leaf/02-leaves/`; ⑨ Review and ⑩ Retrospect
-  then continue in the leaf folder. If the work
+  explicitly passed or delivered, move the same folder from `.leaf/01-sprouts/`
+  to `.leaf/02-leaves/`, update `00-status.md` for Feedback, then run
+  `leaf doctor` before ⑨ Review and ⑩ Retrospect. If the work
   has not been through Learn — no sprout exists, or ① and ② have not passed —
   **invoke the `leaf-idea` skill with the Skill tool** to run Learn first rather
   than starting gate work here; being entered without Learn is the signal to hand
@@ -67,10 +67,10 @@ wrong-answer note, or cross-leaf fact that belongs in `.leaf/PROFILE.md`.
   the `leaf-soul` skill. Invoke the `leaf-soul` skill with the Skill tool at the
   start and follow it — do not just read its file; the rules here are the gate
   *method* specific to this skill. Whenever the work needs another LEAF skill —
-  `leaf-idea` for Learn, `leaf-clean` to move a passed sprout into leaves, make
-  it citable, or retire it — invoke that skill with the Skill tool rather than
-  only referencing its file. Use `leaf-profile` when `.leaf/PROFILE.md` needs to
-  be read or updated.
+  `leaf-idea` for Learn, `leaf-clean` for LEAF document cleanup, or `leaf-done`
+  for keep/press/fall close-out — invoke that skill with the Skill tool rather
+  than only referencing its file. Use `leaf-profile` when `.leaf/PROFILE.md`
+  needs to be read or updated.
 - **The scaffold is the foundation — so the work stands firm.** Learn, Example,
   and Architect lay that foundation; execution builds only once it is solid, not
   on guesses. The sprout carries the CLI scaffold — `00-status.md` and the four
@@ -90,10 +90,11 @@ wrong-answer note, or cross-leaf fact that belongs in `.leaf/PROFILE.md`.
   `../leaf-idea/references/gate-02-unknowns-context.md` for ②; for ③ onward,
   use `references/gates.md`. SKILL.md gives the shape; the relevant gate
   reference gives the pass/fail test you act on.
-- **Use the gate authoring loop for durable gate files.** When creating or
-  revising a gate artifact, draft the smallest useful version, challenge it
-  against the gate's foci, revise, and show only the review surface needed for
-  the current approval policy. See `references/gate-authoring.md`.
+- **Delegate document cleanup to `leaf-clean`.** When a gate file or full
+  `leaf review` output reads like a transcript instead of a current report,
+  invoke `leaf-clean`. `leaf-work` owns gate progress; `leaf-clean` owns the
+  final simplicity pass. Before invoking `leaf-clean`, run `leaf checkpoint`
+  for the gate being cleaned.
 - **Keep `00-status.md` current.** Update it when a gate starts, becomes ready
   for review, completes, needs explicit approval, is approved, returns to an
   earlier gate, is blocked/deferred, or when the next action changes
@@ -128,18 +129,14 @@ wrong-answer note, or cross-leaf fact that belongs in `.leaf/PROFILE.md`.
   approved snapshot; the user decides. Skip the ⑧ start approval only when the
   user explicitly pre-authorized auto-execution for this sprout; if the work is so
   small or low-risk that this feels wasteful, do not invoke leaf-work.
-- **Move to leaves after ⑧, then finish with leaf-clean.** ③ Criteria,
+- **Move to leaves after ⑧; after ⑩, invoke `leaf-done`.** ③ Criteria,
   ④ Wireframe, Architect, and ⑧ Artifact / Execution continue in the sprout
   project folder that Learn created. Immediately after ⑧ is explicitly passed
-  or delivered, invoke the `leaf-clean` skill with the Skill tool to complete the
-  stage transition from `.leaf/01-sprouts/<slug>/` to
-  `.leaf/02-leaves/<slug>/`; do not hand-move the folder yourself. After that,
-  run ⑨ Review / Sync and ⑩ Retrospect in the leaf folder. Immediately after
-  ⑩ Retrospect passes, decide explicitly with the user whether the leaf should be
-  pressed as a citable reference or moved to fallen as not worth carrying. Invoke
-  `leaf-clean` again for that press/fall close-out. `leaf-work` is not complete
-  until both the post-⑧ leaf transition and the post-⑩ close-out decision have
-  been handled.
+  or delivered, `leaf-work` owns the sprout-to-leaf transition: move the folder
+  to `.leaf/02-leaves/<slug>/`, update `00-status.md` to Feedback / ⑨ Review,
+  and run `leaf doctor`. Safety keywords: evidence, no collision, status,
+  doctor. Immediately after ⑩ Retrospect passes, invoke `leaf-done`. `leaf-work`
+  is not complete until that close-out decision is handled.
 - **Persistent files live inside one project folder.** Keep the four phase
   folders and two-digit gate prefixes inside the sprout project folder. For all
   naming and file-vs-folder-by-count, read `references/layout.md`.

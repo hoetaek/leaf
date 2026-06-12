@@ -55,8 +55,8 @@ leaf new my-first-idea
 Ask your agent to use `leaf-idea` to capture an idea and run the Learn phase on a
 sprout (lock ① Intent, resolve ② Unknowns & Context); use `leaf-work` to carry a
 sprout from ③ Example through ⑧ Artifact / Execution. After ⑧ passes,
-`leaf-clean` moves the work into `02-leaves/` so ⑨ Review and ⑩ Retrospect happen
-on the leaf.
+`leaf-work` moves the sprout into leaves before Feedback. Immediately after ⑩
+Retrospect, use `leaf-done`.
 
 Other CLI install paths are available from the latest GitHub Release:
 
@@ -128,6 +128,7 @@ leaf fall <slug> --reason <reason>
 leaf list [--json]
 leaf tree [--plain] [--demo]
 leaf review <slug>
+leaf checkpoint <slug> --<gate>
 leaf doctor [--json]
 ```
 
@@ -179,6 +180,11 @@ instead of forcing broken tree art.
 leaf-work item directly. In non-TTY output it writes the review document as
 plain text.
 
+`leaf checkpoint <slug> --<gate>` copies one canonical gate document next to its
+source with a UTC `YYMMDD-HHMM` prefix, for example
+`260612-1430 03-criteria.md`. Gate flags accept names such as `--criteria` and
+numbers such as `--3`; `--gate <gate>` is also accepted.
+
 `leaf doctor` checks whether `.leaf/` is ready for `leaf list` and reports old
 layout leftovers, missing status fields, and stage/status mismatches.
 
@@ -190,11 +196,12 @@ This repository ships Agent Skills:
 |---|---|
 | [`leaf-idea`](skills/leaf-idea/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
 | [`leaf-work`](skills/leaf-work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
-| [`leaf-clean`](skills/leaf-clean/SKILL.md) | Tending the `.leaf/` workspace: moving ⑧-passed sprouts into leaves, pressing citable digests, moving non-reference-worthy work into fallen, and migrating old layouts reported by `leaf doctor` |
+| [`leaf-clean`](skills/leaf-clean/SKILL.md) | Cleaning LEAF documents into simple, complete current reports |
+| [`leaf-done`](skills/leaf-done/SKILL.md) | Deciding whether a finished leaf should stay, be pressed, or fall |
 | [`leaf-soul`](skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
 Install the LEAF skills together as a family — they are not independent.
-`leaf-idea`, `leaf-work`, and `leaf-clean` read `leaf-soul` through
+`leaf-idea`, `leaf-work`, `leaf-clean`, and `leaf-done` read `leaf-soul` through
 the sibling path `../leaf-soul/SKILL.md`; `leaf-idea` and `leaf-work` also read
 the gate references under `leaf-work` through `../leaf-work/references/`. The
 Quick Start command above installs the whole family; installing a single skill

@@ -48,7 +48,14 @@ a signal to revise `leaf-soul` itself.
   and human prose in `.leaf/` artifacts. Keep canonical tokens, parser-facing
   fields, code identifiers, paths, quoted source text, and audience-fixed wording
   unchanged. If the user writes Korean or the output is for Korean users, write
-  Korean.
+  Korean. Human-facing headings, labels, summaries, decisions, rationale, risks,
+  and review notes in LEAF files must use that working language too; do not leave
+  template headings such as `Summary`, `Verdict`, `files`, or `work` in English
+  unless they are parser-facing fields or exact source text.
+- **Canonical gate files are reports, not transcripts.** A gate file should tell
+  the next agent the current conclusion, evidence, decisions, risks, and next
+  input. Do not leave it as a pile of old options, stale guesses, or process
+  chatter once the gate is being closed.
 
 ## Reporting
 

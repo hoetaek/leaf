@@ -80,6 +80,7 @@ fn help_lists_init_and_new() {
         .stdout(predicate::str::contains("fall"))
         .stdout(predicate::str::contains("list"))
         .stdout(predicate::str::contains("review"))
+        .stdout(predicate::str::contains("checkpoint"))
         .stdout(predicate::str::contains("tree"))
         .stdout(predicate::str::contains("doctor"));
 }
@@ -1119,6 +1120,94 @@ fn new_rejects_invalid_slugs() {
             .failure()
             .stderr(predicate::str::contains("invalid slug"));
     }
+}
+
+#[test]
+fn checkpoint_copies_selected_gate_with_timestamped_name() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+    repo.child(".leaf/01-sprouts/research-memo/02-Example/03-criteria.md")
+        .write_str("# Criteria\n\nCurrent report\n")
+        .expect("criteria");
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["checkpoint", "research-memo", "--criteria"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "checkpointed .leaf/01-sprouts/research-memo/02-Example/03-criteria.md to .leaf/01-sprouts/research-memo/02-Example/",
+        ))
+        .get_output()
+        .stdout
+        .clone();
+    let text = String::from_utf8(output).expect("utf8 output");
+    let checkpoint_path = text.trim().split(" to ").nth(1).expect("checkpoint path");
+
+    assert!(checkpoint_path.ends_with(" 03-criteria.md"));
+    repo.child(checkpoint_path)
+        .assert("# Criteria\n\nCurrent report\n");
+}
+
+#[test]
+fn checkpoint_accepts_numeric_gate_flag() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+    repo.child(".leaf/01-sprouts/research-memo/03-Architect/07-tasks.md")
+        .write_str("task graph\n")
+        .expect("tasks");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["checkpoint", "research-memo", "--7"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(" 07-tasks.md"));
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["checkpoint", "research-memo", "--gate", "03"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(" 03-criteria.md"));
+}
+
+#[test]
+fn checkpoint_requires_exactly_one_gate() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["checkpoint", "research-memo"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("missing gate flag"));
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["checkpoint", "research-memo", "--criteria", "--3"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("choose exactly one gate flag"));
 }
 
 #[test]

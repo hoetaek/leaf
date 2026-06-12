@@ -1,7 +1,7 @@
 interface:
   display_name: "LEAF Work"
   short_description: "Turn vague intent into reliable work"
-  default_prompt: "Use $leaf-work with the leaf CLI after Learn: carry the sprout through ⑧ Artifact / Execution, invoke $leaf-clean to move it into leaves, then run ⑨ Review and ⑩ Retrospect on the leaf."
+  default_prompt: "Use $leaf-work with the leaf CLI after Learn: carry the sprout through ⑧ Artifact / Execution, move the ⑧-passed sprout into leaves, run leaf doctor, invoke $leaf-clean for document cleanup, then run ⑨ Review and ⑩ Retrospect; immediately after ⑩, invoke $leaf-done."
 
 policy:
   allow_implicit_invocation: true

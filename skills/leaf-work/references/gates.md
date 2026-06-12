@@ -364,19 +364,19 @@ Gate to continue:
 - The next chunk's inputs are known.
 
 Record the result as passed in `08-execution.md` only after the user explicitly
-says so. When ⑧ is passed or delivered, invoke `leaf-clean` before starting ⑨:
-the work moves from `.leaf/01-sprouts/<slug>/` to `.leaf/02-leaves/<slug>/`.
-Do not move the folder by hand; `leaf-clean` owns the stage transition. If the
-result should not become a reference-worthy leaf, use `leaf-clean` to fall it
-instead of entering Feedback.
+says so. When ⑧ is passed or delivered, move the project folder from
+`.leaf/01-sprouts/<slug>/` to `.leaf/02-leaves/<slug>/`, update `00-status.md`
+for Feedback / ⑨ Review, and run `leaf doctor` before starting ⑨.
+
+Safety keywords: evidence, no collision, status, doctor.
 
 ## ⑨ Review / Sync
 
 Keep the plan true after drafting and feedback. This gate runs in
-`.leaf/02-leaves/<slug>/` after ⑧ has passed and `leaf-clean` has completed the
+`.leaf/02-leaves/<slug>/` after ⑧ has passed and `leaf-work` has completed the
 sprout-to-leaf transition. It may loop with ⑧ when review finds a defect, but a
-return to execution must preserve the leaf folder as the current body of the
-work unless `leaf-clean` moves it to fallen.
+return to execution must preserve the leaf folder as the current body unless
+`leaf-done` closes it.
 
 Review checks: Does the artifact satisfy criteria? Are claims supported by
 evidence? Does section order still fit the argument? Did drafting reveal missing
@@ -390,8 +390,7 @@ task graph. Do not keep stale planning notes beside a changed draft.
 ## ⑩ Retrospect
 
 Close the leaf on two axes — what this work established (content) and how the
-work went (process). ⑩ runs in `.leaf/02-leaves/<slug>/`, after the post-⑧
-`leaf-clean` transition and ⑨ Review / Sync. Both halves look back at the
+work went (process). ⑩ runs after ⑨ Review / Sync. Both halves look back at the
 finished whole; they differ only in subject.
 
 **Limitations — the content retrospective.** Record what was established and
@@ -437,13 +436,10 @@ PROFILE entries may specialize `leaf-soul` conduct but never negate it. When an
 episode repeatedly demands a negation, surface it as a `leaf-soul` change signal
 instead of writing the entry.
 
-**Close-out — 반드시 `leaf-clean`으로 끝낸다.** ⑩ passing does not end the work.
-Immediately after the retrospect passes, propose to the user whether this leaf
-should be pressed as a citable reference or moved to fallen with an explicit
-fallen reason. The user decides; then invoke the `leaf-clean` skill with the
-Skill tool to execute the press or fall. Do not stop at the retrospect file, and
-do not report leaf-work complete before `leaf-clean` finishes the close-out. Do
-not run the press/fall mechanics yourself — `leaf-clean` owns them.
+**Close-out — ⑩ 다음은 바로 `leaf-done`.** ⑩ passing does not end the work.
+Immediately after the retrospect passes, invoke `leaf-done`. Do not stop at the
+retrospect file, and do not report leaf-work complete before that decision is
+handled.
 
 ---
 
@@ -463,7 +459,6 @@ not run the press/fall mechanics yourself — `leaf-clean` owns them.
 - Asking for broad review when the artifact needs a specific gate check.
 - ⑤ inventing a schema/shape the ④ contract should have locked.
 - Skipping the retrospective's review of mid-process discoveries.
-- Starting ⑨ Review while the passed work is still under `.leaf/01-sprouts/`
-  instead of invoking `leaf-clean` for the post-⑧ sprout-to-leaf transition.
+- Starting ⑨ Review while the passed work is still under `.leaf/01-sprouts/`.
 - Stopping after the retrospect file is written, leaving the leaf without a
-  press/fall decision and the `leaf-clean` handoff.
+  keep/press/fall decision and the `leaf-done` handoff.

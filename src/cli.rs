@@ -1,5 +1,5 @@
 use anyhow::{Context, Result, bail};
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use std::io::IsTerminal;
 use std::io::Write;
 use std::path::Path;
@@ -51,12 +51,83 @@ enum Commands {
         /// Leaf-work slug to review.
         slug: String,
     },
+    /// Preserve a timestamped copy of one canonical gate document.
+    Checkpoint(CheckpointArgs),
     /// Diagnose .leaf readiness for leaf list.
     Doctor {
         /// Write machine-readable JSON.
         #[arg(long)]
         json: bool,
     },
+}
+
+#[derive(Debug, Args)]
+struct CheckpointArgs {
+    /// Leaf-work slug to checkpoint.
+    slug: String,
+    /// Gate name or number, for example criteria, 3, or g3.
+    #[arg(long, value_name = "GATE")]
+    gate: Option<String>,
+    /// Checkpoint gate ① Intent.
+    #[arg(long)]
+    intent: bool,
+    /// Checkpoint gate ② Unknowns.
+    #[arg(long)]
+    unknowns: bool,
+    /// Checkpoint gate ③ Criteria.
+    #[arg(long)]
+    criteria: bool,
+    /// Checkpoint gate ④ Wireframe.
+    #[arg(long)]
+    wireframe: bool,
+    /// Checkpoint gate ⑤ Design.
+    #[arg(long)]
+    design: bool,
+    /// Checkpoint gate ⑥ Critic.
+    #[arg(long)]
+    critic: bool,
+    /// Checkpoint gate ⑦ Tasks.
+    #[arg(long)]
+    tasks: bool,
+    /// Checkpoint gate ⑧ Execution.
+    #[arg(long)]
+    execution: bool,
+    /// Checkpoint gate ⑨ Review.
+    #[arg(long)]
+    review: bool,
+    /// Checkpoint gate ⑩ Retrospect.
+    #[arg(long)]
+    retrospect: bool,
+    /// Checkpoint gate ① Intent.
+    #[arg(long = "1")]
+    gate_1: bool,
+    /// Checkpoint gate ② Unknowns.
+    #[arg(long = "2")]
+    gate_2: bool,
+    /// Checkpoint gate ③ Criteria.
+    #[arg(long = "3")]
+    gate_3: bool,
+    /// Checkpoint gate ④ Wireframe.
+    #[arg(long = "4")]
+    gate_4: bool,
+    /// Checkpoint gate ⑤ Design.
+    #[arg(long = "5")]
+    gate_5: bool,
+    /// Checkpoint gate ⑥ Critic.
+    #[arg(long = "6")]
+    gate_6: bool,
+    /// Checkpoint gate ⑦ Tasks.
+    #[arg(long = "7")]
+    gate_7: bool,
+    /// Checkpoint gate ⑧ Execution.
+    #[arg(long = "8")]
+    gate_8: bool,
+    /// Checkpoint gate ⑨ Review.
+    #[arg(long = "9")]
+    gate_9: bool,
+    /// Checkpoint gate ⑩ Retrospect.
+    #[arg(long = "10")]
+    gate_10: bool,
 }
 
 pub(crate) fn run() -> Result<ExitCode> {
@@ -147,6 +218,20 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             }
             Ok(ExitCode::SUCCESS)
         }
+        Commands::Checkpoint(args) => {
+            let slug = crate::slug::validate(&args.slug)?;
+            let gate = checkpoint_gate(&args)?;
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            let inventory = crate::inventory::load(&paths.root)?;
+            let root_path = leaf_work_path_for_slug(&inventory, &slug)?;
+            let result = crate::checkpoint::create(&root_path, gate)?;
+            println!(
+                "checkpointed {} to {}",
+                repo_relative(&paths.root, &result.source),
+                repo_relative(&paths.root, &result.checkpoint)
+            );
+            Ok(ExitCode::SUCCESS)
+        }
         Commands::Doctor { json } => {
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             let report = crate::doctor::check(&paths.root)?;
@@ -166,6 +251,45 @@ fn execute(cli: Cli) -> Result<ExitCode> {
     }
 }
 
+fn checkpoint_gate(args: &CheckpointArgs) -> Result<crate::checkpoint::GateSpec> {
+    let mut selected = Vec::new();
+    if let Some(gate) = &args.gate {
+        selected.push(gate.as_str());
+    }
+    for (is_set, gate) in [
+        (args.intent, "intent"),
+        (args.unknowns, "unknowns"),
+        (args.criteria, "criteria"),
+        (args.wireframe, "wireframe"),
+        (args.design, "design"),
+        (args.critic, "critic"),
+        (args.tasks, "tasks"),
+        (args.execution, "execution"),
+        (args.review, "review"),
+        (args.retrospect, "retrospect"),
+        (args.gate_1, "1"),
+        (args.gate_2, "2"),
+        (args.gate_3, "3"),
+        (args.gate_4, "4"),
+        (args.gate_5, "5"),
+        (args.gate_6, "6"),
+        (args.gate_7, "7"),
+        (args.gate_8, "8"),
+        (args.gate_9, "9"),
+        (args.gate_10, "10"),
+    ] {
+        if is_set {
+            selected.push(gate);
+        }
+    }
+
+    match selected.as_slice() {
+        [] => bail!("missing gate flag; use --criteria, --3, or --gate <gate>"),
+        [gate] => crate::checkpoint::gate_spec(gate),
+        _ => bail!("choose exactly one gate flag"),
+    }
+}
+
 fn tree_output_width() -> usize {
     if std::io::stdout().is_terminal()
         && let Ok((columns, _)) = crossterm::terminal::size()
@@ -173,6 +297,37 @@ fn tree_output_width() -> usize {
         return usize::from(columns.max(1));
     }
     112
+}
+
+fn leaf_work_path_for_slug(
+    inventory: &crate::inventory::Inventory,
+    slug: &str,
+) -> Result<std::path::PathBuf> {
+    let matches = inventory
+        .stages
+        .iter()
+        .flat_map(|stage| stage.items.iter())
+        .filter(|item| {
+            item.kind == crate::inventory::ItemKind::LeafWork && item.slug.as_str() == slug
+        })
+        .collect::<Vec<_>>();
+
+    match matches.as_slice() {
+        [] => bail!("leaf work does not exist: {slug}"),
+        [item] => Ok(item.path.clone()),
+        items => {
+            let repo_root = inventory
+                .leaf_root
+                .parent()
+                .context("inventory leaf root has no parent")?;
+            let locations = items
+                .iter()
+                .map(|item| repo_relative(repo_root, &item.path))
+                .collect::<Vec<_>>()
+                .join(", ");
+            bail!("leaf work slug is ambiguous: {slug} ({locations})");
+        }
+    }
 }
 
 fn review_source_for_slug(
