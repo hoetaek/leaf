@@ -19,9 +19,11 @@ Standing fact: `.leaf/` is excluded from git by `leaf init` (via
 `.git/info/exclude`), so its contents are repo-local and uncommitted — treat
 this as known instead of re-asking or re-verifying it each time.
 
-At the start of LEAF work, if `.leaf/PROFILE.md` exists, read it and apply its
-entries on top of this file's conduct. If it is missing, continue silently with
-no error and no question. PROFILE.md is owned by `leaf-profile`: update it only
+At the start of LEAF work, read the effective profile with `leaf profile` (the
+machine-global `~/.config/leaf/profile.md` layered with the repo-local
+`.leaf/PROFILE.md`; local wins on conflict) and apply its entries on top of
+this file's conduct. If both layers are missing, continue silently with no
+error and no question. Profiles are owned by `leaf-profile`: update them only
 when a user requirement, agent mistake, wrong-answer note, or recurring fact
 must apply across leaf work. On conflict, this file wins: profile entries
 specialize these rules and never negate them; a repeatedly observed negation is

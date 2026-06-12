@@ -8,6 +8,15 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+- Added a machine-global profile at `~/.config/leaf/profile.md`
+  (`LEAF_CONFIG_DIR` → `$XDG_CONFIG_HOME/leaf` → `~/.config/leaf`); `leaf init`
+  scaffolds it idempotently for machine-wide facts such as the user's working
+  language.
+- Added `leaf profile`, which prints the effective profile: the global profile
+  layered with the repo-local `.leaf/PROFILE.md` behind source markers, local
+  winning on conflict. It also works outside a git repository with the global
+  layer alone.
+
 ## 0.5.1 - 2026-06-12
 
 - Added `leaf tree --demo` as a public growth preview that stacks full-size

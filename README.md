@@ -114,7 +114,9 @@ leaf cites or is cited by other leaves, cross-leaf citation metadata lives next
 to the digest as `linked.md`. `.leaf/PROFILE.md` is the repo-local acquired
 profile: `leaf init` scaffolds it, completed leaves consolidate working-style
 traits into it at ⑩ Retrospect, and `leaf-soul` reads it at the start of LEAF
-work.
+work. A machine-global profile at `~/.config/leaf/profile.md` layers underneath
+it for facts that apply to every repo on the machine, such as the user's
+working language; `leaf profile` prints the merged view.
 
 `leaf init` adds `/.leaf` to `.git/info/exclude` so local collaboration notes do
 not appear in normal `git status` output.
@@ -128,11 +130,14 @@ leaf fall <slug> --reason <reason>
 leaf list [--json]
 leaf tree [--plain] [--demo]
 leaf review <slug>
+leaf profile
 leaf checkpoint <slug> --<gate>
 leaf doctor [--json]
 ```
 
-`leaf init` initializes `.leaf/` storage in the current git repository.
+`leaf init` initializes `.leaf/` storage in the current git repository and
+scaffolds the machine-global profile at `~/.config/leaf/profile.md` if it does
+not exist yet. Both are idempotent: existing files are never overwritten.
 
 `leaf new <slug>` creates a new sprout under `.leaf/01-sprouts/<slug>/`:
 
@@ -179,6 +184,12 @@ instead of forcing broken tree art.
 `leaf review <slug>` opens the same source-faithful review reader for one
 leaf-work item directly. In non-TTY output it writes the review document as
 plain text.
+
+`leaf profile` prints the effective profile: the machine-global
+`~/.config/leaf/profile.md` followed by the repo-local `.leaf/PROFILE.md`, each
+behind a source marker. On conflict the local layer wins. The global location
+honors `LEAF_CONFIG_DIR`, then `$XDG_CONFIG_HOME/leaf`, then `~/.config/leaf`.
+Outside a git repository it still prints the global layer.
 
 `leaf checkpoint <slug> --<gate>` copies one canonical gate document next to its
 source with a UTC `YYMMDD-HHMM` prefix, for example

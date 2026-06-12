@@ -10,6 +10,7 @@ mod lifecycle;
 mod list_columns;
 mod list_output;
 mod preview;
+mod profile;
 mod review;
 mod scaffold;
 mod slug;

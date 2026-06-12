@@ -6,7 +6,18 @@ use std::path::Path;
 use std::process::Command;
 
 fn leaf_command() -> Command {
-    Command::cargo_bin("leaf").expect("leaf binary exists")
+    static SHARED_CONFIG_DIR: std::sync::OnceLock<assert_fs::TempDir> = std::sync::OnceLock::new();
+    let config_dir = SHARED_CONFIG_DIR
+        .get_or_init(|| assert_fs::TempDir::new().expect("temp shared config dir"));
+    let mut command = Command::cargo_bin("leaf").expect("leaf binary exists");
+    command.env("LEAF_CONFIG_DIR", config_dir.path());
+    command
+}
+
+fn leaf_command_with_config(config_dir: &Path) -> Command {
+    let mut command = leaf_command();
+    command.env("LEAF_CONFIG_DIR", config_dir);
+    command
 }
 
 fn git_command() -> Command {
@@ -80,6 +91,7 @@ fn help_lists_init_and_new() {
         .stdout(predicate::str::contains("fall"))
         .stdout(predicate::str::contains("list"))
         .stdout(predicate::str::contains("review"))
+        .stdout(predicate::str::contains("profile"))
         .stdout(predicate::str::contains("checkpoint"))
         .stdout(predicate::str::contains("tree"))
         .stdout(predicate::str::contains("doctor"));
@@ -1450,4 +1462,132 @@ fn new_does_not_migrate_old_numbered_conflicts() {
         .assert(predicate::path::is_file());
     repo.child(".leaf/01-sprouts/whatever/00-status.md")
         .assert(predicate::path::is_file());
+}
+
+#[test]
+fn init_creates_global_profile_template() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    let config = assert_fs::TempDir::new().expect("temp config dir");
+
+    leaf_command_with_config(config.path())
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("profile.md"));
+
+    config
+        .child("profile.md")
+        .assert(predicate::path::is_file());
+    let body = fs::read_to_string(config.path().join("profile.md")).expect("profile readable");
+    assert!(
+        body.starts_with("# Global Profile"),
+        "unexpected template: {body}"
+    );
+    assert!(body.contains("## User Language"));
+}
+
+#[test]
+fn init_preserves_existing_global_profile() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    let config = assert_fs::TempDir::new().expect("temp config dir");
+    let custom = "# Global Profile\n\n## User Language\n\n- 한국어\n";
+    config
+        .child("profile.md")
+        .write_str(custom)
+        .expect("write custom global profile");
+
+    leaf_command_with_config(config.path())
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("profile.md").not());
+
+    assert_eq!(
+        fs::read_to_string(config.path().join("profile.md")).expect("profile readable"),
+        custom
+    );
+}
+
+#[test]
+fn profile_prints_global_then_local_with_source_markers() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    let config = assert_fs::TempDir::new().expect("temp config dir");
+    config
+        .child("profile.md")
+        .write_str("## User Language\n\n- 한국어\n")
+        .expect("write global profile");
+    leaf_command_with_config(config.path())
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+    repo.child(".leaf/PROFILE.md")
+        .write_str("## Settled\n\n- repo fact\n")
+        .expect("write local profile");
+
+    let output = leaf_command_with_config(config.path())
+        .current_dir(repo.path())
+        .arg("profile")
+        .assert()
+        .success()
+        .get_output()
+        .clone();
+    let stdout = String::from_utf8(output.stdout).expect("utf8 stdout");
+
+    let global_marker = stdout.find("<!-- global:").expect("global marker present");
+    let local_marker = stdout.find("<!-- local:").expect("local marker present");
+    assert!(
+        global_marker < local_marker,
+        "global must precede local:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("- 한국어"),
+        "global content missing:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("- repo fact"),
+        "local content missing:\n{stdout}"
+    );
+}
+
+#[test]
+fn profile_outside_git_repo_prints_global_only() {
+    let dir = assert_fs::TempDir::new().expect("temp non-repo dir");
+    let config = assert_fs::TempDir::new().expect("temp config dir");
+    config
+        .child("profile.md")
+        .write_str("## User Language\n\n- 한국어\n")
+        .expect("write global profile");
+
+    leaf_command_with_config(config.path())
+        .current_dir(dir.path())
+        .arg("profile")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("- 한국어"))
+        .stdout(predicate::str::contains("(not in a git repository)"));
+}
+
+#[test]
+fn profile_marks_missing_global_profile() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+    let empty_config = assert_fs::TempDir::new().expect("temp config dir");
+
+    leaf_command_with_config(empty_config.path())
+        .current_dir(repo.path())
+        .arg("profile")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("(missing; run `leaf init`)"));
 }

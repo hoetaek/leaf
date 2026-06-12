@@ -51,6 +51,8 @@ enum Commands {
         /// Leaf-work slug to review.
         slug: String,
     },
+    /// Print the effective profile (global profile layered with repo-local PROFILE.md).
+    Profile,
     /// Preserve a timestamped copy of one canonical gate document.
     Checkpoint(CheckpointArgs),
     /// Diagnose .leaf readiness for leaf list.
@@ -145,6 +147,14 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             } else {
                 println!(".leaf/ already initialized");
             }
+            if let Some(config_dir) = crate::profile::global_config_dir()
+                && crate::profile::ensure_global_profile(&config_dir)?
+            {
+                println!(
+                    "initialized {}",
+                    crate::profile::global_profile_path(&config_dir).display()
+                );
+            }
             Ok(ExitCode::SUCCESS)
         }
         Commands::New { slug } => {
@@ -216,6 +226,11 @@ fn execute(cli: Cli) -> Result<ExitCode> {
                 crate::review::write_text(&mut stdout, &document)?;
                 stdout.flush().context("flush leaf review text")?;
             }
+            Ok(ExitCode::SUCCESS)
+        }
+        Commands::Profile => {
+            let text = crate::profile::effective_profile(std::env::current_dir()?)?;
+            print!("{text}");
             Ok(ExitCode::SUCCESS)
         }
         Commands::Checkpoint(args) => {
