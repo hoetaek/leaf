@@ -108,9 +108,9 @@ Extra checks: drift, surface, archive, fallen.
 
 ## Subagent Review
 
-Before calling a cleanup complete, ask for an independent reviewer/subagent when
-available. The reviewer judges only document quality, not implementation truth.
-Give it the target file or `leaf review` output and this rubric:
+Before calling a cleanup complete, delegate an independent review to a subagent.
+The reviewer judges only document quality, not implementation truth. Give it the
+target file or `leaf review` output and this rubric:
 
 ```text
 Judge whether this LEAF document is a simple complete current report.
@@ -123,8 +123,6 @@ Return:
 - drift/surface: status/file mismatch, archive confusion, or fallen closure gaps
 - verdict: pass or revise
 ```
-
-If no subagent is available, run the rubric yourself and label it as self-review.
 
 ## Pass Criteria
 
@@ -147,6 +145,6 @@ Report:
 - target files cleaned;
 - what was removed or compressed;
 - what source truth was preserved;
-- reviewer/subagent verdict, or self-review verdict;
+- subagent reviewer verdict;
 - `leaf doctor` result;
 - confirmation that no `.wt/` or execution artifacts were created.
