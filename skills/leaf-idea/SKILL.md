@@ -120,6 +120,19 @@ review items that ③ Criteria consumes.
 Do not continue to ③ merely because files exist. Continue only when ① and ② pass
 their gate contracts and the user has answered the Learn-close question.
 
+`leaf-idea` owns the opening preview. Once ① has a one-sentence locked intent,
+and especially when recommending `continue to Example`, phrase the remaining
+phases as what they make possible for this intent:
+
+- **Learn:** judge what this work needs from learned facts, not guesses.
+- **Example:** prove one cheap instance right before scaling.
+- **Architect:** generalize the passed case into structure, task order, and a
+  shippable result.
+- **Feedback:** confirm the plan still holds and carry forward what was learned.
+
+Keep it orientation, not a fixed plan. Do not repeat this preview in
+`leaf-work`.
+
 ## Split Check
 
 Run this before creating a sprout, when the idea branches, when the user adds a

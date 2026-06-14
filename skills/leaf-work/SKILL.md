@@ -21,7 +21,7 @@ way before you can even tell the direction is wrong. It is to **learn first, mak
 one instance right, then expand** — closing the cheapest decisive uncertainty
 before starting the next kind of work.
 
-LEAF names the four kinds of uncertainty to close, in order:
+LEAF closes four kinds of uncertainty in order:
 
 | Phase | What it makes you able to do | Gates |
 |---|---|---|
@@ -30,167 +30,75 @@ LEAF names the four kinds of uncertainty to close, in order:
 | **Architect** | Generalize that instance into a shippable generator | ⑤ Design · ⑥ Critic · ⑦ Tasks · ⑧ Artifact |
 | **Feedback** | Confirm it still holds, then settle what was established and what was learned | ⑨ Review/sync · ⑩ Retrospect |
 
-Learn runs in `leaf-idea`; `leaf-work` continues the same sprout at ③ Example
-after Learn passes, carries it through ⑧ Artifact / Execution, then moves the
-passed sprout into `.leaf/02-leaves/` before ⑨ Review.
-Learn's detailed gate contracts live in
-`../leaf-idea/references/gate-01-intent.md` and
-`../leaf-idea/references/gate-02-unknowns-context.md`; `references/gates.md`
-covers the handoff plus ③ onward. ⑩ Retrospect invokes `leaf-profile` when the
-leaf reveals a user language preference, recurring requirement, agent mistake,
-wrong-answer note, or cross-leaf fact that belongs in `.leaf/PROFILE.md`.
+`leaf-work` starts after `leaf-idea` has passed ① Intent and ② Unknowns &
+Context. It carries the same sprout from ③ through ⑧, moves passed work to
+`.leaf/02-leaves/` before ⑨, and invokes `leaf-done` after ⑩.
 
 ## Always-on rules
 
-- **Use the leaf CLI as the persistent body of the work.** `leaf-work` assumes
-  work lives in one repo-local `.leaf/` project folder. Work remains a sprout
-  through Learn, Example, Architect, and ⑧ Artifact / Execution. Once ⑧ is
-  explicitly passed or delivered, move the same folder from `.leaf/01-sprouts/`
-  to `.leaf/02-leaves/`, update `00-status.md` for Feedback, then run
-  `leaf doctor` before ⑨ Review and ⑩ Retrospect. If the work
-  has not been through Learn — no sprout exists, or ① and ② have not passed —
-  **invoke the `leaf-idea` skill with the Skill tool** to run Learn first rather
-  than starting gate work here; being entered without Learn is the signal to hand
-  off to `leaf-idea`, not to improvise the missing gates. If a matching sprout
-  already exists, resume it. Do not create loose `01-Learn/` … `04-Feedback/`
-  folders at the repo root.
-- **Inherit Learn; do not redo it.** The sprout already has ① Intent locked and
-  ② Unknowns & Context resolved in `01-Learn/`. Start by reading them: the
-  one-sentence intent and its why, sourced facts, flagged assumptions, gathered
-  references, and what the user can already choose between. Trust that work and
-  reopen Learn only on a return.
-- **Conduct and voice are shared — invoke the `leaf-soul` skill.** How you report
-  (overview-first, a Verify / Decide list up top), show rendered HTML work (open it
-  in Chrome DevTools and screenshot each state — never make the user hunt), hand
-  off reviewables (`USER REVIEW NEEDED:` / `ASSUMPTION:`), separate fact from
-  guess, and which language you write are defined once for the whole LEAF family in
-  the `leaf-soul` skill. Invoke the `leaf-soul` skill with the Skill tool at the
-  start and follow it — do not just read its file; the rules here are the gate
-  *method* specific to this skill. Whenever the work needs another LEAF skill —
-  `leaf-idea` for Learn, `leaf-clean` for LEAF document cleanup, or `leaf-done`
-  for keep/press/fall close-out — invoke that skill with the Skill tool rather
-  than only referencing its file. Use `leaf-profile` when `.leaf/PROFILE.md`
-  needs to be read or updated.
-- **The scaffold is the foundation — so the work stands firm.** Learn, Example,
-  and Architect lay that foundation; execution builds only once it is solid, not
-  on guesses. The sprout carries the CLI scaffold — `00-status.md` and the four
-  phase folders — created in `leaf-idea` via `leaf new`; you inherit it, you do
-  not recreate it. The scaffold is the *body* of LEAF: it makes "which gate am I
-  in / what is the first missing gate" a place you can point to, and each gate
-  file fills in as context settles. If a task is too small to deserve that
-  foundation, do not invoke leaf-work at all — there is no LEAF without a body.
-- **Start from `00-status.md` when it exists.** Use it as the project dashboard:
-  current phase/gate, first missing gate, next action, and gate progress. It is
-  an index, not the source of truth; gate files remain authoritative.
-- **Read the relevant gate reference, tell the user the current gate, and act by it.**
-  With the scaffold and `00-status.md` in hand, identify which gate the work is
-  at, open the reference that owns that gate, name the gate to the user, and then
-  proceed exactly as that gate's entry/exit/return conditions direct. For ①/②
-  returns, use `../leaf-idea/references/gate-01-intent.md` for ① and
-  `../leaf-idea/references/gate-02-unknowns-context.md` for ②; for ③ onward,
-  use `references/gates.md`. SKILL.md gives the shape; the relevant gate
-  reference gives the pass/fail test you act on.
-- **Delegate document cleanup to `leaf-clean`.** Before asking the user to review
-  or approve a gate, invoke `leaf-clean` on the touched gate/status surface. Also
-  invoke it when a gate file or full `leaf review` output reads like a transcript
-  instead of a current report. `leaf-work` owns gate progress; `leaf-clean` owns
-  the final simplicity pass. Before invoking `leaf-clean` for a gate file, run
-  `leaf checkpoint` for the gate being cleaned.
-- **Keep `00-status.md` current.** Update it when a gate starts, becomes ready
-  for review, completes, needs explicit approval, is approved, returns to an
-  earlier gate, is blocked/deferred, or when the next action changes
-  materially. Keep its `## Overview` aligned with the gate files: if Criteria,
-  Wireframe, Design, Tasks, Review, or a return changes the purpose, expected
-  output, scope, split decision, or what the LEAF is doing, update the overview
-  in the same pass. Treat returns as log events, not gate statuses; note
-  blocked/deferred reasons in `Next / Waiting on`, not as separate statuses.
-- **Gates loop; they are not a pipeline.** When a downstream gate overturns an
-  assumption or surfaces a new unknown, return to the earliest gate the
-  discovery overturns — usually ② Unknowns & Context; ① Intent itself when the
-  problem definition fell — update it, then resume only the gates that depended
-  on what changed. A return into ① or ② reopens Learn; do it in place in the
-  sprout's `01-Learn/` against `../leaf-idea/references/gate-01-intent.md` or
-  `../leaf-idea/references/gate-02-unknowns-context.md`. If the discovery
-  unsettles the whole idea, flag that the sprout frame needs rethinking, not just
-  a gate edit.
-  Log each return to `04-Feedback/10-retrospective/mid-process-discoveries.md`.
-  Linear one-pass progress through all ten gates is unrealistic for real work.
-- **Phase transitions need explicit user approval by default; gate transitions
-  inside the current phase are delegated unless they are high-impact.** AI may
-  complete and consume ordinary gate artifacts inside the current phase after
-  the gate authoring loop passes. The standing exception is Architect: before
-  starting ⑧ Artifact / Execution, require explicit user approval of the
-  approved Architect snapshot -- ⑤ Design, ⑥ Critic verdict, ⑦ Task Graph,
-  execution scope, risks, and the first execution chunk. Escalate a gate for
-  explicit approval when it changes ① Intent, locks or changes decisive ③
-  Criteria, needs an operator/reader to validate ④ Wireframe, commits a costly
-  or public ⑤ Design choice, starts ⑧ Artifact / Execution, marks ⑧ Artifact as
-  passed or delivered, returns across an approved phase boundary, or the user
-  asks to review that gate. At approval points, AI proposes the next phase or
-  approved snapshot; the user decides. Skip the ⑧ start approval only when the
-  user explicitly pre-authorized auto-execution for this sprout; if the work is so
-  small or low-risk that this feels wasteful, do not invoke leaf-work.
-- **Move to leaves after ⑧; after ⑩, invoke `leaf-done`.** ③ Criteria,
-  ④ Wireframe, Architect, and ⑧ Artifact / Execution continue in the sprout
-  project folder that Learn created. Immediately after ⑧ is explicitly passed
-  or delivered, `leaf-work` owns the sprout-to-leaf transition: move the folder
-  to `.leaf/02-leaves/<slug>/`, update `00-status.md` to Feedback / ⑨ Review,
-  and run `leaf doctor`. Safety keywords: evidence, no collision, status,
-  doctor. Immediately after ⑩ Retrospect passes, invoke `leaf-done`. `leaf-work`
-  is not complete until that close-out decision is handled.
-- **Persistent files live inside one project folder.** Keep the four phase
-  folders and two-digit gate prefixes inside the sprout project folder. For all
-  naming and file-vs-folder-by-count, read `references/layout.md`.
+- **Use the leaf CLI as the body.** Work lives in one `.leaf/` project folder.
+  If no matching sprout has passed ①/②, invoke `leaf-idea`; do not improvise
+  post-Learn gates or create loose phase folders.
+- **Inherit Learn.** Start from `00-status.md`, then read ① Intent and ②
+  Unknowns & Context. Trust them unless a downstream gate forces a return.
+- **Conduct and voice come from `leaf-soul`.** Invoke `leaf-soul` at the start
+  and follow it for reporting, language, fact/guess boundaries, review handoff,
+  and rendered artifact display. `leaf-work` owns gate method and progress.
+  Whenever work needs another LEAF skill — `leaf-idea` for Learn, `leaf-clean`
+  for document cleanup, or `leaf-done` for keep/press/fall close-out — invoke
+  that skill rather than only referencing its file. Use `leaf-profile` when
+  `.leaf/PROFILE.md` needs to be read or updated.
+- **Act by the relevant gate reference.** Identify the current gate, read its
+  reference, tell the user the gate, and follow its pass/return conditions.
+  For ①/② returns use `../leaf-idea/references/gate-01-intent.md` and
+  `../leaf-idea/references/gate-02-unknowns-context.md`; use `references/gates.md`
+  for ③ onward.
+- **Clean before review.** Before review or approval, run
+  `leaf checkpoint <slug> --<gate>` on each gate file you are about to clean,
+  then invoke `leaf-clean` on the touched gate/status files that need a
+  simplicity pass.
+- **Keep status current.** Update `00-status.md` whenever phase, gate, next
+  action, approval need, return, or closure state changes. Keep its `## Overview`
+  aligned with the gate files: when a gate or return changes the purpose, scope,
+  expected output, or split decision, revise the overview in the same pass. Gate
+  files remain authoritative.
+- **Return early when facts change.** Gates loop. Return to the earliest gate
+  invalidated by a discovery and resume only the dependent gates. Log each
+  return to `04-Feedback/10-retrospective/mid-process-discoveries.md` so ⑩
+  Retrospect can review it.
+- **Ask at approval points.** Ordinary gates inside a phase may proceed after
+  self-review. Phase boundaries, high-impact gates, and ⑧ start/pass need
+  explicit user approval unless pre-authorized.
+- **Move and close.** After ⑧ is explicitly passed or delivered, move the same
+  folder from `.leaf/01-sprouts/` to `.leaf/02-leaves/`, update status, and run
+  `leaf doctor`. After ⑩ passes, invoke `leaf-done`.
+- **Use `references/layout.md` before writing files.** It owns folder layout,
+  gate filenames, status values, and file-vs-folder rules.
 
 ## Response shape
 
-Report per `leaf-soul` (overview-first, a **Verify / Decide** list up top, plain
-words). When using this skill, report — starting with the opening preview once ①
-has a one-sentence intent, then the working state.
+Report per `leaf-soul`, then add only the `leaf-work` state the user needs:
 
-**Opening preview** — phrase the four phases as the capability each builds *for
-this specific intent*, not generic labels:
+- current phase/gate and first missing gate;
+- why the next move belongs to this phase;
+- next artifact or action, plus any blocking review decision;
+- task graph or approved Architect snapshot only when entering execution.
 
-- **Learn:** by the end you can judge what this specific work needs — having
-  learned the facts, conventions, and alternatives, not guessed them.
-- **Example:** you can prove one cheap instance right before scaling it up.
-- **Architect:** you can generalize that passed case into reusable structure,
-  task order, and a shippable result.
-- **Feedback:** you can confirm the plan still holds and carry forward what was
-  established and what you learned.
-
-It is orientation, not a fixed plan — keep it short and revise it when the intent
-changes. Then report:
-
-- the current phase and gate, plus the first missing gate, if any;
-- why the next move belongs to Learn, Example, Architect, or Feedback;
-- the proposed next artifact to create or revise;
-- files or sections opened for user review, if any;
-- open questions that block the next gate;
-- a short task graph when entering Architect;
-- the approved Architect snapshot for explicit approval before ⑧ execution;
-- review checks that prove the next pass is useful.
-
-For small requests, compress this into a concise plan and draft. For substantial
-documents, produce the planning artifact first and confirm before full drafting.
+For small requests, compress to conclusion plus next action. For substantial
+documents, produce the gate artifact first and confirm before full drafting.
 
 ## The ③–⑤ engine (the heart)
 
-The middle three gates — ③ Criteria, ④ Wireframe, ⑤ Design — are a single
-**criteria → instance → generator chain**: ③ writes the test before any answer
-exists, ④ locks one concrete instance and its contract, and ⑤ generalizes that
-contract into every valid instance. The one inviolable rule is to never merge
-across a produce/consume edge (③→④, ④→⑤) — keep them separate so their
-disagreement stays visible. When you enter ③, read `references/engine.md` for
-the full mechanics: contract, variation points, the falsification loop, and the
-diagram.
+③ Criteria, ④ Wireframe, and ⑤ Design are one **criteria → instance →
+generator** chain. Do not merge across produce/consume edges (③→④, ④→⑤);
+disagreement must stay visible. When entering ③–⑤, read `references/engine.md`.
 
 ## Reference map
 
 | Read | When |
 |---|---|
-| `../leaf-soul/SKILL.md` | the shared conduct/voice: how to report, show rendered work, hand off reviewables, separate fact from guess, and which language to write |
-| `../leaf-profile/SKILL.md` | the repo-local acquired profile: user language, recurring requirements, mistakes, wrong-answer notes, and facts that apply across leaf work |
+| `../leaf-soul/SKILL.md` | shared conduct, voice, review handoff |
+| `../leaf-profile/SKILL.md` | effective profile and profile updates |
 | `references/gates.md` | when judging gate readiness, creating/revising a gate artifact, handling a return, or needing examples |
 | `references/gate-authoring.md` | when drafting, grilling, revising, or presenting a gate artifact for review or approval |
 | `references/engine.md` | you are inside ③–⑤ and need the full contract / variation point / generator mechanics + diagram |
