@@ -210,14 +210,16 @@ This repository ships Agent Skills:
 |---|---|
 | [`leaf-idea`](skills/leaf-idea/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
 | [`leaf-work`](skills/leaf-work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
+| [`leaf-reversed`](skills/leaf-reversed/SKILL.md) | Reconstructing a complete LEAF record from a finished artifact or result |
 | [`leaf-clean`](skills/leaf-clean/SKILL.md) | Cleaning LEAF documents into simple, complete current reports |
 | [`leaf-done`](skills/leaf-done/SKILL.md) | Deciding whether a finished leaf should stay, be pressed, or fall |
 | [`leaf-soul`](skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
 Install the LEAF skills together as a family — they are not independent.
-`leaf-idea`, `leaf-work`, `leaf-clean`, and `leaf-done` read `leaf-soul` through
-the sibling path `../leaf-soul/SKILL.md`; `leaf-idea` and `leaf-work` also read
-the gate references under `leaf-work` through `../leaf-work/references/`. The
+`leaf-idea`, `leaf-work`, `leaf-reversed`, `leaf-clean`, and `leaf-done` read
+`leaf-soul` through the sibling path `../leaf-soul/SKILL.md`; `leaf-idea` and
+`leaf-work` also read the gate references under `leaf-work` through
+`../leaf-work/references/`. The
 Quick Start command above installs the whole family; installing a single skill
 with `--skill` would leave those cross-skill references broken.
 
