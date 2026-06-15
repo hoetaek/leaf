@@ -1,25 +1,26 @@
 ---
 name: leaf-idea
-description: Use when capturing, triaging, or running LEAF Learn (① Intent and ② Unknowns & Context) on a sprout; trigger on idea backlog, "save this idea", "maybe later", brainstorm fragments, early document/product/research topics, locking intent, surfacing unknowns, reference/benchmark exploration, big-picture mapping, substantial writing or knowledge tasks, bundled ideas that may need splitting, or deciding whether an idea should die, defer, enrich, split, learn, or continue.
+description: Use when capturing, triaging, or deeply learning a sprout through LEAF Learn (① Intent and ② Unknowns & Context); trigger on idea backlog, "save this idea", "maybe later", brainstorm fragments, early document/product/research topics, finding the real question behind a curiosity, surfacing what is worth learning, reference/benchmark exploration, big-picture mapping, substantial writing or knowledge tasks, wanting to understand a topic for its own sake, bundled ideas that may need splitting, or deciding whether an idea should die, defer, enrich, split, or learn.
 ---
 
 # LEAF Idea
 
-`leaf-idea` owns **Learn**: ① Intent and ② Unknowns & Context. It turns a rough
-idea into a sprout whose why, provisional what, unknowns, facts, assumptions,
-and split decision are clear enough for ③ Criteria.
+`leaf-idea` owns **Learn**: ① Intent and ② Unknowns & Context. Learn is where an
+eager learner goes to *understand a topic for its own sake*. ① locks the why (the
+problem definition) and the what (what the output is); ② explores the terrain —
+facts, conventions, prior art, debates, hidden premises — until the user has
+actually learned it and can judge it for themselves. Reaching a next phase is not
+the point; the learning is.
 
 ## Core Model
 
 - A sprout is one possible future leaf, not an inbox item.
-- Learn runs in the same sprout that later continues to ③; do not require a
-  stage move.
-- `leaf-work` takes over at ③ Example after Learn passes, still in the same
-  sprout.
+- Learn is a place to dwell, not a stage to clear. The user may keep learning as
+  long as the topic pulls them; depth is welcome, not waste.
 - Concepts, taxonomies, models, policies, decision records, plans, documents,
-  UI, and code changes can all be valid artifacts. If implementation becomes a
-  separate lifecycle, reviewer, success check, or code surface, split it into a
-  separate sprout.
+  UI, and code changes can all be the thing a sprout is about. If one sprout
+  bundles parts with independent cores, split it so each can be learned on its
+  own.
 - Older compatibility folders may exist as storage data only.
 
 ## First Read
@@ -42,7 +43,7 @@ Read only what the current move needs:
 |---|---|
 | `../leaf-soul/SKILL.md` | always: conduct, language, report shape, fact/guess separation, review handoff |
 | `references/gate-01-intent.md` | ① Intent pass/fail contract before locking intent |
-| `references/gate-02-unknowns-context.md` | ② Unknowns & Context pass/fail contract before closing Learn |
+| `references/gate-02-unknowns-context.md` | ② Unknowns & Context contract before the Learn-rest check |
 | `../leaf-work/references/gate-authoring.md` | drafting, grilling, or revising durable Learn artifacts |
 | `../leaf-work/references/clarity-ledger.md` | choosing the weakest row to aim the next Learn question |
 | `../leaf-work/references/experiment-log.md` | a ② unknown needs an independent probe |
@@ -51,30 +52,38 @@ Read only what the current move needs:
 ## Workflow
 
 1. **Triage before Learn.** Decide whether the idea should `kill`, `defer`,
-   `enrich`, `split`, or run Learn. Capture is cheap; Learn starts only if the
-   idea earns it.
+   `enrich`, `split`, or run Learn. Capture is cheap; Learn starts only when the
+   idea actually pulls at the user.
 2. **Create or resume the sprout.** Use `leaf init` if needed, then
    `leaf new <slug>` unless a matching sprout already exists.
 3. **Capture the snapshot.** In `01-Learn/01-intent.md`, preserve raw wording and
-   current hunch. In `01-Learn/02-unknowns.md`, record checked context and open
+   the current hunch. In `01-Learn/02-unknowns.md`, record checked context and open
    questions. Also update `00-status.md` `## Overview` so a reader can see what
-   this LEAF is doing without opening every gate file.
+   this sprout is exploring without opening every gate file.
 4. **Run ① Intent.** Use `references/gate-01-intent.md` as the contract. Separate
-   raw wording, sharp why, provisional what, and locked intent. Surface guessed
-   facts before locking the intent. When ① changes the why, what, core noun,
-   split decision, or output form, update the status overview in the same turn.
-5. **Run ② Unknowns & Context.** Use `references/gate-02-unknowns-context.md` as the
-   contract. Group unknowns, gather references or internal facts, expose
-   premises, and keep fact/assumption/user-review boundaries visible. When ②
-   changes the viable direction, assumptions, scope, or next choice, update the
-   status overview in the same turn.
-6. **Ask the Learn-close question with the evidence in view.** Before asking the
-   user to review Learn or answer the Learn-close question, invoke `leaf-clean`
-   for the touched Learn/status surface so the user reviews the current report,
-   not draft notes. Then show what was actually gathered so the user judges
-   sufficiency from the files, not from memory. If anything remains, keep the
-   sprout enriched and continue Learn. If the user confirms no Learn-blocking
-   unknowns remain, recommend `continue to Example`.
+   raw wording, the sharp why (the problem definition), the provisional what (what
+   the output is), and the locked intent. Surface guessed facts before locking it.
+   When ① changes the why, the what, the core noun, or the split decision, update
+   the status overview in the same turn.
+5. **Open the learning terrain.** Be the explorer-companion, not a clerk who only
+   files the unknowns the user happens to name. First map what is worth learning
+   here — domain concepts, history, conventions, counter-examples, live debates,
+   surprising connections to other fields — and offer it as a menu, surfacing
+   threads the user did not know to ask about. Then follow the user's curiosity:
+   go deep on the thread they pick, amplify it, and connect it to the next. The
+   menu opens the space wider; it never narrows it.
+6. **Run ② Unknowns & Context.** Use `references/gate-02-unknowns-context.md` as
+   the contract. Group what is worth learning, gather references or internal
+   facts, expose the premises the user is taking for granted, and keep
+   fact/assumption boundaries visible. When ② changes what the user now
+   understands or the scope of the curiosity, update the status overview in the
+   same turn.
+7. **Ask the Learn-rest question with the evidence in view.** Before asking the
+   user to review Learn or answer the rest question, invoke `leaf-clean` for the
+   touched Learn/status surface so the user reviews the current report, not draft
+   notes. Then show what was actually gathered so the user judges from the files,
+   not from memory. Learn does not need to "finish": if a thread still pulls,
+   keep exploring. This is a resting point, not a gate to clear.
 
 Show the gathered references as a file tree first:
 
@@ -87,11 +96,11 @@ covers. An empty or thin tree is evidence too — name it plainly instead of
 hiding it; "no references were needed because <reason>" must be said, not
 implied.
 
-Learn-close question:
+Learn-rest question:
 
-> 정말로 이 일을 판단하고 기준화하기 위해 배우고 알아야 하는 사실을 다
-> 알았나요? 아직 확인해야 할 사실, 참고해야 할 사례, 내부 맥락, 또는
-> 검증하지 않은 가정이 남아 있나요?
+> 알고 싶던 걸 충분히 알게 됐나요? 아직 당신을 끌어당기는 결 — 더 파고 싶은
+> 개념, 보고 싶은 사례, 짚어보고 싶은 논쟁, 확인하지 않은 가정 — 이 남아
+> 있나요?
 
 ## Status Overview
 
@@ -99,44 +108,21 @@ Learn-close question:
 source of truth for detailed reasoning, but it must summarize the current shape:
 
 - `request`: the user's request in the user's words;
-- `purpose`: why this LEAF exists, after ① separates why from what;
+- `purpose`: why this sprout exists, after ① separates why from what;
 - `expected output`: the artifact, decision, model, document, code change, or
-  result this LEAF is currently aiming at;
+  result this sprout is currently aiming at (understanding a concept can itself
+  be the output);
 - `current scope`: what is included, excluded, split, or still undecided;
-- `consistency rule`: reminder that this overview changes when the LEAF changes.
+- `consistency rule`: reminder that this overview changes when the sprout changes.
 
 Do not let `00-status.md` become stale. Whenever `01-intent.md`,
-`02-unknowns.md`, split decisions, Learn-close status, or a later return changes
-what the LEAF is doing, revise the overview before reporting back.
-
-## Learn Handoff
-
-① produces the why, provisional what, and first questions ② must answer before
-the right what can be chosen.
-
-② produces the facts, assumptions, candidate judgments, premises, and explicit
-review items that ③ Criteria consumes.
-
-Do not continue to ③ merely because files exist. Continue only when ① and ② pass
-their gate contracts and the user has answered the Learn-close question.
-
-`leaf-idea` owns the opening preview. Once ① has a one-sentence locked intent,
-and especially when recommending `continue to Example`, phrase the remaining
-phases as what they make possible for this intent:
-
-- **Learn:** judge what this work needs from learned facts, not guesses.
-- **Example:** prove one cheap instance right before scaling.
-- **Architect:** generalize the passed case into structure, task order, and a
-  shippable result.
-- **Feedback:** confirm the plan still holds and carry forward what was learned.
-
-Keep it orientation, not a fixed plan. Do not repeat this preview in
-`leaf-work`.
+`02-unknowns.md`, split decisions, Learn-rest status, or a later return changes
+what the sprout is exploring, revise the overview before reporting back.
 
 ## Split Check
 
 Run this before creating a sprout, when the idea branches, when the user adds a
-new direction, and before recommending ③.
+new direction, and before going deep on a topic.
 
 | Verdict | Use when |
 |---|---|
@@ -145,9 +131,8 @@ new direction, and before recommending ③.
 | `ask first` | splitting would decide the user's intent: the noun drifts, output form is exploratory, or a quieter sibling is not concrete enough |
 
 If split is clear and the user asked to capture the work, create or resume
-sibling sprouts. Otherwise recommend the split and name candidates. Do not carry
-a known mixed sprout into Example as one leaf unless the grouping reason is
-explicit.
+sibling sprouts. Otherwise recommend the split and name candidates. Do not learn
+a known mixed sprout as one topic unless the grouping reason is explicit.
 
 ## Status Labels
 
@@ -157,7 +142,7 @@ Use these in `00-status.md`:
 |---|---|
 | `captured` | raw idea saved with minimal context |
 | `enriched` | meaningful context, references, premises, or alternatives were added |
-| `ready-for-example` | ① and ② passed; ③ Criteria can start in `leaf-work` in the same sprout |
+| `explored` | the terrain has been learned deeply enough that the user can judge it for themselves; the topic can rest here |
 | `deferred` | parked until a named condition changes |
 | `killed` | not worth pursuing now |
 
@@ -167,11 +152,11 @@ stage reached through an explicit leaf CLI action with a fallen reason.
 ## Boundaries
 
 - Work only in `00-status.md` and `01-Learn/` from this skill.
-- Do not fill ③ Criteria, ④ Wireframe, ⑤ Design, or tasks here.
-- If the user wants to build the selected artifact, draft, task graph, or
-  execution path now, switch to `leaf-work`.
-- Reference and benchmark exploration belongs in ②; building from those
-  references belongs in later gates.
+- Do not fill ③ Criteria, ④ Wireframe, ⑤ Design, or tasks here. Building the
+  artifact, draft, task graph, or execution path is a different kind of work for
+  a different skill; Learn stays learning.
+- Reference and benchmark exploration is learning and belongs in ②; building
+  from those references is not Learn's job.
 
 ## Response Shape
 
@@ -184,5 +169,5 @@ Include briefly:
 - evidence checked
 - what was captured or changed
 - split/group/ask-first reasoning when relevant
-- recommendation: `kill`, `defer`, `enrich`, `split`, or `continue to Example`
-- next action if the user resumes later
+- recommendation: `kill`, `defer`, `enrich`, `split`, or `keep exploring`
+- next thread the user might pull if they resume later

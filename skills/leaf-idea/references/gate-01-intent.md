@@ -95,9 +95,9 @@ Gate to continue:
   wording. If the why is stable but the what could change, the locked intent
   names the wrong state to correct or the distinction to learn, and keeps the
   solution direction provisional.
-- The provisional what names the intended artifact/result clearly enough that
-  ③ can write criteria for it. Concept/model outputs are allowed; code changes
-  are not silently bundled into a concept leaf.
+- The provisional what names the intended artifact/result clearly enough to learn
+  what it needs. Concept/model outputs are allowed; code changes are not silently
+  bundled into a concept leaf.
 - At least one ② question names what must be learned to choose the right what.
 - Separate ideas are split or explicitly grouped.
 - The core noun is named and stable. If it drifts across answers, halt and ask
