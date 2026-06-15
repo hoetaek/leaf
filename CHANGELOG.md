@@ -6,6 +6,15 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## Unreleased
+
+- `leaf list`'s interactive browser can now fall items in place: press `F` to
+  move the marked sprouts/leaves (or the current row) to `.leaf/03-fallen/`. A
+  centered prompt collects one shared reason for the batch — empty defaults to
+  `fallen via leaf list` — with `Enter` to confirm and `Esc` to cancel. Already
+  fallen or pressed rows are skipped, and per-item failures are reported without
+  aborting the rest.
+
 ## 0.6.1 - 2026-06-12
 
 - `leaf checkpoint` now snapshots folder-based gate sources

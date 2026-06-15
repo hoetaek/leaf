@@ -168,7 +168,11 @@ reasons such as `abandoned`, `superseded`, `parked`, `split`, `invalidated`, or
 `completed-not-reference-worthy`, while still recording project-specific detail.
 
 `leaf list` shows the current stage inventory. Non-TTY output uses a deterministic
-`STAGE` table; `leaf list --json` outputs top-level `stages`.
+`STAGE` table; `leaf list --json` outputs top-level `stages`. In an interactive
+terminal it opens a browser for navigating, filtering, previewing, and
+multi-selecting rows; press `F` to fall the marked sprouts/leaves (or the current
+row) — a centered prompt collects one shared reason, `Enter` confirms and `Esc`
+cancels.
 
 `leaf tree` renders the current `.leaf/` workspace as a bounded terminal tree:
 completed leaves fill the green crown, per-leaf `pressed.md` digests appear as

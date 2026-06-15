@@ -35,6 +35,7 @@ pub(crate) enum Mode {
     List,
     RangeSelect,
     FilterInput,
+    FallInput,
     Review,
 }
 
@@ -69,6 +70,7 @@ pub(crate) enum Outcome {
     Refresh,
     CopyRow { slug: String, text: String },
     CopyRows { count: usize, text: String },
+    FallRows { slugs: Vec<String>, reason: String },
 }
 
 #[derive(Debug, Clone)]
@@ -82,6 +84,8 @@ pub(crate) struct AppState {
     status_line: String,
     notice: String,
     selected_keys: HashSet<String>,
+    fall_reason: String,
+    fall_targets: Vec<String>,
     range_anchor: Option<usize>,
     mouse_anchor: Option<usize>,
     preview_cache: RefCell<HashMap<String, Preview>>,
@@ -160,6 +164,7 @@ const STAGE_FILTERS: [StageFilter; 4] = [
 ];
 const DEFAULT_REVIEW_BODY_HEIGHT: usize = 10;
 const DEFAULT_REVIEW_BODY_WIDTH: usize = 80;
+const DEFAULT_FALL_REASON: &str = "fallen via leaf list";
 
 impl ListRow {
     fn from_item(inventory: &Inventory, item: &InventoryItem) -> Self {
@@ -258,6 +263,8 @@ impl AppState {
             status_line: String::new(),
             notice: String::new(),
             selected_keys: HashSet::new(),
+            fall_reason: String::new(),
+            fall_targets: Vec::new(),
             range_anchor: None,
             mouse_anchor: None,
             preview_cache: RefCell::new(HashMap::new()),
@@ -367,12 +374,13 @@ impl AppState {
             Mode::List => self.handle_list_key(input),
             Mode::RangeSelect => self.handle_range_key(input),
             Mode::FilterInput => self.handle_filter_key(input),
+            Mode::FallInput => self.handle_fall_key(input),
             Mode::Review => self.handle_review_key(input),
         }
     }
 
     pub(crate) fn handle_mouse(&mut self, input: MouseInput) -> Outcome {
-        if matches!(self.mode, Mode::FilterInput) {
+        if matches!(self.mode, Mode::FilterInput | Mode::FallInput) {
             return Outcome::Continue;
         }
         if self.mode == Mode::Review {
@@ -450,6 +458,7 @@ impl AppState {
             KeyInput::Char('v') => self.begin_range_select(),
             KeyInput::Char('a') => self.toggle_all_visible_selection(),
             KeyInput::Char('y') => return self.copy_marked_or_current_row(),
+            KeyInput::Char('F') => self.begin_fall(),
             KeyInput::Char('r') => return Outcome::Refresh,
             KeyInput::Enter => self.open_review(),
             KeyInput::Char('q') => return Outcome::Quit,
@@ -810,6 +819,70 @@ impl AppState {
         Outcome::Continue
     }
 
+    fn begin_fall(&mut self) {
+        let marked = self.marked_copy_rows();
+        let candidates: Vec<&ListRow> = if marked.is_empty() {
+            self.selected_row().into_iter().collect()
+        } else {
+            marked
+        };
+        let slugs: Vec<String> = candidates
+            .into_iter()
+            .filter(|row| fall_eligible(row.stage_dir()))
+            .map(|row| row.slug().to_string())
+            .collect();
+        if slugs.is_empty() {
+            self.set_notice("no sprout/leaf to fall");
+            return;
+        }
+        self.fall_targets = slugs;
+        self.fall_reason.clear();
+        self.mode = Mode::FallInput;
+    }
+
+    fn handle_fall_key(&mut self, input: KeyInput) -> Outcome {
+        match input {
+            KeyInput::Char(ch) => self.fall_reason.push(ch),
+            KeyInput::Backspace => {
+                self.fall_reason.pop();
+            }
+            KeyInput::Esc => {
+                self.fall_targets.clear();
+                self.fall_reason.clear();
+                self.mode = Mode::List;
+            }
+            KeyInput::Enter => {
+                let trimmed = self.fall_reason.trim();
+                let reason = if trimmed.is_empty() {
+                    DEFAULT_FALL_REASON.to_string()
+                } else {
+                    trimmed.to_string()
+                };
+                let slugs = std::mem::take(&mut self.fall_targets);
+                self.fall_reason.clear();
+                self.mode = Mode::List;
+                return Outcome::FallRows { slugs, reason };
+            }
+            KeyInput::Up
+            | KeyInput::Down
+            | KeyInput::Left
+            | KeyInput::Right
+            | KeyInput::PageUp
+            | KeyInput::PageDown
+            | KeyInput::HalfPageUp
+            | KeyInput::HalfPageDown => {}
+        }
+        Outcome::Continue
+    }
+
+    pub(crate) fn fall_reason(&self) -> &str {
+        &self.fall_reason
+    }
+
+    pub(crate) fn fall_targets(&self) -> &[String] {
+        &self.fall_targets
+    }
+
     fn move_selection_up(&mut self) {
         self.selected_index = self.selected_index.saturating_sub(1);
         self.clamp_selected_index();
@@ -1019,6 +1092,10 @@ fn display_optional(value: &Option<String>, fallback: &str) -> String {
 
 fn row_word(count: usize) -> &'static str {
     if count == 1 { "row" } else { "rows" }
+}
+
+fn fall_eligible(stage_dir: StageDir) -> bool {
+    matches!(stage_dir, StageDir::Sprouts | StageDir::Leaves)
 }
 
 fn max_review_scroll(review: &ReviewState, body_height: usize, body_width: usize) -> usize {
@@ -1825,6 +1902,131 @@ mod tests {
     }
 
     #[test]
+    fn tui_app_f_on_sprout_enters_fall_input_mode() {
+        let inventory = inventory_with_items(vec![leaf_item(
+            StageDir::Sprouts,
+            "draft",
+            complete_leaf_status(),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Char('F')), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::FallInput);
+        assert_eq!(app.fall_targets(), &["draft".to_string()]);
+    }
+
+    #[test]
+    fn tui_app_f_on_fallen_row_stays_in_list_with_notice() {
+        let inventory = inventory_with_items(vec![leaf_item(
+            StageDir::Fallen,
+            "gone",
+            complete_leaf_status(),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        assert_eq!(app.handle_key(KeyInput::Char('F')), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::List);
+        assert!(app.fall_targets().is_empty());
+        assert!(app.notice().contains("no sprout/leaf"));
+    }
+
+    #[test]
+    fn tui_app_fall_input_enter_emits_fall_rows_with_typed_reason() {
+        let inventory = inventory_with_items(vec![leaf_item(
+            StageDir::Sprouts,
+            "draft",
+            complete_leaf_status(),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('F'));
+        app.handle_key(KeyInput::Char('d'));
+        app.handle_key(KeyInput::Char('e'));
+        app.handle_key(KeyInput::Char('a'));
+        app.handle_key(KeyInput::Char('d'));
+
+        assert_eq!(
+            app.handle_key(KeyInput::Enter),
+            Outcome::FallRows {
+                slugs: vec!["draft".to_string()],
+                reason: "dead".to_string(),
+            }
+        );
+        assert_eq!(app.mode(), Mode::List);
+        assert!(app.fall_targets().is_empty());
+    }
+
+    #[test]
+    fn tui_app_fall_input_empty_reason_uses_default() {
+        let inventory = inventory_with_items(vec![leaf_item(
+            StageDir::Leaves,
+            "active",
+            complete_leaf_status(),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('F'));
+        assert_eq!(
+            app.handle_key(KeyInput::Enter),
+            Outcome::FallRows {
+                slugs: vec!["active".to_string()],
+                reason: "fallen via leaf list".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn tui_app_fall_input_esc_cancels_without_outcome() {
+        let inventory = inventory_with_items(vec![leaf_item(
+            StageDir::Sprouts,
+            "draft",
+            complete_leaf_status(),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('F'));
+        app.handle_key(KeyInput::Char('x'));
+        assert_eq!(app.handle_key(KeyInput::Esc), Outcome::Continue);
+        assert_eq!(app.mode(), Mode::List);
+        assert!(app.fall_targets().is_empty());
+        assert_eq!(app.fall_reason(), "");
+    }
+
+    #[test]
+    fn tui_app_fall_input_backspace_edits_reason() {
+        let inventory = inventory_with_slugs(&["active"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char('F'));
+        app.handle_key(KeyInput::Char('a'));
+        app.handle_key(KeyInput::Char('b'));
+        app.handle_key(KeyInput::Backspace);
+        assert_eq!(app.fall_reason(), "a");
+    }
+
+    #[test]
+    fn tui_app_fall_marks_multiple_rows_with_one_shared_reason() {
+        let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
+        let mut app = AppState::from_inventory(&inventory);
+
+        app.handle_key(KeyInput::Char(' '));
+        app.handle_key(KeyInput::Down);
+        app.handle_key(KeyInput::Down);
+        app.handle_key(KeyInput::Char(' '));
+        assert_eq!(app.selected_row_count(), 2);
+
+        app.handle_key(KeyInput::Char('F'));
+        app.handle_key(KeyInput::Char('z'));
+        assert_eq!(
+            app.handle_key(KeyInput::Enter),
+            Outcome::FallRows {
+                slugs: vec!["alpha".to_string(), "gamma".to_string()],
+                reason: "z".to_string(),
+            }
+        );
+    }
+
+    #[test]
     fn tui_app_v_starts_range_mode_and_j_k_extend_selected_range() {
         let inventory = inventory_with_slugs(&["alpha", "beta", "gamma"]);
         let mut app = AppState::from_inventory(&inventory);
@@ -2343,6 +2545,24 @@ mod tests {
         );
         assert_eq!(filter_app.mode(), Mode::FilterInput);
         assert_eq!(filter_app.selected_row_count(), 0);
+    }
+
+    #[test]
+    fn tui_app_mouse_is_ignored_in_fall_input_mode() {
+        let inventory = inventory_with_items(vec![
+            leaf_item(StageDir::Sprouts, "draft", complete_leaf_status()),
+            leaf_item(StageDir::Sprouts, "other", complete_leaf_status()),
+        ]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.handle_key(KeyInput::Char('F'));
+        assert_eq!(app.mode(), Mode::FallInput);
+
+        assert_eq!(
+            app.handle_mouse(MouseInput::Down { visible_index: 1 }),
+            Outcome::Continue
+        );
+        assert_eq!(app.selected_index(), 0);
+        assert_eq!(app.mode(), Mode::FallInput);
     }
 
     fn inventory_with_slugs(slugs: &[&str]) -> Inventory {
