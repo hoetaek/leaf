@@ -6,7 +6,7 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
-## Unreleased
+## 0.7.0 - 2026-06-16
 
 - Renamed the `leaf-idea` skill to `leaf-learn` to match what it owns: the Learn
   phase (① Intent, ② Unknowns & Context). Capture and triage stay in the same
