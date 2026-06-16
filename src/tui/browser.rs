@@ -20,6 +20,7 @@ use std::time::{Duration, Instant};
 trait TuiAdapter {
     fn load_inventory(&self) -> Result<Inventory>;
     fn copy_to_clipboard(&self, text: &str) -> Result<()>;
+    fn fall(&self, slug: &str, reason: &str) -> Result<()>;
 }
 
 const EVENT_POLL_INTERVAL: Duration = Duration::from_millis(100);
@@ -40,6 +41,11 @@ impl TuiAdapter for RealTuiAdapter {
         clipboard
             .set_text(text.to_string())
             .context("copy row to clipboard")?;
+        Ok(())
+    }
+
+    fn fall(&self, slug: &str, reason: &str) -> Result<()> {
+        crate::lifecycle::fall_leaf(&self.repo_root, slug, reason)?;
         Ok(())
     }
 }
@@ -241,6 +247,30 @@ fn handle_outcome<A: TuiAdapter>(app: &mut AppState, adapter: &A, outcome: Outco
                 app.set_notice(format!("refresh failed: {err}"));
             }
         },
+        Outcome::FallRows { slugs, reason } => {
+            let mut succeeded = 0usize;
+            let mut failures: Vec<String> = Vec::new();
+            for slug in &slugs {
+                match adapter.fall(slug, &reason) {
+                    Ok(()) => succeeded += 1,
+                    Err(err) => failures.push(format!("{slug}: {err}")),
+                }
+            }
+
+            let mut notice = format!("fell {succeeded} {}", item_word(succeeded));
+            if !failures.is_empty() {
+                notice.push_str(&format!(
+                    ", {} failed ({})",
+                    failures.len(),
+                    failures.join("; ")
+                ));
+            }
+            match adapter.load_inventory() {
+                Ok(inventory) => app.replace_inventory(&inventory),
+                Err(err) => notice.push_str(&format!("; reload failed: {err}")),
+            }
+            app.set_notice(notice);
+        }
     }
     Ok(())
 }
@@ -285,6 +315,10 @@ fn row_word(count: usize) -> &'static str {
     if count == 1 { "row" } else { "rows" }
 }
 
+fn item_word(count: usize) -> &'static str {
+    if count == 1 { "item" } else { "items" }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -302,6 +336,8 @@ mod tests {
         reloaded: RefCell<Option<Inventory>>,
         copied: RefCell<Vec<String>>,
         copy_error: Option<String>,
+        falled: RefCell<Vec<(String, String)>>,
+        fall_error_slug: Option<String>,
     }
 
     impl RecordingTuiAdapter {
@@ -310,6 +346,8 @@ mod tests {
                 reloaded: RefCell::new(None),
                 copied: RefCell::new(Vec::new()),
                 copy_error: None,
+                falled: RefCell::new(Vec::new()),
+                fall_error_slug: None,
             }
         }
 
@@ -324,8 +362,17 @@ mod tests {
             self
         }
 
+        fn with_fall_error(mut self, slug: &str) -> Self {
+            self.fall_error_slug = Some(slug.to_string());
+            self
+        }
+
         fn copied_texts(&self) -> Vec<String> {
             self.copied.borrow().clone()
+        }
+
+        fn falled_calls(&self) -> Vec<(String, String)> {
+            self.falled.borrow().clone()
         }
     }
 
@@ -344,6 +391,85 @@ mod tests {
             }
             Ok(())
         }
+
+        fn fall(&self, slug: &str, reason: &str) -> Result<()> {
+            self.falled
+                .borrow_mut()
+                .push((slug.to_string(), reason.to_string()));
+            if self.fall_error_slug.as_deref() == Some(slug) {
+                anyhow::bail!("already fallen: {slug}");
+            }
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn fall_rows_outcome_falls_each_slug_reloads_and_reports_count() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let initial = test_inventory(
+            root.path(),
+            vec![
+                test_item(root.path(), StageDir::Sprouts, "alpha"),
+                test_item(root.path(), StageDir::Sprouts, "beta"),
+            ],
+        );
+        let reloaded = test_inventory(root.path(), vec![]);
+        let mut app = AppState::from_inventory(&initial);
+        let adapter = RecordingTuiAdapter::success(root.path().to_path_buf(), reloaded);
+
+        handle_outcome(
+            &mut app,
+            &adapter,
+            Outcome::FallRows {
+                slugs: vec!["alpha".to_string(), "beta".to_string()],
+                reason: "cleanup".to_string(),
+            },
+        )
+        .expect("fall rows outcome");
+
+        assert_eq!(
+            adapter.falled_calls(),
+            vec![
+                ("alpha".to_string(), "cleanup".to_string()),
+                ("beta".to_string(), "cleanup".to_string()),
+            ]
+        );
+        assert_eq!(app.row_count(), 0);
+        assert_eq!(app.notice(), "fell 2 items");
+    }
+
+    #[test]
+    fn fall_rows_outcome_reports_partial_failure_and_still_reloads() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let initial = test_inventory(
+            root.path(),
+            vec![
+                test_item(root.path(), StageDir::Sprouts, "alpha"),
+                test_item(root.path(), StageDir::Sprouts, "beta"),
+            ],
+        );
+        let reloaded = test_inventory(
+            root.path(),
+            vec![test_item(root.path(), StageDir::Sprouts, "beta")],
+        );
+        let mut app = AppState::from_inventory(&initial);
+        let adapter = RecordingTuiAdapter::success(root.path().to_path_buf(), reloaded)
+            .with_fall_error("beta");
+
+        handle_outcome(
+            &mut app,
+            &adapter,
+            Outcome::FallRows {
+                slugs: vec!["alpha".to_string(), "beta".to_string()],
+                reason: "cleanup".to_string(),
+            },
+        )
+        .expect("fall rows outcome");
+
+        assert_eq!(app.row_count(), 1);
+        assert!(app.notice().contains("fell 1 item"));
+        assert!(app.notice().contains("1 failed"));
+        assert!(app.notice().contains("beta"));
     }
 
     #[test]

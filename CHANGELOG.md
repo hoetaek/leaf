@@ -6,6 +6,26 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.7.0 - 2026-06-16
+
+- Renamed the `leaf-idea` skill to `leaf-learn` to match what it owns: the Learn
+  phase (① Intent, ② Unknowns & Context). Capture and triage stay in the same
+  skill as the cheap front door to learning. Sibling skills (`leaf-work`,
+  `leaf-reversed`) and the README now reference `leaf-learn`.
+- `leaf-learn`'s ② Unknowns & Context now runs as a parallel fan-out: four scouts
+  — Terrain (what exists), Method (how it's done), Judgment (where it forks), and
+  Context (why it's this way) — search the topic concurrently and write findings
+  to `01-Learn/02-references/`. The leader synthesizes them into a reading map
+  (which threads to read first to find the 실마리) rather than handing over an
+  answer, and quizzes the user on the core judgments before resting Learn so that
+  receiving references is not mistaken for having learned them.
+- `leaf list`'s interactive browser can now fall items in place: press `F` to
+  move the marked sprouts/leaves (or the current row) to `.leaf/03-fallen/`. A
+  centered prompt collects one shared reason for the batch — empty defaults to
+  `fallen via leaf list` — with `Enter` to confirm and `Esc` to cancel. Already
+  fallen or pressed rows are skipped, and per-item failures are reported without
+  aborting the rest.
+
 ## 0.6.1 - 2026-06-12
 
 - `leaf checkpoint` now snapshots folder-based gate sources

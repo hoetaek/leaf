@@ -7,7 +7,7 @@ use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
+use ratatui::widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table};
 use std::ops::Range;
 use std::sync::OnceLock;
 use url::Url;
@@ -73,6 +73,52 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
         }
     }
     draw_status(frame, chunks.status, app);
+
+    if app.mode() == Mode::FallInput {
+        draw_fall_modal(frame, area, app);
+    }
+}
+
+fn draw_fall_modal(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
+    let targets = app.fall_targets();
+    let count = targets.len();
+    let preview = if targets.len() > 3 {
+        format!("{}, …", targets[..3].join(", "))
+    } else {
+        targets.join(", ")
+    };
+
+    let lines = vec![
+        Line::styled(
+            format!("Fall {count} {}", if count == 1 { "item" } else { "items" }),
+            strong_style(),
+        ),
+        Line::styled(preview, dim_style()),
+        Line::raw(""),
+        Line::raw(format!("reason: {}", app.fall_reason())),
+        Line::raw(""),
+        Line::styled("Enter confirm   ·   Esc cancel", dim_style()),
+    ];
+
+    let modal = centered_rect(area, 60, lines.len() as u16 + 2);
+    frame.render_widget(Clear, modal);
+    frame.render_widget(
+        Paragraph::new(lines).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Fall")
+                .border_style(strong_style().fg(Color::Yellow)),
+        ),
+        modal,
+    );
+}
+
+fn centered_rect(area: Rect, width: u16, height: u16) -> Rect {
+    let width = width.min(area.width);
+    let height = height.min(area.height);
+    let x = area.x + (area.width.saturating_sub(width)) / 2;
+    let y = area.y + (area.height.saturating_sub(height)) / 2;
+    Rect::new(x, y, width, height)
 }
 
 fn list_chunks(area: Rect) -> ListChunks {
@@ -400,16 +446,21 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             "range {selected_count} selected  j/k extend  v/Esc done  y copy  q quit  {}",
             app.status_line()
         ),
+        Mode::FallInput => format!(
+            "fall reason: {}  Enter confirm  Esc cancel  Backspace delete  {}",
+            app.fall_reason(),
+            app.status_line()
+        ),
         Mode::Review => {
             "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  drag select/copy text  Esc/q back"
                 .to_string()
         }
         Mode::List if selected_count > 0 => format!(
-            "{selected_count} selected  Space toggle  v range  a all  y copy  Esc clear  q quit  {}",
+            "{selected_count} selected  Space toggle  v range  a all  y copy  F fall  Esc clear  q quit  {}",
             app.status_line()
         ),
         Mode::List => format!(
-            "j/k up/down  h/l stage  y copy  Space select  v range  a all  / filter  p preview  r refresh  q quit  mouse drag  {}",
+            "j/k up/down  h/l stage  y copy  F fall  Space select  v range  a all  / filter  p preview  r refresh  q quit  mouse drag  {}",
             app.status_line()
         ),
     };
@@ -2033,6 +2084,60 @@ mod tests {
         assert_eq!(padded.width, 76);
         assert_eq!(padded.y, 1);
         assert_eq!(padded.height, 8);
+    }
+
+    #[test]
+    fn fall_input_mode_renders_centered_modal_with_reason_and_hints() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            StageDir::Sprouts,
+            "draft",
+            status(
+                ParseState::Ok,
+                Some("sprout"),
+                Some("learn"),
+                Some("intent"),
+            ),
+        )]);
+        let mut app = AppState::from_inventory(&inventory);
+        app.handle_key(KeyInput::Char('F'));
+        app.handle_key(KeyInput::Char('h'));
+        app.handle_key(KeyInput::Char('i'));
+
+        let text = buffer_text(120, 24, &app);
+        assert!(text.contains("Fall"), "modal title missing: {text}");
+        assert!(text.contains("reason:"), "reason line missing: {text}");
+        assert!(text.contains("hi"), "typed reason missing: {text}");
+        assert!(
+            text.contains("Enter") && text.contains("Esc"),
+            "confirm/cancel hint missing: {text}"
+        );
+        assert!(
+            text.contains("draft"),
+            "target slug preview missing: {text}"
+        );
+    }
+
+    #[test]
+    fn list_status_hint_includes_fall_shortcut() {
+        let fixture = RenderFixture::new();
+        let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
+            StageDir::Sprouts,
+            "draft",
+            status(
+                ParseState::Ok,
+                Some("sprout"),
+                Some("learn"),
+                Some("intent"),
+            ),
+        )]);
+        let app = AppState::from_inventory(&inventory);
+
+        let text = buffer_text(200, 24, &app);
+        assert!(
+            text.contains("F fall"),
+            "status hint missing F fall: {text}"
+        );
     }
 
     fn strip_osc8(text: &str) -> String {

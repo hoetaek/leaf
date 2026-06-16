@@ -1,0 +1,7 @@
+interface:
+  display_name: "LEAF Reversed"
+  short_description: "Reconstruct LEAF records from finished work"
+  default_prompt: "Use $leaf-reversed to inspect a finished artifact and reconstruct a complete evidence-based LEAF record from Learn through Feedback."
+
+policy:
+  allow_implicit_invocation: true
