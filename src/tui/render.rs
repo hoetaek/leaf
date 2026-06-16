@@ -2092,7 +2092,12 @@ mod tests {
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
             StageDir::Sprouts,
             "draft",
-            status(ParseState::Ok, Some("sprout"), Some("learn"), Some("intent")),
+            status(
+                ParseState::Ok,
+                Some("sprout"),
+                Some("learn"),
+                Some("intent"),
+            ),
         )]);
         let mut app = AppState::from_inventory(&inventory);
         app.handle_key(KeyInput::Char('F'));
@@ -2107,7 +2112,10 @@ mod tests {
             text.contains("Enter") && text.contains("Esc"),
             "confirm/cancel hint missing: {text}"
         );
-        assert!(text.contains("draft"), "target slug preview missing: {text}");
+        assert!(
+            text.contains("draft"),
+            "target slug preview missing: {text}"
+        );
     }
 
     #[test]
@@ -2116,12 +2124,20 @@ mod tests {
         let inventory = fixture.inventory_with_items(vec![fixture.leaf_item(
             StageDir::Sprouts,
             "draft",
-            status(ParseState::Ok, Some("sprout"), Some("learn"), Some("intent")),
+            status(
+                ParseState::Ok,
+                Some("sprout"),
+                Some("learn"),
+                Some("intent"),
+            ),
         )]);
         let app = AppState::from_inventory(&inventory);
 
         let text = buffer_text(200, 24, &app);
-        assert!(text.contains("F fall"), "status hint missing F fall: {text}");
+        assert!(
+            text.contains("F fall"),
+            "status hint missing F fall: {text}"
+        );
     }
 
     fn strip_osc8(text: &str) -> String {
