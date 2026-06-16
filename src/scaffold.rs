@@ -40,11 +40,34 @@ const FILES: &[(&str, &str)] = &[
     ),
     (
         "01-Learn/02-unknowns.md",
-        "# Unknowns And Context\n\n## Domain concepts\n\n## Standards and conventions\n\n## External facts\n\n## Internal facts\n",
+        "# Unknowns And Context\n\n\
+         ② is gathered by four parallel scouts; keep what each finds under the\n\
+         matching heading, then summarize the load-bearing answers here with their\n\
+         source.\n\n\
+         ## A. Terrain — what exists (refs, concepts, internal assets, tools)\n\n\
+         ## B. Method — how it's done (best practice, cases, anti-patterns)\n\n\
+         ## C. Judgment — where it forks (trade-offs, debates, hidden premises)\n\n\
+         ## D. Context — why it's this way (history, recent change, analogies, stakeholders)\n",
     ),
     (
         "01-Learn/02-references/README.md",
-        "# References\n\nLearn always builds context here — this is not a lazy, fill-when-stuck folder. Pull both external references (comparable cases, prior art, authoritative sources) and internal ones (your own documents, data, prior decisions) into context files, one folder or file per source, kept in a form you can see. Then summarize only what the work truly needs out into ../02-unknowns.md, with its source.\n",
+        "# References\n\n\
+         Learn always builds context here — this is not a lazy, fill-when-stuck\n\
+         folder. ② runs as four parallel scouts, each writing what it finds to this\n\
+         folder, one file per topic named for what it covers:\n\n\
+         - A. Terrain — what exists: external refs (comparable cases, prior art,\n\
+           authoritative sources), domain concepts, internal assets (your own\n\
+           documents, data, prior decisions), tools.\n\
+         - B. Method — how it's done: best practices, real cases/benchmarks,\n\
+           failure cases and anti-patterns.\n\
+         - C. Judgment — where it forks: trade-offs and selection criteria, live\n\
+           debates, hidden premises. Never skip this one — it is what turns\n\
+           collected material into a decision.\n\
+         - D. Context — why it's this way: history, recent changes, analogies from\n\
+           adjacent fields, stakeholders.\n\n\
+         Each scout returns grounds (what it found and where), not a verdict. Then\n\
+         summarize only what the work truly needs out into ../02-unknowns.md, with\n\
+         its source, as a reading map rather than an answer.\n",
     ),
     (
         "02-Example/03-criteria.md",
