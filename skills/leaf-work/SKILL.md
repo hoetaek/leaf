@@ -6,9 +6,9 @@ description: |
   slice the task graph, draft or execute, and review. Use for documents, essays,
   articles, memos, research papers, proposals, reports, specs, study notes,
   presentations, prototypes, code, or mixed deliverables in a repo-local `.leaf/`
-  workspace. Enter after ① Intent and ② Unknowns & Context pass in `leaf-idea`.
+  workspace. Enter after ① Intent and ② Unknowns & Context pass in `leaf-learn`.
   Trigger on criteria, 와이어프레임, 설계, task graph, 작업 쪼개기, 초안 작성,
-  실행, 리뷰, or 검토 절차. For vague, early, or idea-stage work, use `leaf-idea`
+  실행, 리뷰, or 검토 절차. For vague, early, or idea-stage work, use `leaf-learn`
   first.
 ---
 
@@ -25,33 +25,33 @@ LEAF closes four kinds of uncertainty in order:
 
 | Phase | What it makes you able to do | Gates |
 |---|---|---|
-| **Learn** | Judge what the work needs — learned, not guessed *(run in `leaf-idea`; inherited here)* | ① Intent · ② Unknowns & Context |
+| **Learn** | Judge what the work needs — learned, not guessed *(run in `leaf-learn`; inherited here)* | ① Intent · ② Unknowns & Context |
 | **Example** | Prove one cheap instance right before scaling | ③ Criteria · ④ Wireframe |
 | **Architect** | Generalize that instance into a shippable generator | ⑤ Design · ⑥ Critic · ⑦ Tasks · ⑧ Artifact |
 | **Feedback** | Confirm it still holds, then settle what was established and what was learned | ⑨ Review/sync · ⑩ Retrospect |
 
-`leaf-work` starts after `leaf-idea` has passed ① Intent and ② Unknowns &
+`leaf-work` starts after `leaf-learn` has passed ① Intent and ② Unknowns &
 Context. It carries the same sprout from ③ through ⑧, moves passed work to
 `.leaf/02-leaves/` before ⑨, and invokes `leaf-done` after ⑩.
 
 ## Always-on rules
 
 - **Use the leaf CLI as the body.** Work lives in one `.leaf/` project folder.
-  If no matching sprout has passed ①/②, invoke `leaf-idea`; do not improvise
+  If no matching sprout has passed ①/②, invoke `leaf-learn`; do not improvise
   post-Learn gates or create loose phase folders.
 - **Inherit Learn.** Start from `00-status.md`, then read ① Intent and ②
   Unknowns & Context. Trust them unless a downstream gate forces a return.
 - **Conduct and voice come from `leaf-soul`.** Invoke `leaf-soul` at the start
   and follow it for reporting, language, fact/guess boundaries, review handoff,
   and rendered artifact display. `leaf-work` owns gate method and progress.
-  Whenever work needs another LEAF skill — `leaf-idea` for Learn, `leaf-clean`
+  Whenever work needs another LEAF skill — `leaf-learn` for Learn, `leaf-clean`
   for document cleanup, or `leaf-done` for keep/press/fall close-out — invoke
   that skill rather than only referencing its file. Use `leaf-profile` when
   `.leaf/PROFILE.md` needs to be read or updated.
 - **Act by the relevant gate reference.** Identify the current gate, read its
   reference, tell the user the gate, and follow its pass/return conditions.
-  For ①/② returns use `../leaf-idea/references/gate-01-intent.md` and
-  `../leaf-idea/references/gate-02-unknowns-context.md`; use `references/gates.md`
+  For ①/② returns use `../leaf-learn/references/gate-01-intent.md` and
+  `../leaf-learn/references/gate-02-unknowns-context.md`; use `references/gates.md`
   for ③ onward.
 - **Clean before review.** Before review or approval, run
   `leaf checkpoint <slug> --<gate>` on each gate file you are about to clean,

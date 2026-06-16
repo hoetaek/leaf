@@ -52,7 +52,7 @@ leaf init
 leaf new my-first-idea
 ```
 
-Ask your agent to use `leaf-idea` to capture an idea and run the Learn phase on a
+Ask your agent to use `leaf-learn` to capture an idea and run the Learn phase on a
 sprout (lock ① Intent, resolve ② Unknowns & Context); use `leaf-work` to carry a
 sprout from ③ Example through ⑧ Artifact / Execution. After ⑧ passes,
 `leaf-work` moves the sprout into leaves before Feedback. Immediately after ⑩
@@ -89,7 +89,7 @@ LEAF closes uncertainty in order:
 | Feedback | The result still holds, and the lessons carry forward |
 
 The Learn gate contract lives in
-[`skills/leaf-idea`](skills/leaf-idea/SKILL.md); Example onward lives in
+[`skills/leaf-learn`](skills/leaf-learn/SKILL.md); Example onward lives in
 [`skills/leaf-work`](skills/leaf-work/SKILL.md).
 
 ## Concepts
@@ -212,7 +212,7 @@ This repository ships Agent Skills:
 
 | Skill | Use it for |
 |---|---|
-| [`leaf-idea`](skills/leaf-idea/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
+| [`leaf-learn`](skills/leaf-learn/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
 | [`leaf-work`](skills/leaf-work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
 | [`leaf-reversed`](skills/leaf-reversed/SKILL.md) | Reconstructing a complete LEAF record from a finished artifact or result |
 | [`leaf-clean`](skills/leaf-clean/SKILL.md) | Cleaning LEAF documents into simple, complete current reports |
@@ -220,8 +220,8 @@ This repository ships Agent Skills:
 | [`leaf-soul`](skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
 Install the LEAF skills together as a family — they are not independent.
-`leaf-idea`, `leaf-work`, `leaf-reversed`, `leaf-clean`, and `leaf-done` read
-`leaf-soul` through the sibling path `../leaf-soul/SKILL.md`; `leaf-idea` and
+`leaf-learn`, `leaf-work`, `leaf-reversed`, `leaf-clean`, and `leaf-done` read
+`leaf-soul` through the sibling path `../leaf-soul/SKILL.md`; `leaf-learn` and
 `leaf-work` also read the gate references under `leaf-work` through
 `../leaf-work/references/`. The
 Quick Start command above installs the whole family; installing a single skill

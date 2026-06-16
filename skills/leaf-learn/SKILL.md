@@ -1,11 +1,11 @@
 ---
-name: leaf-idea
+name: leaf-learn
 description: Use when capturing, triaging, or deeply learning a sprout through LEAF Learn (① Intent and ② Unknowns & Context); trigger on idea backlog, "save this idea", "maybe later", brainstorm fragments, early document/product/research topics, finding the real question behind a curiosity, surfacing what is worth learning, reference/benchmark exploration, big-picture mapping, substantial writing or knowledge tasks, wanting to understand a topic for its own sake, bundled ideas that may need splitting, or deciding whether an idea should die, defer, enrich, split, or learn.
 ---
 
-# LEAF Idea
+# LEAF Learn
 
-`leaf-idea` owns **Learn**: ① Intent and ② Unknowns & Context. Learn is where an
+`leaf-learn` owns **Learn**: ① Intent and ② Unknowns & Context. Learn is where an
 eager learner goes to *understand a topic for its own sake*. ① locks the why (the
 problem definition) and the what (what the output is); ② explores the terrain —
 facts, conventions, prior art, debates, hidden premises — until the user has
@@ -65,25 +65,20 @@ Read only what the current move needs:
    the output is), and the locked intent. Surface guessed facts before locking it.
    When ① changes the why, the what, the core noun, or the split decision, update
    the status overview in the same turn.
-5. **Open the learning terrain.** Be the explorer-companion, not a clerk who only
-   files the unknowns the user happens to name. First map what is worth learning
-   here — domain concepts, history, conventions, counter-examples, live debates,
-   surprising connections to other fields — and offer it as a menu, surfacing
-   threads the user did not know to ask about. Then follow the user's curiosity:
-   go deep on the thread they pick, amplify it, and connect it to the next. The
-   menu opens the space wider; it never narrows it.
-6. **Run ② Unknowns & Context.** Use `references/gate-02-unknowns-context.md` as
-   the contract. Group what is worth learning, gather references or internal
-   facts, expose the premises the user is taking for granted, and keep
-   fact/assumption boundaries visible. When ② changes what the user now
-   understands or the scope of the curiosity, update the status overview in the
-   same turn.
-7. **Ask the Learn-rest question with the evidence in view.** Before asking the
-   user to review Learn or answer the rest question, invoke `leaf-clean` for the
-   touched Learn/status surface so the user reviews the current report, not draft
-   notes. Then show what was actually gathered so the user judges from the files,
-   not from memory. Learn does not need to "finish": if a thread still pulls,
-   keep exploring. This is a resting point, not a gate to clear.
+5. **Dispatch the four scouts in parallel.** Be the explorer-companion, not a
+   clerk who only files the unknowns the user names. Fan out Terrain, Method,
+   Judgment, Context (see `## Parallel Scouts`) instead of one linear sweep; each
+   writes to `01-Learn/02-references/`.
+6. **Run ② Unknowns & Context as the leader.** Use
+   `references/gate-02-unknowns-context.md` as the contract. Synthesize the
+   scouts' findings into `02-unknowns.md` and a reading map (see Parallel Scouts →
+   Reading map), not an answer. When ② changes what the user now understands or
+   the scope of the curiosity, update the status overview in the same turn.
+7. **Quiz, then ask the Learn-rest question.** Before resting, invoke `leaf-clean`
+   for the touched Learn/status surface, show the gathered references, then quiz
+   the user on the core (see Parallel Scouts → Quiz). Learn need not "finish": if
+   a thread still pulls, keep exploring. This is a resting point, not a gate to
+   clear.
 
 Show the gathered references as a file tree first:
 
@@ -96,11 +91,57 @@ covers. An empty or thin tree is evidence too — name it plainly instead of
 hiding it; "no references were needed because <reason>" must be said, not
 implied.
 
-Learn-rest question:
+Learn-rest question (ask after the quiz):
 
 > 알고 싶던 걸 충분히 알게 됐나요? 아직 당신을 끌어당기는 결 — 더 파고 싶은
 > 개념, 보고 싶은 사례, 짚어보고 싶은 논쟁, 확인하지 않은 가정 — 이 남아
 > 있나요?
+
+## Parallel Scouts
+
+② is run as a fan-out, not a single linear sweep. The leader dispatches up to
+four scout subagents at once, each searching the topic from one angle and
+writing what it finds to `01-Learn/02-references/` (one file per topic, named for
+what it covers). The families are fixed so coverage is legible; what each scout
+hunts for is fitted to this sprout.
+
+| Scout | Question it answers | What it digs for (fit to the sprout) |
+|---|---|---|
+| **A. Terrain** | What exists? | external references & authoritative prior art, domain concepts & terminology, internal assets (existing code, docs, prior decisions, data), available tools/ecosystem |
+| **B. Method** | How is it done? | best practices & methodology, real-world cases & benchmarks, failure cases & anti-patterns |
+| **C. Judgment** | Where does it fork? | trade-offs & selection criteria, live debates & expert disagreement, hidden premises & constraints |
+| **D. Context** | Why is it this way? | history & evolution, recent domain changes, analogies from adjacent fields, stakeholders |
+
+Rules for the fan-out:
+
+- **C is never dropped.** A/B/D answer "what is true / how / why"; C is what turns
+  collection into judgment. Skipping it leaves the user with a pile of material
+  and no way to decide — the exact failure Learn exists to prevent.
+- **The scouts return grounds, not verdicts.** Each writes "here is what I found
+  and where" — threads the user can pull and verify — never "the answer is X." The
+  conclusion is the user's to reach.
+- **The leader, not a scout, owns the learner's own state.** What the user already
+  knows and where they are likely to be misled comes from dialogue, not search.
+  Do not spawn a fifth scout for it.
+- **Scale honestly.** Skip a scout with nothing to find and name the skip and its
+  reason; do not pad references for appearance.
+
+### Reading map
+
+After the scouts return, synthesize — do not dump. The leader's output is a
+reading map: which threads to read first to find the 실마리, in what order, and
+what each one lets the user judge for themselves. Summarize each reference back
+into `02-unknowns.md` so later work does not have to re-read every file.
+
+### Quiz
+
+Handing over references is not the same as the user learning them. Before resting
+Learn, pose a few short questions that make the user retrieve and apply the core —
+the trade-off, the why-it-is-this-way, the what-would-break-it — not trivia
+recall. The point is the user generating the understanding themselves, not
+proving they read the files. Treat gaps the quiz reveals as fresh threads: send
+the relevant scout back or point to the reading, then re-check. Keep it light and
+curious, never an exam.
 
 ## Status Overview
 

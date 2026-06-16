@@ -31,8 +31,8 @@ footprint — keep the two layers separated (see Evidence Rules).
 
 - `../leaf-soul/SKILL.md` always.
 - `../leaf-work/references/layout.md` before writing files.
-- `../leaf-idea/references/gate-01-intent.md`,
-  `../leaf-idea/references/gate-02-unknowns-context.md`, and
+- `../leaf-learn/references/gate-01-intent.md`,
+  `../leaf-learn/references/gate-02-unknowns-context.md`, and
   `../leaf-work/references/gates.md` when judging gate content.
 
 ## Workflow

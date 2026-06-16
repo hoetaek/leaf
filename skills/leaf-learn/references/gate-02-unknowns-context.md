@@ -47,6 +47,20 @@ By source:
 - **Internal**: what the team already has, such as data, footage, contacts,
   documents, prior decisions, and forgotten constraints.
 
+These axes are gathered by four parallel scouts, not one linear sweep (see
+`../SKILL.md` → Parallel Scouts). **A. Terrain** ("what exists") covers the kind
+axis facts plus External/Internal sources; **B. Method** ("how it's done") covers
+conventions, best practices, real cases, and anti-patterns; **C. Judgment**
+("where it forks") covers selection criteria, trade-offs, live debates, and the
+premises beneath them — this is the axis that turns collection into judgment, so
+never drop it; **D. Context** ("why it's this way") covers history, recent
+changes, adjacent-field analogies, and stakeholders. Each scout writes findings
+to `01-Learn/02-references/`, one file per topic; the leader then summarizes each
+back into `02-unknowns.md` and builds a reading map rather than handing over an
+answer. The leader, not a scout, owns the learner's own state — what the user
+already knows and where they may be misled — because that comes from dialogue,
+not search.
+
 ## Big-Picture Map
 
 For structurally complex or brownfield work, learn by drawing the current shape.
@@ -179,11 +193,23 @@ Gate to continue:
   picture the landscape.
 - The user can say what to choose between and on what basis; learning has reached
   judgment, not just collection.
+- The user has been quizzed on the core judgments, and either answered them or the
+  gaps the quiz revealed were turned back into threads rather than glossed over.
 
-Before resting Learn, always ask the user this explicitly — and show the
-`01-Learn/02-references/` file tree first, with a one-line note per file, so the
-user judges from the gathered files rather than from memory. An empty or thin
-tree must be named plainly, with the reason references were not needed:
+Before resting Learn, show the `01-Learn/02-references/` file tree first, with a
+one-line note per file, so the user judges from the gathered files rather than
+from memory. An empty or thin tree must be named plainly, with the reason
+references were not needed.
+
+Then quiz before you rest. Handing over references is not proof the user learned
+them. Pose a few short questions that make the user retrieve and apply the core —
+the trade-off, the why-it-is-this-way, the what-would-break-it — not trivia
+recall. The aim is the user generating the understanding themselves; gaps the
+quiz exposes are fresh threads, so send the relevant scout back or point to the
+reading and re-check rather than resting. Keep it light and curious, never an
+exam.
+
+After the quiz, always ask the user this explicitly:
 
 > 알고 싶던 걸 충분히 알게 됐나요? 아직 당신을 끌어당기는 결 — 더 파고 싶은
 > 개념, 보고 싶은 사례, 짚어보고 싶은 논쟁, 확인하지 않은 가정 — 이 남아
