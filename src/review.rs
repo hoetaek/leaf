@@ -248,12 +248,18 @@ pub(crate) fn build_reference_read(reference: &ReferenceFile) -> Result<ReviewDo
 /// yields an empty list (sprout/leaf/fallen all carry a leaf root, so they
 /// behave identically).
 pub(crate) fn reference_files(source: &ReviewSource) -> Result<Vec<ReferenceFile>> {
-    let ReviewSource::LeafWork { root_path, .. } = source;
+    let ReviewSource::LeafWork {
+        root_path,
+        root_relative_path,
+    } = source;
     let folder_path = root_path.join(REFERENCES_RELATIVE_DIR);
     if !folder_path.is_dir() {
         return Ok(Vec::new());
     }
-    let files = markdown_files_in(&folder_path, REFERENCES_RELATIVE_DIR)?;
+    // Use a repo-relative prefix so listed paths match the rest of the review
+    // output and can be opened from the repo root.
+    let folder_relative = format!("{root_relative_path}/{REFERENCES_RELATIVE_DIR}");
+    let files = markdown_files_in(&folder_path, &folder_relative)?;
     Ok(files
         .into_iter()
         .map(|file| ReferenceFile {
@@ -1040,10 +1046,10 @@ mod tests {
         assert_eq!(
             relative,
             vec![
-                "01-Learn/02-references/README.md",
-                "01-Learn/02-references/terrain.md",
+                ".leaf/02-leaves/demo/01-Learn/02-references/README.md",
+                ".leaf/02-leaves/demo/01-Learn/02-references/terrain.md",
             ],
-            "only top-level .md, filename ascending"
+            "only top-level .md, filename ascending, repo-relative"
         );
     }
 
@@ -1071,8 +1077,8 @@ mod tests {
         let text = String::from_utf8(buffer).expect("utf8");
 
         assert!(text.contains("REFERENCES (2)"));
-        assert!(text.contains("  01-Learn/02-references/README.md"));
-        assert!(text.contains("  01-Learn/02-references/terrain.md"));
+        assert!(text.contains("  .leaf/02-leaves/demo/01-Learn/02-references/README.md"));
+        assert!(text.contains("  .leaf/02-leaves/demo/01-Learn/02-references/terrain.md"));
 
         let mut empty = Vec::new();
         write_references_text(&mut empty, &[]).expect("write empty references");

@@ -278,6 +278,20 @@ impl ReferencePickerState {
         self.clamp_selection();
     }
 
+    /// Clear any search and select `relative_path` in the restored full list.
+    /// Used when returning from reference read so the just-read entry stays
+    /// selected (a bare `cancel_search` would reuse the filtered-list index
+    /// against the full list and land on a different file).
+    fn restore_selecting(&mut self, relative_path: &str) {
+        self.search_active = false;
+        self.query.clear();
+        self.selected = self
+            .entries
+            .iter()
+            .position(|entry| entry.relative_path == relative_path)
+            .unwrap_or(0);
+    }
+
     fn push_query_char(&mut self, ch: char) {
         self.query.push(ch);
         self.clamp_selection();
@@ -766,9 +780,19 @@ impl AppState {
             }
             KeyInput::Char('G') => self.scroll_reference_read_down(usize::MAX),
             KeyInput::Esc | KeyInput::Char('q') => {
+                // Reselect the just-read entry in the full list: clears the
+                // search so title/hint match the list, and keeps selection on
+                // the file the user read (not a stale filtered-list index).
+                let read_path = self
+                    .reference_read
+                    .as_ref()
+                    .map(|state| state.document.root_relative_path.clone());
                 self.reference_read = None;
                 if let Some(picker) = &mut self.reference_picker {
-                    picker.search_active = false;
+                    match read_path {
+                        Some(path) => picker.restore_selecting(&path),
+                        None => picker.cancel_search(),
+                    }
                 }
                 self.mode = Mode::ReferencePicker;
             }
@@ -3171,6 +3195,29 @@ mod tests {
         assert!(!picker.search_active());
         assert_eq!(picker.query(), "");
         assert_eq!(picker.filtered_count(), 3, "full list restored");
+    }
+
+    #[test]
+    fn reference_picker_restore_selecting_keeps_read_entry_after_clearing_search() {
+        let mut picker = picker_with(&["alpha.md", "beta.md", "benchmark.md"]);
+        // Search "be" -> [beta.md, benchmark.md]; user reads the 2nd match.
+        picker.enter_search();
+        for ch in "be".chars() {
+            picker.push_query_char(ch);
+        }
+        picker.move_down();
+        let read = picker.selected_entry().expect("a match").relative_path;
+
+        picker.restore_selecting(&read);
+
+        assert!(!picker.search_active());
+        assert_eq!(picker.query(), "");
+        assert_eq!(picker.filtered_count(), 3, "full list restored");
+        assert_eq!(
+            picker.selected_entry().map(|e| e.name),
+            Some("benchmark.md".to_string()),
+            "selection stays on the file just read, not a stale index"
+        );
     }
 
     #[test]

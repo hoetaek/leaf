@@ -237,8 +237,7 @@ fn draw_reference_modal(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         return;
     };
 
-    let width = (area.width.saturating_mul(60) / 100).clamp(20, area.width);
-    let height = (area.height.saturating_mul(60) / 100).clamp(3, area.height);
+    let (width, height) = reference_modal_size(area);
     let modal = centered_rect(area, width, height);
     frame.render_widget(Clear, modal);
 
@@ -265,9 +264,17 @@ fn draw_reference_modal(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         let filtered = picker.filtered();
         let selected = picker.selected();
         let max_name = rows[0].width.saturating_sub(2) as usize;
+        // Scroll the list so the selected row stays visible in tall lists.
+        let visible = (rows[0].height as usize).max(1);
+        let offset = match selected {
+            Some(index) if index >= visible => index + 1 - visible,
+            _ => 0,
+        };
         let lines: Vec<Line> = filtered
             .iter()
             .enumerate()
+            .skip(offset)
+            .take(visible)
             .map(|(index, entry)| {
                 let chosen = selected == Some(index);
                 let marker = if chosen { "> " } else { "  " };
@@ -283,18 +290,42 @@ fn draw_reference_modal(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         frame.render_widget(Paragraph::new(lines), rows[0]);
     }
 
-    let hint = if picker.is_empty() {
-        "Esc close".to_string()
+    // A read error (e.g. a deleted reference) lands in the notice; surface it
+    // here, otherwise show the key hints.
+    let notice = app.notice();
+    let (text, style) = if !notice.is_empty() {
+        (notice.to_string(), strong_style().fg(Color::Yellow))
+    } else if picker.is_empty() {
+        ("Esc close".to_string(), dim_style())
     } else if picker.search_active() {
-        format!(
-            "{}/{} matched  Enter open  Esc cancel search",
-            picker.filtered_count(),
-            picker.total()
+        (
+            format!(
+                "{}/{} matched  Enter open  Esc cancel search",
+                picker.filtered_count(),
+                picker.total()
+            ),
+            dim_style(),
         )
     } else {
-        "j/k move  / search  Enter open  Esc close".to_string()
+        (
+            "j/k move  / search  Enter open  Esc close".to_string(),
+            dim_style(),
+        )
     };
-    frame.render_widget(Paragraph::new(Line::styled(hint, dim_style())), rows[1]);
+    frame.render_widget(Paragraph::new(Line::styled(text, style)), rows[1]);
+}
+
+/// Target size of the references modal: ~60% of the frame, but never letting
+/// the minimum exceed the frame itself (which would panic `Ord::clamp` on a
+/// tiny terminal).
+fn reference_modal_size(area: Rect) -> (u16, u16) {
+    let width = (area.width.saturating_mul(60) / 100)
+        .max(20.min(area.width))
+        .min(area.width);
+    let height = (area.height.saturating_mul(60) / 100)
+        .max(3.min(area.height))
+        .min(area.height);
+    (width, height)
 }
 
 /// Truncate a display string to `max` columns, appending an ellipsis.
@@ -4969,5 +5000,29 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
 
     fn stage_dir_path(stage_dir: StageDir) -> &'static str {
         stage_dir.dir_name()
+    }
+
+    #[test]
+    fn reference_modal_size_never_panics_on_tiny_frames() {
+        for (w, h) in [(0, 0), (1, 1), (10, 2), (19, 3), (20, 3)] {
+            let area = Rect::new(0, 0, w, h);
+            let (width, height) = reference_modal_size(area);
+            assert!(width <= w, "width {width} must fit frame {w}");
+            assert!(height <= h, "height {height} must fit frame {h}");
+        }
+    }
+
+    #[test]
+    fn reference_modal_size_is_about_60_percent_on_normal_frames() {
+        let (width, height) = reference_modal_size(Rect::new(0, 0, 200, 50));
+        assert_eq!(width, 120);
+        assert_eq!(height, 30);
+    }
+
+    #[test]
+    fn truncate_display_adds_ellipsis_only_when_over_max() {
+        assert_eq!(truncate_display("short.md", 20), "short.md");
+        assert_eq!(truncate_display("a-very-long-name.md", 6), "a-ver…");
+        assert_eq!(truncate_display("anything", 0), "");
     }
 }
