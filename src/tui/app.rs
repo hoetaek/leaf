@@ -767,8 +767,10 @@ impl AppState {
             KeyInput::Char('G') => self.scroll_reference_read_down(usize::MAX),
             KeyInput::Esc | KeyInput::Char('q') => {
                 self.reference_read = None;
+                // Clear any search so the modal's title/hint matches the list it
+                // shows (a left-over query would silently keep the list filtered).
                 if let Some(picker) = &mut self.reference_picker {
-                    picker.search_active = false;
+                    picker.cancel_search();
                 }
                 self.mode = Mode::ReferencePicker;
             }

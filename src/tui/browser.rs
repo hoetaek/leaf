@@ -143,7 +143,12 @@ fn event_loop<A: TuiAdapter>(
 }
 
 fn mode_wants_mouse_capture(mode: Mode) -> bool {
-    mode != Mode::Review
+    // The review reader and its reference views are read-only and have no mouse
+    // behaviour, so leave capture off to allow native terminal text selection.
+    !matches!(
+        mode,
+        Mode::Review | Mode::ReferencePicker | Mode::ReferenceRead
+    )
 }
 
 fn sync_mouse_capture(session: &mut TerminalSession, mode: Mode) -> Result<()> {
@@ -169,7 +174,10 @@ fn maybe_auto_refresh_review(
 }
 
 fn mouse_input(area: Rect, app: &AppState, mouse: MouseEvent) -> Option<MouseInput> {
-    if app.mode() == Mode::Review {
+    if matches!(
+        app.mode(),
+        Mode::Review | Mode::ReferencePicker | Mode::ReferenceRead
+    ) {
         return None;
     }
 
@@ -1038,11 +1046,13 @@ mod tests {
     }
 
     #[test]
-    fn mode_wants_mouse_capture_only_outside_review() {
+    fn mode_wants_mouse_capture_only_outside_review_family() {
         assert!(mode_wants_mouse_capture(Mode::List));
         assert!(mode_wants_mouse_capture(Mode::RangeSelect));
         assert!(mode_wants_mouse_capture(Mode::FilterInput));
         assert!(!mode_wants_mouse_capture(Mode::Review));
+        assert!(!mode_wants_mouse_capture(Mode::ReferencePicker));
+        assert!(!mode_wants_mouse_capture(Mode::ReferenceRead));
     }
 
     #[test]
