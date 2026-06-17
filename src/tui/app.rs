@@ -3161,7 +3161,11 @@ mod tests {
         }
         let filtered: Vec<&str> = picker.filtered().iter().map(|e| e.name.as_str()).collect();
         assert_eq!(filtered, vec!["beta.md", "benchmark.md"]);
-        assert_eq!(picker.selected(), Some(1), "selection clamped into filtered");
+        assert_eq!(
+            picker.selected(),
+            Some(1),
+            "selection clamped into filtered"
+        );
 
         picker.cancel_search();
         assert!(!picker.search_active());

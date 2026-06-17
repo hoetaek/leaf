@@ -257,7 +257,10 @@ fn draw_reference_modal(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
     let rows = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).split(inner);
 
     if picker.is_empty() {
-        frame.render_widget(Paragraph::new(Line::styled("no references", dim_style())), rows[0]);
+        frame.render_widget(
+            Paragraph::new(Line::styled("no references", dim_style())),
+            rows[0],
+        );
     } else {
         let filtered = picker.filtered();
         let selected = picker.selected();
