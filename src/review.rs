@@ -216,6 +216,33 @@ pub(crate) fn write_references_text<W: Write>(
     Ok(())
 }
 
+/// Build a single-file review document for one reference file, rendered with
+/// the same markdown pipeline as the review body so the reading experience
+/// matches. Local links resolve relative to the file's own directory.
+pub(crate) fn build_reference_read(reference: &ReferenceFile) -> Result<ReviewDocument> {
+    let content = fs::read_to_string(&reference.path)
+        .with_context(|| format!("failed to read {}", reference.path.display()))?;
+    let cwd = reference.path.parent().unwrap_or(&reference.path);
+    let mut lines = Vec::new();
+    append_markdown_lines(&mut lines, &content, cwd);
+    let title = reference
+        .path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("reference")
+        .to_string();
+    Ok(ReviewDocument {
+        title,
+        root_relative_path: reference.relative_path.clone(),
+        sections: vec![ReviewSection {
+            relative_path: reference.relative_path.clone(),
+            start_line: 0,
+        }],
+        lines,
+        source_count: 1,
+    })
+}
+
 /// List the markdown reference files under a review source's
 /// `01-Learn/02-references/` folder, filename-ascending. A missing folder
 /// yields an empty list (sprout/leaf/fallen all carry a leaf root, so they
