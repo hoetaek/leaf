@@ -2,7 +2,7 @@ use crate::inventory::{ParseState, StageDir};
 use crate::list_columns::{ColumnWidth, LIST_COLUMNS, ListColumn};
 use crate::preview::{PreviewColor, PreviewLine, PreviewSpan, PreviewStyle};
 use crate::review::{ReviewDocument, ReviewLine};
-use crate::tui::app::{AppState, ListRow, Mode, StageFilter};
+use crate::tui::app::{AppState, ListRow, Mode, ReviewState, StageFilter};
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -43,6 +43,15 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
     let area = frame.area();
     if app.mode() == Mode::Review {
         draw_review(frame, area, app);
+        return;
+    }
+    if app.mode() == Mode::ReferenceRead {
+        draw_reference_read(frame, area, app);
+        return;
+    }
+    if app.mode() == Mode::ReferencePicker {
+        draw_review(frame, area, app);
+        draw_reference_modal(frame, area, app);
         return;
     }
 
@@ -143,7 +152,25 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         frame.render_widget(Paragraph::new("No review document loaded."), area);
         return;
     };
+    draw_review_state(
+        frame,
+        area,
+        app,
+        review,
+        "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  R references  drag select/copy text  Esc/q back",
+    );
+}
 
+/// Render a `ReviewState` (the canonical review, or a single reference file in
+/// read mode) into the standard header/notice/body/footer layout. The body
+/// width/height it measures drives the matching scroll clamp in `AppState`.
+fn draw_review_state(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    app: &AppState,
+    review: &ReviewState,
+    footer: &str,
+) {
     let layout = review_layout(area);
     app.set_review_body_size(layout.body.height as usize, layout.body.width as usize);
 
@@ -184,12 +211,100 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
     frame.render_widget(Paragraph::new(body_lines), layout.body);
 
     frame.render_widget(
-        Paragraph::new(Line::styled(
-            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  drag select/copy text  Esc/q back",
-            dim_style(),
-        )),
+        Paragraph::new(Line::styled(footer, dim_style())),
         layout.footer,
     );
+}
+
+/// Full-screen read of one reference file, reusing the review body renderer.
+fn draw_reference_read(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
+    let Some(read) = app.reference_read() else {
+        frame.render_widget(Paragraph::new("No reference loaded."), area);
+        return;
+    };
+    draw_review_state(
+        frame,
+        area,
+        app,
+        read,
+        "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  Esc back to references",
+    );
+}
+
+/// Centered modal listing the current leaf's references, drawn over the review.
+fn draw_reference_modal(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
+    let Some(picker) = app.reference_picker() else {
+        return;
+    };
+
+    let width = (area.width.saturating_mul(60) / 100).clamp(20, area.width);
+    let height = (area.height.saturating_mul(60) / 100).clamp(3, area.height);
+    let modal = centered_rect(area, width, height);
+    frame.render_widget(Clear, modal);
+
+    let title = if picker.search_active() {
+        format!(" references — /{} ", picker.query())
+    } else {
+        format!(" references ({}) ", picker.total())
+    };
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(title)
+        .border_style(dim_style());
+    let inner = block.inner(modal);
+    frame.render_widget(block, modal);
+
+    let rows = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).split(inner);
+
+    if picker.is_empty() {
+        frame.render_widget(Paragraph::new(Line::styled("no references", dim_style())), rows[0]);
+    } else {
+        let filtered = picker.filtered();
+        let selected = picker.selected();
+        let max_name = rows[0].width.saturating_sub(2) as usize;
+        let lines: Vec<Line> = filtered
+            .iter()
+            .enumerate()
+            .map(|(index, entry)| {
+                let chosen = selected == Some(index);
+                let marker = if chosen { "> " } else { "  " };
+                let name = truncate_display(&entry.name, max_name);
+                let style = if chosen {
+                    strong_style()
+                } else {
+                    Style::default()
+                };
+                Line::styled(format!("{marker}{name}"), style)
+            })
+            .collect();
+        frame.render_widget(Paragraph::new(lines), rows[0]);
+    }
+
+    let hint = if picker.is_empty() {
+        "Esc close".to_string()
+    } else if picker.search_active() {
+        format!(
+            "{}/{} matched  Enter open  Esc cancel search",
+            picker.filtered_count(),
+            picker.total()
+        )
+    } else {
+        "j/k move  / search  Enter open  Esc close".to_string()
+    };
+    frame.render_widget(Paragraph::new(Line::styled(hint, dim_style())), rows[1]);
+}
+
+/// Truncate a display string to `max` columns, appending an ellipsis.
+fn truncate_display(text: &str, max: usize) -> String {
+    if max == 0 {
+        return String::new();
+    }
+    if text.chars().count() <= max {
+        return text.to_string();
+    }
+    let keep = max.saturating_sub(1);
+    let truncated: String = text.chars().take(keep).collect();
+    format!("{truncated}…")
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -452,8 +567,14 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             app.status_line()
         ),
         Mode::Review => {
-            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  drag select/copy text  Esc/q back"
+            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  R references  drag select/copy text  Esc/q back"
                 .to_string()
+        }
+        Mode::ReferencePicker => {
+            "references  j/k move  / search  Enter open  Esc close".to_string()
+        }
+        Mode::ReferenceRead => {
+            "↑/↓ scroll  d/u half  g/G top/bottom  Esc back to references".to_string()
         }
         Mode::List if selected_count > 0 => format!(
             "{selected_count} selected  Space toggle  v range  a all  y copy  F fall  Esc clear  q quit  {}",
