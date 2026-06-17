@@ -109,6 +109,21 @@ pub(crate) struct ReviewDocument {
     pub(crate) source_count: usize,
 }
 
+/// One reference file under a leaf's `01-Learn/02-references/` folder.
+///
+/// References are evidence collected during Learn; they are deliberately kept
+/// out of the canonical review body (the 11 gate sources) so the conclusions
+/// are not buried. They are surfaced separately: the TUI reads `path`, the
+/// non-TTY text output lists `relative_path`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ReferenceFile {
+    pub(crate) relative_path: String,
+    pub(crate) path: PathBuf,
+}
+
+/// Folder, relative to a leaf root, that holds Learn reference material.
+pub(crate) const REFERENCES_RELATIVE_DIR: &str = "01-Learn/02-references";
+
 impl ReviewDocument {
     #[allow(dead_code)]
     pub(crate) fn visible_text(&self) -> String {
@@ -179,6 +194,46 @@ pub(crate) fn write_text<W: Write>(writer: &mut W, document: &ReviewDocument) ->
         writeln!(writer, "{}", line.visible_text()).context("write leaf review text")?;
     }
     Ok(())
+}
+
+/// Append a trailing `REFERENCES` section listing each reference file's
+/// relative path. Kept separate from the body so the canonical sources are
+/// unchanged; emits nothing when there are no references.
+pub(crate) fn write_references_text<W: Write>(
+    writer: &mut W,
+    references: &[ReferenceFile],
+) -> Result<()> {
+    if references.is_empty() {
+        return Ok(());
+    }
+    writeln!(writer).context("write leaf review references")?;
+    writeln!(writer, "REFERENCES ({})", references.len())
+        .context("write leaf review references")?;
+    for reference in references {
+        writeln!(writer, "  {}", reference.relative_path)
+            .context("write leaf review references")?;
+    }
+    Ok(())
+}
+
+/// List the markdown reference files under a review source's
+/// `01-Learn/02-references/` folder, filename-ascending. A missing folder
+/// yields an empty list (sprout/leaf/fallen all carry a leaf root, so they
+/// behave identically).
+pub(crate) fn reference_files(source: &ReviewSource) -> Result<Vec<ReferenceFile>> {
+    let ReviewSource::LeafWork { root_path, .. } = source;
+    let folder_path = root_path.join(REFERENCES_RELATIVE_DIR);
+    if !folder_path.is_dir() {
+        return Ok(Vec::new());
+    }
+    let files = markdown_files_in(&folder_path, REFERENCES_RELATIVE_DIR)?;
+    Ok(files
+        .into_iter()
+        .map(|file| ReferenceFile {
+            relative_path: file.relative_path,
+            path: file.path,
+        })
+        .collect())
 }
 
 fn build_leaf_work(root_path: PathBuf, root_relative_path: String) -> Result<ReviewDocument> {
@@ -927,5 +982,73 @@ mod tests {
         assert!(text.contains("NO MARKDOWN SOURCES"));
         assert!(text.contains(".leaf/02-leaves/demo/02-Example/04-wireframe/"));
         assert!(!text.contains("MISSING SOURCE"));
+    }
+
+    #[test]
+    fn reference_files_lists_markdown_filename_ascending_ignoring_others() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_file(&root, slug, "01-Learn/02-references/terrain.md", "# T\n");
+        write_file(&root, slug, "01-Learn/02-references/README.md", "# R\n");
+        write_file(
+            &root,
+            slug,
+            "01-Learn/02-references/source-map.txt",
+            "skip\n",
+        );
+        create_dir(&root, slug, "01-Learn/02-references/nested");
+        write_file(
+            &root,
+            slug,
+            "01-Learn/02-references/nested/inner.md",
+            "# skip\n",
+        );
+
+        let references = reference_files(&source(&root, slug)).expect("references");
+        let relative: Vec<&str> = references
+            .iter()
+            .map(|reference| reference.relative_path.as_str())
+            .collect();
+
+        assert_eq!(
+            relative,
+            vec![
+                "01-Learn/02-references/README.md",
+                "01-Learn/02-references/terrain.md",
+            ],
+            "only top-level .md, filename ascending"
+        );
+    }
+
+    #[test]
+    fn reference_files_is_empty_when_folder_missing() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_file(&root, slug, "01-Learn/01-intent.md", "# Intent\n");
+
+        let references = reference_files(&source(&root, slug)).expect("references");
+
+        assert!(references.is_empty());
+    }
+
+    #[test]
+    fn write_references_text_emits_section_or_nothing() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_file(&root, slug, "01-Learn/02-references/terrain.md", "# T\n");
+        write_file(&root, slug, "01-Learn/02-references/README.md", "# R\n");
+
+        let references = reference_files(&source(&root, slug)).expect("references");
+        let mut buffer = Vec::new();
+        write_references_text(&mut buffer, &references).expect("write references");
+        let text = String::from_utf8(buffer).expect("utf8");
+
+        assert!(text.contains("REFERENCES (2)"));
+        assert!(text.contains("  01-Learn/02-references/README.md"));
+        assert!(text.contains("  01-Learn/02-references/terrain.md"));
+
+        let mut empty = Vec::new();
+        write_references_text(&mut empty, &[]).expect("write empty references");
+        assert!(empty.is_empty(), "no section when there are no references");
     }
 }
