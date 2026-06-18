@@ -79,6 +79,16 @@ Read only what the current move needs:
    the user on the core (see Parallel Scouts → Quiz). Learn need not "finish": if
    a thread still pulls, keep exploring. This is a resting point, not a gate to
    clear.
+8. **Lock the why / what / wireframe before resting.** Mandatory at every Learn
+   close: record an explicit, user-approved triple in `00-status.md`'s preamble.
+   Run it as a per-item **ask → approve → write** loop — for each of why, what,
+   and wireframe, ask the open questions first (the `why` must be a sharp problem
+   definition), get the user's approval of the wording, then write it. Never
+   auto-fill the triple; a drafted proposal is only a starting point to confirm.
+   `none — <reason>` is a valid approved answer (understanding-only, killed, or
+   deferred sprouts). The lock is a **return-condition lock**: leaf-work consumes
+   it, and ④/⑧/⑨ falsifying it reopens it via a recorded return. Contract:
+   `references/gate-02-unknowns-context.md`.
 
 Show the gathered references as a file tree first:
 
@@ -96,6 +106,9 @@ Learn-rest question (ask after the quiz):
 > 알고 싶던 걸 충분히 알게 됐나요? 아직 당신을 끌어당기는 결 — 더 파고 싶은
 > 개념, 보고 싶은 사례, 짚어보고 싶은 논쟁, 확인하지 않은 가정 — 이 남아
 > 있나요?
+
+Then lock the triple (Workflow step 8): ask why / what / wireframe one at a time,
+write each to `00-status.md` only after the user approves its wording.
 
 ## Parallel Scouts
 
@@ -145,20 +158,36 @@ curious, never an exam.
 
 ## Status Overview
 
-`00-status.md` is the reader's table of contents for the LEAF. It is not the
-source of truth for detailed reasoning, but it must summarize the current shape:
+`00-status.md` is the reader's table of contents for the LEAF, and its top is
+what the `leaf` TUI preview shows. The preview renders only the **first 8
+non-empty lines** of the file (`src/preview.rs` `STATUS_PREVIEW_LINES`), so the
+three load-bearing items live in the **preamble, right under the title**, above
+the operational fields:
+
+- `why`: the problem definition locked at ① — keep it sharp;
+- `what`: the locked deliverable form `leaf-work` will produce, or `none —
+  <reason>`;
+- `wireframe`: the cheap-preview form of that deliverable, or `none — <reason>`
+  (understanding-only outputs may use a one-paragraph explanation, worked
+  example, or quiz instead of a built wireframe).
+
+These three are written only through the Learn-close lock — an ask → approve →
+write loop, per item, never agent-authored (see Workflow step 8 and
+`references/gate-02-unknowns-context.md`). The status parser ignores unknown
+preamble keys, so the triple sits safely above `stage` / `current phase` /
+`current gate` without affecting `leaf doctor`.
+
+The `## Overview` section below the preamble keeps the rest:
 
 - `request`: the user's request in the user's words;
-- `purpose`: why this sprout exists, after ① separates why from what;
-- `expected output`: the artifact, decision, model, document, code change, or
-  result this sprout is currently aiming at (understanding a concept can itself
-  be the output);
 - `current scope`: what is included, excluded, split, or still undecided;
-- `consistency rule`: reminder that this overview changes when the sprout changes.
+- `consistency rule`: why / what / wireframe and this overview change when the
+  sprout changes.
 
 Do not let `00-status.md` become stale. Whenever `01-intent.md`,
-`02-unknowns.md`, split decisions, Learn-rest status, or a later return changes
-what the sprout is exploring, revise the overview before reporting back.
+`02-unknowns.md`, split decisions, the locked triple, Learn-rest status, or a
+later return changes what the sprout is exploring, revise it before reporting
+back.
 
 ## Split Check
 
@@ -193,9 +222,11 @@ stage reached through an explicit leaf CLI action with a fallen reason.
 ## Boundaries
 
 - Work only in `00-status.md` and `01-Learn/` from this skill.
-- Do not fill ③ Criteria, ④ Wireframe, ⑤ Design, or tasks here. Building the
-  artifact, draft, task graph, or execution path is a different kind of work for
-  a different skill; Learn stays learning.
+- Do not *build* ④ Wireframe, ⑤ Design, the task graph, or the artifact here —
+  that is `leaf-work`. You DO decide and lock the *form* of the what and the
+  wireframe at Learn close (the why / what / wireframe triple); you do not
+  construct the wireframe instance, and ③ Criteria's detailed acceptance checks
+  still belong to `leaf-work`.
 - Reference and benchmark exploration is learning and belongs in ②; building
   from those references is not Learn's job.
 
