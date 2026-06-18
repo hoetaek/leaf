@@ -195,6 +195,16 @@ Gate to continue:
   judgment, not just collection.
 - The user has been quizzed on the core judgments, and either answered them or the
   gaps the quiz revealed were turned back into threads rather than glossed over.
+- The provisional what is locked into an approved **why / what / wireframe**
+  triple in `00-status.md`. Each item cleared an **ask → approve → write** gate:
+  the agent asked its open questions, the user approved the wording, and only
+  then was it written — never agent-authored. `why` passed an explicit "is the
+  problem definition sharp?" check (a fuzzy why makes every later artifact look
+  plausible while solving the wrong problem). `what` and `wireframe` each name a
+  concrete form or an explicit `none — <reason>` (understanding-only, killed, or
+  deferred sprouts are valid). The lock is a **return-condition lock**: leaf-work
+  consumes it, and ④ falsifying the form or ⑧/⑨ revealing a different deliverable
+  reopens it via a recorded return — exactly as the locked why behaves.
 
 Before resting Learn, show the `01-Learn/02-references/` file tree first, with a
 one-line note per file, so the user judges from the gathered files rather than
@@ -214,6 +224,17 @@ After the quiz, always ask the user this explicitly:
 > 알고 싶던 걸 충분히 알게 됐나요? 아직 당신을 끌어당기는 결 — 더 파고 싶은
 > 개념, 보고 싶은 사례, 짚어보고 싶은 논쟁, 확인하지 않은 가정 — 이 남아
 > 있나요?
+
+Then lock the triple before resting. Ask each item in turn — propose a draft only
+as a starting point to confirm, and write each into `00-status.md` only after the
+user approves its wording:
+
+> why — 이 일이 푸는 문제가 정확히 뭔가요? (정의가 흐릿하면 멈추고 더 좁힙니다)
+> what — 그래서 leaf-work가 낼 산출물은 어떤 형태인가요? (없으면 `없음 — 이유`)
+> wireframe — 그 산출물 직전의 값싼 미리보기는 어떤 형태가 될까요? (없으면 `없음 — 이유`)
+
+An approved `why` does not authorize writing `what`; each of the three clears its
+own ask → approve → write gate.
 
 Return here whenever a new unknown surfaces, a thread you set aside starts
 pulling again, or later work reveals a prior assumption was wrong.

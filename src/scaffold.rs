@@ -15,6 +15,9 @@ const FILES: &[(&str, &str)] = &[
     (
         "00-status.md",
         "# Sprout Status\n\n\
+         - why: TODO state the problem this LEAF exists to solve — keep it sharp\n\
+         - what: TODO name the deliverable this LEAF is aiming at (or `none — <reason>`)\n\
+         - wireframe: TODO name the cheap-preview form of that deliverable (or `none — <reason>`)\n\
          - stage: sprout\n\
          - current phase: Learn\n\
          - current gate: ① Intent\n\
@@ -22,10 +25,8 @@ const FILES: &[(&str, &str)] = &[
          - next action: draft the one-sentence intent in 01-Learn/01-intent.md\n\n\
          ## Overview\n\n\
          - request: TODO capture the user's request in the user's words\n\
-         - purpose: TODO state why this LEAF should exist\n\
-         - expected output: TODO name the artifact, decision, or result this LEAF is aiming at\n\
          - current scope: TODO state what is included, excluded, split, or still undecided\n\
-         - consistency rule: update this overview whenever intent, scope, output, or gate files change what this LEAF is doing\n\n\
+         - consistency rule: update why / what / wireframe and this overview whenever intent, scope, output, or gate files change what this LEAF is doing\n\n\
          ## Document Map\n\n\
          - ① Intent: `01-Learn/01-intent.md`\n\
          - ② Unknowns & Context: `01-Learn/02-unknowns.md`\n\
@@ -170,13 +171,17 @@ mod tests {
         assert_eq!(summary.current_gate.as_deref(), Some("① Intent"));
     }
 
-    #[test]
-    fn sprout_status_template_has_live_overview_section() {
-        let body = FILES
+    fn sprout_status_body() -> &'static str {
+        FILES
             .iter()
             .find(|(name, _)| *name == "00-status.md")
             .map(|(_, body)| *body)
-            .expect("sprout scaffold includes 00-status.md");
+            .expect("sprout scaffold includes 00-status.md")
+    }
+
+    #[test]
+    fn sprout_status_template_has_live_overview_section() {
+        let body = sprout_status_body();
 
         assert!(
             body.contains("## Overview"),
@@ -187,16 +192,32 @@ mod tests {
             "overview should preserve the user's request at status level"
         );
         assert!(
-            body.contains("- purpose:"),
-            "overview should show why the LEAF exists"
-        );
-        assert!(
-            body.contains("- expected output:"),
-            "overview should show what artifact/result this LEAF is aiming at"
+            body.contains("- why:") && body.contains("- what:") && body.contains("- wireframe:"),
+            "status should carry the locked why / what / wireframe triple"
         );
         assert!(
             body.contains("- consistency rule:"),
             "overview should remind agents to keep status and gate docs aligned"
         );
+    }
+
+    #[test]
+    fn sprout_status_template_surfaces_triple_within_preview_budget() {
+        // Mirror preview::useful_lines with STATUS_PREVIEW_LINES = 8: trim,
+        // drop blank lines, take the first 8. The triple must land inside it.
+        let preview: String = sprout_status_body()
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty())
+            .take(8)
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        for label in ["- why:", "- what:", "- wireframe:"] {
+            assert!(
+                preview.contains(label),
+                "`{label}` must be within the 8-line TUI preview budget; got:\n{preview}"
+            );
+        }
     }
 }

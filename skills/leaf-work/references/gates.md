@@ -81,6 +81,9 @@ Gate to continue:
 - Major claims have evidence needs.
 - Unknowns are either assumptions, research tasks, or reviewer questions.
 - Non-goals and tradeoff principles are explicit when they matter.
+- The deliverable's **Output form is consumed from the Learn-locked `what`**, not
+  re-decided here; if ③ needs a different output form, return to `leaf-learn` and
+  re-lock the what rather than silently overriding it.
 - Every Clarity Ledger row is named or explicitly deferred; any that cannot be
   locked is surfaced as an explicit risk or assumption, not hidden inside vague
   requirements.
@@ -152,6 +155,9 @@ Gate to continue:
 - The text-first wireframe passed before any artifact-specific wireframe or
   generalized design, unless the task is explicitly collapsed.
 - The actual operator(s)/reader(s) walked through it and confirmed fit.
+- The wireframe's **form matches the Learn-locked `wireframe`** value; this gate
+  *builds* that instance. Changing the form itself (not just the mock data) is a
+  return to `leaf-learn` to re-lock, recorded as such.
 - Information architecture and workflow survive the walk-through.
 - Mock data is realistic enough to expose edge cases (empty, error, large,
   multi-language) — not just the happy path.
