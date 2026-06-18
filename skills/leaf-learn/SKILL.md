@@ -74,8 +74,9 @@ Read only what the current move needs:
    prior knowledge early (the **known knowns**) so teaching targets the gap, and
    surface every cell of the knowledge map — known/unknown × known/unknown — not
    only the named unknowns. Synthesize the scouts' findings into `02-unknowns.md`
-   and a reading map (see Parallel Scouts → Reading map), not an answer. When ② changes what the user now understands or
-   the scope of the curiosity, update the status overview in the same turn.
+   and a reading map (see Parallel Scouts → Reading map), not an answer. When ②
+   changes what the user now understands or the scope of the curiosity, update the
+   status overview in the same turn.
 7. **Quiz, then ask the Learn-rest question.** Before resting, invoke `leaf-clean`
    for the touched Learn/status surface, show the gathered references, then quiz
    the user on the core (see Parallel Scouts → Quiz). Learn need not "finish": if
