@@ -63,10 +63,11 @@ the new what would create a separate lifecycle, reviewer, success check, or code
 surface, split it into another leaf.
 
 The provisional what stays provisional through Learn and is **locked only at
-Learn close**, after ② has been explored — promoted to the approved `what` (and
-its `wireframe` form) in `00-status.md` via the lock in
-`references/gate-02-unknowns-context.md`. ① keeps the what provisional on
-purpose; do not lock it here.
+Learn close**, after ② has been explored — folded into the approved **why /
+what / wireframe** triple in `00-status.md` via the lock in
+`references/gate-02-unknowns-context.md` (the why was already locked here at ①;
+the what and its wireframe form lock at Learn close). ① keeps the what
+provisional on purpose; do not lock it here.
 
 Prefer locked intents that say what wrong state must be corrected or what
 distinction must be learned, rather than intents that already prescribe the
