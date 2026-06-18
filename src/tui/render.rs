@@ -2,7 +2,7 @@ use crate::inventory::{ParseState, StageDir};
 use crate::list_columns::{ColumnWidth, LIST_COLUMNS, ListColumn};
 use crate::preview::{PreviewColor, PreviewLine, PreviewSpan, PreviewStyle};
 use crate::review::{ReviewDocument, ReviewLine};
-use crate::tui::app::{AppState, ListRow, Mode, StageFilter};
+use crate::tui::app::{AppState, ListRow, Mode, ReviewState, StageFilter};
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -43,6 +43,15 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &AppState) {
     let area = frame.area();
     if app.mode() == Mode::Review {
         draw_review(frame, area, app);
+        return;
+    }
+    if app.mode() == Mode::ReferenceRead {
+        draw_reference_read(frame, area, app);
+        return;
+    }
+    if app.mode() == Mode::ReferencePicker {
+        draw_review(frame, area, app);
+        draw_reference_modal(frame, area, app);
         return;
     }
 
@@ -143,7 +152,25 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
         frame.render_widget(Paragraph::new("No review document loaded."), area);
         return;
     };
+    draw_review_state(
+        frame,
+        area,
+        app,
+        review,
+        "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  R references  drag select/copy text  Esc/q back",
+    );
+}
 
+/// Render a `ReviewState` (the canonical review, or a single reference file in
+/// read mode) into the standard header/notice/body/footer layout. The body
+/// width/height it measures drives the matching scroll clamp in `AppState`.
+fn draw_review_state(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    app: &AppState,
+    review: &ReviewState,
+    footer: &str,
+) {
     let layout = review_layout(area);
     app.set_review_body_size(layout.body.height as usize, layout.body.width as usize);
 
@@ -184,12 +211,134 @@ fn draw_review(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
     frame.render_widget(Paragraph::new(body_lines), layout.body);
 
     frame.render_widget(
-        Paragraph::new(Line::styled(
-            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  drag select/copy text  Esc/q back",
-            dim_style(),
-        )),
+        Paragraph::new(Line::styled(footer, dim_style())),
         layout.footer,
     );
+}
+
+/// Full-screen read of one reference file, reusing the review body renderer.
+fn draw_reference_read(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
+    let Some(read) = app.reference_read() else {
+        frame.render_widget(Paragraph::new("No reference loaded."), area);
+        return;
+    };
+    draw_review_state(
+        frame,
+        area,
+        app,
+        read,
+        "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  Esc back to references",
+    );
+}
+
+/// Centered modal listing the current leaf's references, drawn over the review.
+fn draw_reference_modal(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
+    let Some(picker) = app.reference_picker() else {
+        return;
+    };
+
+    let (width, height) = reference_modal_size(area);
+    let modal = centered_rect(area, width, height);
+    frame.render_widget(Clear, modal);
+
+    let title = if picker.search_active() {
+        format!(" references — /{} ", picker.query())
+    } else {
+        format!(" references ({}) ", picker.total())
+    };
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(title)
+        .border_style(dim_style());
+    let inner = block.inner(modal);
+    frame.render_widget(block, modal);
+
+    let rows = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).split(inner);
+
+    if picker.is_empty() {
+        frame.render_widget(
+            Paragraph::new(Line::styled("no references", dim_style())),
+            rows[0],
+        );
+    } else {
+        let filtered = picker.filtered();
+        let selected = picker.selected();
+        let max_name = rows[0].width.saturating_sub(2) as usize;
+        // Scroll the list so the selected row stays visible in tall lists.
+        let visible = (rows[0].height as usize).max(1);
+        let offset = match selected {
+            Some(index) if index >= visible => index + 1 - visible,
+            _ => 0,
+        };
+        let lines: Vec<Line> = filtered
+            .iter()
+            .enumerate()
+            .skip(offset)
+            .take(visible)
+            .map(|(index, entry)| {
+                let chosen = selected == Some(index);
+                let marker = if chosen { "> " } else { "  " };
+                let name = truncate_display(&entry.name, max_name);
+                let style = if chosen {
+                    strong_style()
+                } else {
+                    Style::default()
+                };
+                Line::styled(format!("{marker}{name}"), style)
+            })
+            .collect();
+        frame.render_widget(Paragraph::new(lines), rows[0]);
+    }
+
+    // A read error (e.g. a deleted reference) lands in the notice; surface it
+    // here, otherwise show the key hints.
+    let notice = app.notice();
+    let (text, style) = if !notice.is_empty() {
+        (notice.to_string(), strong_style().fg(Color::Yellow))
+    } else if picker.is_empty() {
+        ("Esc close".to_string(), dim_style())
+    } else if picker.search_active() {
+        (
+            format!(
+                "{}/{} matched  Enter open  Esc cancel search",
+                picker.filtered_count(),
+                picker.total()
+            ),
+            dim_style(),
+        )
+    } else {
+        (
+            "j/k move  / search  Enter open  Esc close".to_string(),
+            dim_style(),
+        )
+    };
+    frame.render_widget(Paragraph::new(Line::styled(text, style)), rows[1]);
+}
+
+/// Target size of the references modal: ~60% of the frame, but never letting
+/// the minimum exceed the frame itself (which would panic `Ord::clamp` on a
+/// tiny terminal).
+fn reference_modal_size(area: Rect) -> (u16, u16) {
+    let width = (area.width.saturating_mul(60) / 100)
+        .max(20.min(area.width))
+        .min(area.width);
+    let height = (area.height.saturating_mul(60) / 100)
+        .max(3.min(area.height))
+        .min(area.height);
+    (width, height)
+}
+
+/// Truncate a display string to `max` columns, appending an ellipsis.
+fn truncate_display(text: &str, max: usize) -> String {
+    if max == 0 {
+        return String::new();
+    }
+    if text.chars().count() <= max {
+        return text.to_string();
+    }
+    let keep = max.saturating_sub(1);
+    let truncated: String = text.chars().take(keep).collect();
+    format!("{truncated}…")
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -452,8 +601,14 @@ fn draw_status(frame: &mut Frame<'_>, area: Rect, app: &AppState) {
             app.status_line()
         ),
         Mode::Review => {
-            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  drag select/copy text  Esc/q back"
+            "↑/↓ scroll  d/u half  PgUp/PgDn  g/G top/bottom  r refresh  R references  drag select/copy text  Esc/q back"
                 .to_string()
+        }
+        Mode::ReferencePicker => {
+            "references  j/k move  / search  Enter open  Esc close".to_string()
+        }
+        Mode::ReferenceRead => {
+            "↑/↓ scroll  d/u half  g/G top/bottom  Esc back to references".to_string()
         }
         Mode::List if selected_count > 0 => format!(
             "{selected_count} selected  Space toggle  v range  a all  y copy  F fall  Esc clear  q quit  {}",
@@ -4845,5 +5000,29 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
 
     fn stage_dir_path(stage_dir: StageDir) -> &'static str {
         stage_dir.dir_name()
+    }
+
+    #[test]
+    fn reference_modal_size_never_panics_on_tiny_frames() {
+        for (w, h) in [(0, 0), (1, 1), (10, 2), (19, 3), (20, 3)] {
+            let area = Rect::new(0, 0, w, h);
+            let (width, height) = reference_modal_size(area);
+            assert!(width <= w, "width {width} must fit frame {w}");
+            assert!(height <= h, "height {height} must fit frame {h}");
+        }
+    }
+
+    #[test]
+    fn reference_modal_size_is_about_60_percent_on_normal_frames() {
+        let (width, height) = reference_modal_size(Rect::new(0, 0, 200, 50));
+        assert_eq!(width, 120);
+        assert_eq!(height, 30);
+    }
+
+    #[test]
+    fn truncate_display_adds_ellipsis_only_when_over_max() {
+        assert_eq!(truncate_display("short.md", 20), "short.md");
+        assert_eq!(truncate_display("a-very-long-name.md", 6), "a-ver…");
+        assert_eq!(truncate_display("anything", 0), "");
     }
 }

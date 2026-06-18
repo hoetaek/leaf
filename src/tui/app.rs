@@ -37,6 +37,8 @@ pub(crate) enum Mode {
     FilterInput,
     FallInput,
     Review,
+    ReferencePicker,
+    ReferenceRead,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -92,6 +94,8 @@ pub(crate) struct AppState {
     review_body_height: Cell<usize>,
     review_body_width: Cell<usize>,
     review_state: Option<ReviewState>,
+    reference_picker: Option<ReferencePickerState>,
+    reference_read: Option<ReviewState>,
 }
 
 #[derive(Debug, Clone)]
@@ -153,6 +157,149 @@ impl ReviewState {
             .borrow()
             .as_ref()
             .map_or(0, render::ReviewRenderCache::line_count)
+    }
+}
+
+/// One row in the references modal: the file to read plus its display name.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ReferenceEntry {
+    pub(crate) name: String,
+    pub(crate) relative_path: String,
+    pub(crate) path: std::path::PathBuf,
+}
+
+/// State of the centered references modal opened over a review.
+///
+/// `selected` indexes into the filtered view. In NORMAL state `j/k` move and
+/// `/` enters SEARCH; in SEARCH state typing filters and Esc clears the query.
+#[derive(Debug, Clone)]
+pub(crate) struct ReferencePickerState {
+    entries: Vec<ReferenceEntry>,
+    query: String,
+    search_active: bool,
+    selected: usize,
+}
+
+impl ReferencePickerState {
+    fn new(entries: Vec<ReferenceEntry>) -> Self {
+        Self {
+            entries,
+            query: String::new(),
+            search_active: false,
+            selected: 0,
+        }
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    pub(crate) fn query(&self) -> &str {
+        &self.query
+    }
+
+    pub(crate) fn search_active(&self) -> bool {
+        self.search_active
+    }
+
+    pub(crate) fn total(&self) -> usize {
+        self.entries.len()
+    }
+
+    fn matches(entry: &ReferenceEntry, query: &str) -> bool {
+        query.is_empty() || entry.name.to_lowercase().contains(&query.to_lowercase())
+    }
+
+    /// Entries matching the current query, in display order.
+    pub(crate) fn filtered(&self) -> Vec<&ReferenceEntry> {
+        self.entries
+            .iter()
+            .filter(|entry| Self::matches(entry, &self.query))
+            .collect()
+    }
+
+    pub(crate) fn filtered_count(&self) -> usize {
+        self.entries
+            .iter()
+            .filter(|entry| Self::matches(entry, &self.query))
+            .count()
+    }
+
+    /// Selected index within the filtered view, or None when nothing matches.
+    pub(crate) fn selected(&self) -> Option<usize> {
+        let count = self.filtered_count();
+        if count == 0 {
+            None
+        } else {
+            Some(self.selected.min(count - 1))
+        }
+    }
+
+    fn selected_entry(&self) -> Option<ReferenceEntry> {
+        let index = self.selected()?;
+        self.filtered().get(index).map(|entry| (*entry).clone())
+    }
+
+    fn clamp_selection(&mut self) {
+        let count = self.filtered_count();
+        self.selected = if count == 0 {
+            0
+        } else {
+            self.selected.min(count - 1)
+        };
+    }
+
+    fn move_down(&mut self) {
+        let count = self.filtered_count();
+        if count > 0 {
+            self.selected = (self.selected + 1).min(count - 1);
+        }
+    }
+
+    fn move_up(&mut self) {
+        self.selected = self.selected.saturating_sub(1);
+    }
+
+    fn move_top(&mut self) {
+        self.selected = 0;
+    }
+
+    fn move_bottom(&mut self) {
+        self.selected = self.filtered_count().saturating_sub(1);
+    }
+
+    fn enter_search(&mut self) {
+        self.search_active = true;
+    }
+
+    fn cancel_search(&mut self) {
+        self.search_active = false;
+        self.query.clear();
+        self.clamp_selection();
+    }
+
+    /// Clear any search and select `relative_path` in the restored full list.
+    /// Used when returning from reference read so the just-read entry stays
+    /// selected (a bare `cancel_search` would reuse the filtered-list index
+    /// against the full list and land on a different file).
+    fn restore_selecting(&mut self, relative_path: &str) {
+        self.search_active = false;
+        self.query.clear();
+        self.selected = self
+            .entries
+            .iter()
+            .position(|entry| entry.relative_path == relative_path)
+            .unwrap_or(0);
+    }
+
+    fn push_query_char(&mut self, ch: char) {
+        self.query.push(ch);
+        self.clamp_selection();
+    }
+
+    fn pop_query_char(&mut self) {
+        self.query.pop();
+        self.clamp_selection();
     }
 }
 
@@ -271,6 +418,8 @@ impl AppState {
             review_body_height: Cell::new(DEFAULT_REVIEW_BODY_HEIGHT),
             review_body_width: Cell::new(DEFAULT_REVIEW_BODY_WIDTH),
             review_state: None,
+            reference_picker: None,
+            reference_read: None,
         };
         state.refresh_visibility_state();
         state
@@ -337,6 +486,14 @@ impl AppState {
         self.review_state.as_ref()
     }
 
+    pub(crate) fn reference_picker(&self) -> Option<&ReferencePickerState> {
+        self.reference_picker.as_ref()
+    }
+
+    pub(crate) fn reference_read(&self) -> Option<&ReviewState> {
+        self.reference_read.as_ref()
+    }
+
     pub(crate) fn set_review_body_size(&self, height: usize, width: usize) {
         self.review_body_height.set(height);
         self.review_body_width.set(width);
@@ -376,6 +533,8 @@ impl AppState {
             Mode::FilterInput => self.handle_filter_key(input),
             Mode::FallInput => self.handle_fall_key(input),
             Mode::Review => self.handle_review_key(input),
+            Mode::ReferencePicker => self.handle_reference_picker_key(input),
+            Mode::ReferenceRead => self.handle_reference_read_key(input),
         }
     }
 
@@ -383,7 +542,10 @@ impl AppState {
         if matches!(self.mode, Mode::FilterInput | Mode::FallInput) {
             return Outcome::Continue;
         }
-        if self.mode == Mode::Review {
+        if matches!(
+            self.mode,
+            Mode::Review | Mode::ReferencePicker | Mode::ReferenceRead
+        ) {
             return Outcome::Continue;
         }
         match input {
@@ -508,13 +670,154 @@ impl AppState {
             KeyInput::Char('g') => self.scroll_review_top(),
             KeyInput::Char('G') => self.scroll_review_bottom(),
             KeyInput::Char('r') => self.refresh_review(),
+            KeyInput::Char('R') => self.open_reference_picker(),
             KeyInput::Esc | KeyInput::Char('q') => {
                 self.review_state = None;
+                self.reference_picker = None;
+                self.reference_read = None;
                 self.mode = Mode::List;
             }
             _ => {}
         }
         Outcome::Continue
+    }
+
+    fn open_reference_picker(&mut self) {
+        let Some(state) = &self.review_state else {
+            return;
+        };
+        match review::reference_files(&state.source) {
+            Ok(files) => {
+                let entries = files
+                    .into_iter()
+                    .map(|file| ReferenceEntry {
+                        name: reference_display_name(&file.relative_path),
+                        relative_path: file.relative_path,
+                        path: file.path,
+                    })
+                    .collect();
+                self.reference_picker = Some(ReferencePickerState::new(entries));
+                self.mode = Mode::ReferencePicker;
+            }
+            Err(err) => self.set_notice(format!("references failed: {err}")),
+        }
+    }
+
+    fn handle_reference_picker_key(&mut self, input: KeyInput) -> Outcome {
+        let Some(picker) = &mut self.reference_picker else {
+            self.mode = Mode::Review;
+            return Outcome::Continue;
+        };
+        if picker.search_active {
+            match input {
+                KeyInput::Down => picker.move_down(),
+                KeyInput::Up => picker.move_up(),
+                KeyInput::Enter => self.open_reference_read(),
+                KeyInput::Backspace => picker.pop_query_char(),
+                KeyInput::Esc => picker.cancel_search(),
+                KeyInput::Char(ch) => picker.push_query_char(ch),
+                _ => {}
+            }
+        } else {
+            match input {
+                KeyInput::Down | KeyInput::Char('j') => picker.move_down(),
+                KeyInput::Up | KeyInput::Char('k') => picker.move_up(),
+                KeyInput::Char('g') => picker.move_top(),
+                KeyInput::Char('G') => picker.move_bottom(),
+                KeyInput::Char('/') => picker.enter_search(),
+                KeyInput::Enter => self.open_reference_read(),
+                KeyInput::Esc | KeyInput::Char('q') => {
+                    self.reference_picker = None;
+                    self.mode = Mode::Review;
+                }
+                _ => {}
+            }
+        }
+        Outcome::Continue
+    }
+
+    fn open_reference_read(&mut self) {
+        let Some(picker) = &self.reference_picker else {
+            return;
+        };
+        let Some(entry) = picker.selected_entry() else {
+            return;
+        };
+        let reference = review::ReferenceFile {
+            relative_path: entry.relative_path.clone(),
+            path: entry.path.clone(),
+        };
+        match review::build_reference_read(&reference) {
+            Ok(document) => {
+                let source = self
+                    .review_state
+                    .as_ref()
+                    .map(|state| state.source.clone())
+                    .expect("reference read requires an open review");
+                self.reference_read = Some(ReviewState::new(source, document, 0, entry.name));
+                self.mode = Mode::ReferenceRead;
+            }
+            Err(err) => self.set_notice(format!("reference read failed: {err}")),
+        }
+    }
+
+    fn handle_reference_read_key(&mut self, input: KeyInput) -> Outcome {
+        match input {
+            KeyInput::Down | KeyInput::Char('j') => self.scroll_reference_read_down(1),
+            KeyInput::Up | KeyInput::Char('k') => self.scroll_reference_read_up(1),
+            KeyInput::PageDown => self.scroll_reference_read_down(self.review_page_step()),
+            KeyInput::PageUp => self.scroll_reference_read_up(self.review_page_step()),
+            KeyInput::HalfPageDown | KeyInput::Char('d') => {
+                self.scroll_reference_read_down(self.review_half_page_step())
+            }
+            KeyInput::HalfPageUp | KeyInput::Char('u') => {
+                self.scroll_reference_read_up(self.review_half_page_step())
+            }
+            KeyInput::Char('g') => {
+                if let Some(state) = &mut self.reference_read {
+                    state.scroll_offset = 0;
+                }
+            }
+            KeyInput::Char('G') => self.scroll_reference_read_down(usize::MAX),
+            KeyInput::Esc | KeyInput::Char('q') => {
+                // Reselect the just-read entry in the full list: clears the
+                // search so title/hint match the list, and keeps selection on
+                // the file the user read (not a stale filtered-list index).
+                let read_path = self
+                    .reference_read
+                    .as_ref()
+                    .map(|state| state.document.root_relative_path.clone());
+                self.reference_read = None;
+                if let Some(picker) = &mut self.reference_picker {
+                    match read_path {
+                        Some(path) => picker.restore_selecting(&path),
+                        None => picker.cancel_search(),
+                    }
+                }
+                self.mode = Mode::ReferencePicker;
+            }
+            _ => {}
+        }
+        Outcome::Continue
+    }
+
+    fn scroll_reference_read_down(&mut self, amount: usize) {
+        let body_height = self.review_body_height.get();
+        let body_width = self.review_body_width.get();
+        if let Some(state) = &mut self.reference_read {
+            let max_scroll = max_review_scroll(state, body_height, body_width);
+            let current_scroll = state.scroll_offset.min(max_scroll);
+            state.scroll_offset = current_scroll.saturating_add(amount).min(max_scroll);
+        }
+    }
+
+    fn scroll_reference_read_up(&mut self, amount: usize) {
+        let body_height = self.review_body_height.get();
+        let body_width = self.review_body_width.get();
+        if let Some(state) = &mut self.reference_read {
+            let max_scroll = max_review_scroll(state, body_height, body_width);
+            state.scroll_offset = state.scroll_offset.min(max_scroll).saturating_sub(amount);
+        }
     }
 
     fn open_review(&mut self) {
@@ -1102,6 +1405,15 @@ fn max_review_scroll(review: &ReviewState, body_height: usize, body_width: usize
     review
         .rendered_line_count(body_width)
         .saturating_sub(body_height)
+}
+
+/// Display name for a reference row: the file name without its folder prefix.
+fn reference_display_name(relative_path: &str) -> String {
+    relative_path
+        .rsplit('/')
+        .next()
+        .unwrap_or(relative_path)
+        .to_string()
 }
 
 #[cfg(test)]
@@ -2831,5 +3143,101 @@ mod tests {
                 "searchable text {searchable_text:?} should contain {part:?}"
             );
         }
+    }
+
+    fn picker_with(names: &[&str]) -> ReferencePickerState {
+        let entries = names
+            .iter()
+            .map(|name| ReferenceEntry {
+                name: (*name).to_string(),
+                relative_path: format!("01-Learn/02-references/{name}"),
+                path: std::path::PathBuf::from(name),
+            })
+            .collect();
+        ReferencePickerState::new(entries)
+    }
+
+    #[test]
+    fn reference_picker_moves_and_clamps_within_bounds() {
+        let mut picker = picker_with(&["a.md", "b.md", "c.md"]);
+        assert_eq!(picker.selected(), Some(0));
+        picker.move_up();
+        assert_eq!(picker.selected(), Some(0), "stays at top");
+        picker.move_down();
+        picker.move_down();
+        picker.move_down();
+        assert_eq!(picker.selected(), Some(2), "clamps at last");
+        picker.move_top();
+        assert_eq!(picker.selected(), Some(0));
+        picker.move_bottom();
+        assert_eq!(picker.selected(), Some(2));
+    }
+
+    #[test]
+    fn reference_picker_search_filters_clamps_and_cancels() {
+        let mut picker = picker_with(&["alpha.md", "beta.md", "benchmark.md"]);
+        picker.move_bottom();
+        assert_eq!(picker.selected(), Some(2));
+
+        picker.enter_search();
+        for ch in "be".chars() {
+            picker.push_query_char(ch);
+        }
+        let filtered: Vec<&str> = picker.filtered().iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(filtered, vec!["beta.md", "benchmark.md"]);
+        assert_eq!(
+            picker.selected(),
+            Some(1),
+            "selection clamped into filtered"
+        );
+
+        picker.cancel_search();
+        assert!(!picker.search_active());
+        assert_eq!(picker.query(), "");
+        assert_eq!(picker.filtered_count(), 3, "full list restored");
+    }
+
+    #[test]
+    fn reference_picker_restore_selecting_keeps_read_entry_after_clearing_search() {
+        let mut picker = picker_with(&["alpha.md", "beta.md", "benchmark.md"]);
+        // Search "be" -> [beta.md, benchmark.md]; user reads the 2nd match.
+        picker.enter_search();
+        for ch in "be".chars() {
+            picker.push_query_char(ch);
+        }
+        picker.move_down();
+        let read = picker.selected_entry().expect("a match").relative_path;
+
+        picker.restore_selecting(&read);
+
+        assert!(!picker.search_active());
+        assert_eq!(picker.query(), "");
+        assert_eq!(picker.filtered_count(), 3, "full list restored");
+        assert_eq!(
+            picker.selected_entry().map(|e| e.name),
+            Some("benchmark.md".to_string()),
+            "selection stays on the file just read, not a stale index"
+        );
+    }
+
+    #[test]
+    fn reference_picker_no_match_has_no_selection() {
+        let mut picker = picker_with(&["alpha.md", "beta.md"]);
+        picker.enter_search();
+        for ch in "zzz".chars() {
+            picker.push_query_char(ch);
+        }
+        assert_eq!(picker.filtered_count(), 0);
+        assert_eq!(picker.selected(), None);
+        assert!(picker.selected_entry().is_none(), "no row to open");
+    }
+
+    #[test]
+    fn reference_display_name_strips_folder_prefix() {
+        assert_eq!(
+            reference_display_name("01-Learn/02-references/terrain.md"),
+            "terrain.md"
+        );
+        assert_eq!(reference_display_name("solo.md"), "solo.md");
     }
 }

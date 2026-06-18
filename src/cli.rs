@@ -221,9 +221,11 @@ fn execute(cli: Cli) -> Result<ExitCode> {
                 crate::tui::run_review(&inventory, source)?;
             } else {
                 let document = crate::review::build(&source)?;
+                let references = crate::review::reference_files(&source)?;
                 let stdout = std::io::stdout();
                 let mut stdout = stdout.lock();
                 crate::review::write_text(&mut stdout, &document)?;
+                crate::review::write_references_text(&mut stdout, &references)?;
                 stdout.flush().context("flush leaf review text")?;
             }
             Ok(ExitCode::SUCCESS)
