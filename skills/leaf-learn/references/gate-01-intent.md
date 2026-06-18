@@ -65,9 +65,12 @@ surface, split it into another leaf.
 The provisional what stays provisional through Learn and is **locked only at
 Learn close**, after ② has been explored — folded into the approved **why /
 what / wireframe** triple in `00-status.md` via the lock in
-`references/gate-02-unknowns-context.md` (the why was already locked here at ①;
-the what and its wireframe form lock at Learn close). ① keeps the what
-provisional on purpose; do not lock it here.
+`references/gate-02-unknowns-context.md`. ① fixes the why as the provisional
+intent, but it does not pre-approve the triple: at Learn close all three —
+including the why, which ② may have reshaped — clear their own
+ask → approve → write loop before being written, so the why is re-confirmed
+there rather than auto-carried from ①. ① keeps the what provisional on purpose;
+do not lock the what here.
 
 Prefer locked intents that say what wrong state must be corrected or what
 distinction must be learned, rather than intents that already prescribe the
