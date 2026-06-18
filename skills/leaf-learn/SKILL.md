@@ -65,14 +65,16 @@ Read only what the current move needs:
    the output is), and the locked intent. Surface guessed facts before locking it.
    When ① changes the why, the what, the core noun, or the split decision, update
    the status overview in the same turn.
-5. **Dispatch the four scouts in parallel.** Be the explorer-companion, not a
-   clerk who only files the unknowns the user names. Fan out Terrain, Method,
-   Judgment, Context (see `## Parallel Scouts`) instead of one linear sweep; each
-   writes to `01-Learn/02-references/`.
+5. **Dispatch the four scout subagents in parallel.** Be the explorer-companion,
+   not a clerk who only files the unknowns the user names. Fan out Terrain,
+   Method, Judgment, Context as parallel subagents (see `## Parallel Scouts`)
+   instead of one linear sweep; each writes to `01-Learn/02-references/`.
 6. **Run ② Unknowns & Context as the leader.** Use
-   `references/gate-02-unknowns-context.md` as the contract. Synthesize the
-   scouts' findings into `02-unknowns.md` and a reading map (see Parallel Scouts →
-   Reading map), not an answer. When ② changes what the user now understands or
+   `references/gate-02-unknowns-context.md` as the contract. Check the user's
+   prior knowledge early (the **known knowns**) so teaching targets the gap, and
+   surface every cell of the knowledge map — known/unknown × known/unknown — not
+   only the named unknowns. Synthesize the scouts' findings into `02-unknowns.md`
+   and a reading map (see Parallel Scouts → Reading map), not an answer. When ② changes what the user now understands or
    the scope of the curiosity, update the status overview in the same turn.
 7. **Quiz, then ask the Learn-rest question.** Before resting, invoke `leaf-clean`
    for the touched Learn/status surface, show the gathered references, then quiz
@@ -113,9 +115,10 @@ write each to `00-status.md` only after the user approves its wording.
 ## Parallel Scouts
 
 ② is run as a fan-out, not a single linear sweep. The leader dispatches up to
-four scout subagents at once, each searching the topic from one angle and
-writing what it finds to `01-Learn/02-references/` (one file per topic, named for
-what it covers). The families are fixed so coverage is legible; what each scout
+four scout subagents at once, each searching the topic from one angle —
+including active web search for external references, prior art, and benchmarks —
+and writing what it finds to `01-Learn/02-references/` (one file per topic, named
+for what it covers). The families are fixed so coverage is legible; what each scout
 hunts for is fitted to this sprout.
 
 | Scout | Question it answers | What it digs for (fit to the sprout) |
@@ -133,9 +136,16 @@ Rules for the fan-out:
 - **The scouts return grounds, not verdicts.** Each writes "here is what I found
   and where" — threads the user can pull and verify — never "the answer is X." The
   conclusion is the user's to reach.
-- **The leader, not a scout, owns the learner's own state.** What the user already
-  knows and where they are likely to be misled comes from dialogue, not search.
-  Do not spawn a fifth scout for it.
+- **The leader, not a scout, owns the learner's own state — check it at entry.**
+  Ask what the user already knows about the topic before going deep: this prior
+  knowledge (the **known knowns**) comes from dialogue, not search — do not spawn
+  a fifth scout for it. It targets teaching at the gap and is the baseline the
+  closing knowledge quiz measures against; note too where the user is likely to be
+  misled.
+- **Search the web actively.** Terrain and Method scouts search the web for
+  conventions, prior art, comparable cases, and recent domain changes when the
+  domain can shift over time, saving each find under `01-Learn/02-references/`.
+  The full contract is in `references/gate-02-unknowns-context.md`.
 - **Scale honestly.** Skip a scout with nothing to find and name the skip and its
   reason; do not pad references for appearance.
 
@@ -149,12 +159,15 @@ into `02-unknowns.md` so later work does not have to re-read every file.
 ### Quiz
 
 Handing over references is not the same as the user learning them. Before resting
-Learn, pose a few short questions that make the user retrieve and apply the core —
-the trade-off, the why-it-is-this-way, the what-would-break-it — not trivia
-recall. The point is the user generating the understanding themselves, not
-proving they read the files. Treat gaps the quiz reveals as fresh threads: send
-the relevant scout back or point to the reading, then re-check. Keep it light and
-curious, never an exam.
+Learn, pose a few short questions that check the user understands the core
+knowledge — the key concepts, why it is the way it is, the trade-offs and where
+the topic forks — as understanding they can put in their own words, not trivia
+recall. **Evaluate knowledge, not judgment:** once the knowledge a decision rests
+on has been investigated and understood, the ability to judge is assumed to
+follow, so do not quiz the user on what to choose. The point is the user
+generating the understanding themselves, not proving they read the files. Treat
+gaps the quiz reveals as fresh threads: send the relevant scout back or point to
+the reading, then re-check. Keep it light and curious, never an exam.
 
 ## Status Overview
 

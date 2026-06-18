@@ -1,11 +1,12 @@
 # ② Unknowns & Context
 
 **What ② builds: you, the eager learner, come to genuinely understand this — from
-knowing the terms to being able to judge it for yourself.** Learning runs as a
-trajectory: from coming to know domain knowledge, conventions, related existing
-work, comparables, prior art, and whether this is even the only way, to being
-able to judge what to choose between and on what basis. Both ends matter, and
-neither is in a hurry; depth is welcome here.
+knowing the terms to understanding it well enough to judge it for yourself.**
+Learning runs as a trajectory: from coming to know domain knowledge, conventions,
+related existing work, comparables, prior art, and whether this is even the only
+way, to understanding what any choice would rest on. Both ends matter, and
+neither is in a hurry; depth is welcome here. ② evaluates that understanding; the
+ability to judge is assumed to follow from it, not separately tested.
 
 Be the explorer-companion. Do not only file the unknowns the user names. First
 map what is worth learning in this topic — domain concepts, history,
@@ -14,6 +15,21 @@ fields — and offer it as a menu, surfacing threads the user did not know to as
 about. Then follow the user's curiosity: go deep on the thread they pick,
 amplify it, and connect it onward. The menu opens the space wider; it never
 narrows it.
+
+Across all of this, surface every cell of the knowledge map, not just the obvious
+one — four cells, each with a home in this gate:
+
+- **known knowns** — what the user already knows: established by the entry
+  prior-knowledge check and the verified facts.
+- **known unknowns** — what the user knows they do not know: the explicit unknowns
+  list, the everyday work of ②.
+- **unknown knowns** — what is taken for granted without ever being looked at: the
+  Premise Inventory exists to drag these into the open.
+- **unknown unknowns** — what the user did not know to ask: the explorer-companion
+  menu and the scout fan-out exist precisely to surface these.
+
+The easy cell is known unknowns; the learning that matters most usually hides in
+the other three.
 
 The experiment at this gate aims at the world: is this true? Verify what can be
 verified rather than believing it on trust — verification is itself the deepest
@@ -47,8 +63,8 @@ By source:
 - **Internal**: what the team already has, such as data, footage, contacts,
   documents, prior decisions, and forgotten constraints.
 
-These axes are gathered by four parallel scouts, not one linear sweep (see
-`../SKILL.md` → Parallel Scouts). **A. Terrain** ("what exists") covers the kind
+These axes are gathered by four parallel scout subagents, not one linear sweep
+(see `../SKILL.md` → Parallel Scouts). **A. Terrain** ("what exists") covers the kind
 axis facts plus External/Internal sources; **B. Method** ("how it's done") covers
 conventions, best practices, real cases, and anti-patterns; **C. Judgment**
 ("where it forks") covers selection criteria, trade-offs, live debates, and the
@@ -57,9 +73,12 @@ never drop it; **D. Context** ("why it's this way") covers history, recent
 changes, adjacent-field analogies, and stakeholders. Each scout writes findings
 to `01-Learn/02-references/`, one file per topic; the leader then summarizes each
 back into `02-unknowns.md` and builds a reading map rather than handing over an
-answer. The leader, not a scout, owns the learner's own state — what the user
-already knows and where they may be misled — because that comes from dialogue,
-not search.
+answer. The leader, not a scout, owns the learner's own state and checks it explicitly at
+entry: ask what the user already knows about the topic before going deep —
+established by dialogue, not search. This prior knowledge is the **known knowns**
+cell; it targets teaching at the gap rather than over- or under-explaining, and
+it is the baseline the closing knowledge quiz measures what was learned against.
+Note too where the user may be misled.
 
 ## Big-Picture Map
 
@@ -105,7 +124,8 @@ Resolve by updating the same entries:
 ## Premise Inventory
 
 ② is not only a context inventory. It must expose the premises you are taking for
-granted — the things assumed true without ever looking. Naming them is one of the
+granted — the things assumed true without ever looking. These are the **unknown
+knowns**: what you rely on without knowing you rely on it. Naming them is one of the
 deepest learning moves: what looks obvious is often where understanding is
 thinnest.
 
@@ -191,10 +211,13 @@ Gate to continue:
   still pulls.
 - 2-4 plausible directions or frames are named when the user needs references to
   picture the landscape.
-- The user can say what to choose between and on what basis; learning has reached
-  judgment, not just collection.
-- The user has been quizzed on the core judgments, and either answered them or the
-  gaps the quiz revealed were turned back into threads rather than glossed over.
+- The user can explain the core knowledge the topic's decisions rest on — the
+  concepts, the why-it-is-this-way, the trade-offs and where it forks — as
+  understanding, not just collection. Judgment is assumed to follow from this
+  knowledge, not separately tested.
+- The user's prior knowledge was checked at entry, and the closing quiz evaluated
+  whether the core knowledge landed against it — knowledge, not the decision —
+  with gaps the quiz revealed turned back into threads rather than glossed over.
 - The provisional what is locked into an approved **why / what / wireframe**
   triple in `00-status.md`. Each item cleared an **ask → approve → write** gate:
   the agent asked its open questions, the user approved the wording, and only
@@ -212,12 +235,15 @@ from memory. An empty or thin tree must be named plainly, with the reason
 references were not needed.
 
 Then quiz before you rest. Handing over references is not proof the user learned
-them. Pose a few short questions that make the user retrieve and apply the core —
-the trade-off, the why-it-is-this-way, the what-would-break-it — not trivia
-recall. The aim is the user generating the understanding themselves; gaps the
-quiz exposes are fresh threads, so send the relevant scout back or point to the
-reading and re-check rather than resting. Keep it light and curious, never an
-exam.
+them. Pose a few short questions that check the user understands the core
+knowledge — the key concepts, why it is the way it is, the trade-offs and where
+the topic forks — as understanding in their own words, not trivia recall.
+**Evaluate knowledge, not judgment:** once the knowledge a decision rests on has
+been investigated and understood, the ability to judge is assumed to follow, so
+do not quiz what to choose. The aim is the user generating the understanding
+themselves; gaps the quiz exposes are fresh threads, so send the relevant scout
+back or point to the reading and re-check rather than resting. Keep it light and
+curious, never an exam.
 
 After the quiz, always ask the user this explicitly:
 
