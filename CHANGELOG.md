@@ -6,6 +6,20 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.8.0 - 2026-06-18
+
+- `leaf review` now surfaces a leaf's Learn references. The references live in
+  `01-Learn/02-references/*.md` and are listed separately from the canonical
+  11-source body so conclusions are not buried. In non-TTY output they are
+  appended as a trailing `REFERENCES` section (filename-ascending; a missing
+  folder yields none, and subfolders/non-`.md` files are ignored).
+- The review reader's TUI gains a references modal picker. Press `R` to open a
+  centered list of the leaf's references; navigate with `j`/`k` (`g`/`G` for
+  top/bottom), press `/` for an incremental case-insensitive search, and `Enter`
+  to read a reference full-screen (`Esc` to step back to the modal, `Esc` again
+  to the review). Empty folders show `no references`. Clearing the search keeps
+  the read reference selected. sprout/leaf/fallen rows behave identically.
+
 ## 0.7.0 - 2026-06-16
 
 - Renamed the `leaf-idea` skill to `leaf-learn` to match what it owns: the Learn
