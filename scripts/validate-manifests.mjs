@@ -84,6 +84,10 @@ const versions = {
   "CC marketplace metadata": ccMarket?.metadata?.version,
   "Codex marketplace metadata": codexMarket?.metadata?.version,
 };
+const missingVersions = Object.entries(versions)
+  .filter(([, v]) => v == null)
+  .map(([k]) => k);
+if (missingVersions.length) fail(`missing version in: ${missingVersions.join(", ")}`);
 const seen = new Set(Object.values(versions).filter(Boolean));
 if (seen.size > 1) {
   fail(

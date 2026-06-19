@@ -234,6 +234,7 @@ This repository ships Agent Skills bundled as the `leaf` plugin (see Quick Start
 | [`leaf-reversed`](plugins/leaf/skills/leaf-reversed/SKILL.md) | Reconstructing a complete LEAF record from a finished artifact or result |
 | [`leaf-clean`](plugins/leaf/skills/leaf-clean/SKILL.md) | Cleaning LEAF documents into simple, complete current reports |
 | [`leaf-done`](plugins/leaf/skills/leaf-done/SKILL.md) | Deciding whether a finished leaf should stay, be pressed, or fall |
+| [`leaf-profile`](plugins/leaf/skills/leaf-profile/SKILL.md) | Reading and updating the machine-global and repo-local LEAF profiles |
 | [`leaf-soul`](plugins/leaf/skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
 Install the LEAF skills together as a family — they are not independent.
