@@ -50,10 +50,14 @@ pub(crate) enum PreviewLine {
         links: Vec<PreviewTableLink>,
         widths: Vec<usize>,
         alignments: Vec<TableAlignment>,
+        /// Table-wide column metrics, computed once across all rows so every
+        /// line of the table fits to the same column widths and stays aligned.
+        metrics: Vec<TableColumnMetric>,
     },
     TableDivider {
         widths: Vec<usize>,
         kind: TableDividerKind,
+        metrics: Vec<TableColumnMetric>,
     },
     TableRow {
         headers: Vec<String>,
@@ -61,6 +65,7 @@ pub(crate) enum PreviewLine {
         links: Vec<PreviewTableLink>,
         widths: Vec<usize>,
         alignments: Vec<TableAlignment>,
+        metrics: Vec<TableColumnMetric>,
     },
     Plain(String),
 }
@@ -1683,6 +1688,7 @@ fn render_table_lines(rows: &[Vec<TableCell>], alignments: &[TableAlignment]) ->
         })
         .collect::<Vec<_>>();
 
+    let metrics = collect_table_column_metrics_for_table(rows, &widths);
     let mut rendered = Vec::new();
     let headers = row_texts(&rows[0]);
     for (index, row) in rows.iter().enumerate() {
@@ -1692,10 +1698,12 @@ fn render_table_lines(rows: &[Vec<TableCell>], alignments: &[TableAlignment]) ->
                 links: row_links(row),
                 widths: widths.clone(),
                 alignments: alignments.clone(),
+                metrics: metrics.clone(),
             });
             rendered.push(PreviewLine::TableDivider {
                 widths: widths.clone(),
                 kind: TableDividerKind::Header,
+                metrics: metrics.clone(),
             });
         } else {
             rendered.push(PreviewLine::TableRow {
@@ -1704,11 +1712,13 @@ fn render_table_lines(rows: &[Vec<TableCell>], alignments: &[TableAlignment]) ->
                 links: row_links(row),
                 widths: widths.clone(),
                 alignments: alignments.clone(),
+                metrics: metrics.clone(),
             });
             if index + 1 < rows.len() {
                 rendered.push(PreviewLine::TableDivider {
                     widths: widths.clone(),
                     kind: TableDividerKind::Body,
+                    metrics: metrics.clone(),
                 });
             }
         }
@@ -1805,19 +1815,7 @@ pub(crate) fn table_divider(widths: &[usize], kind: TableDividerKind) -> String 
         .join(&" ".repeat(TABLE_COLUMN_GAP))
 }
 
-pub(crate) fn fitted_table_widths(widths: &[usize], max_width: usize) -> Vec<usize> {
-    let metrics = widths
-        .iter()
-        .map(|width| TableColumnMetric {
-            max_width: (*width).max(1),
-            header_token_width: 0,
-            body_token_width: 0,
-            kind: TableColumnKind::Narrative,
-        })
-        .collect::<Vec<_>>();
-    fitted_table_widths_with_metrics(widths, max_width, &metrics)
-}
-
+#[cfg(test)]
 fn fitted_table_widths_for_cells(
     headers: &[String],
     cells: &[String],
@@ -1892,20 +1890,47 @@ fn shrink_widths_to_target(
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum TableColumnKind {
+pub(crate) enum TableColumnKind {
     TokenHeavy,
     Narrative,
     Compact,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct TableColumnMetric {
+pub(crate) struct TableColumnMetric {
     max_width: usize,
     header_token_width: usize,
     body_token_width: usize,
     kind: TableColumnKind,
 }
 
+/// Classify one column from a single representative cell.
+fn column_metric(header: &str, cell: &str, width: usize) -> TableColumnMetric {
+    let word_count = cell.split_whitespace().count();
+    let token_width = longest_token_width(cell);
+    let cell_width = display_width(cell);
+    let long_token_count = cell
+        .split_whitespace()
+        .filter(|token| display_width(token) >= 20)
+        .count();
+    let kind = if long_token_count > 0
+        && long_token_count >= word_count.saturating_sub(long_token_count)
+    {
+        TableColumnKind::TokenHeavy
+    } else if word_count >= 4 || cell_width >= 28 {
+        TableColumnKind::Narrative
+    } else {
+        TableColumnKind::Compact
+    };
+    TableColumnMetric {
+        max_width: width.max(1),
+        header_token_width: longest_token_width(header),
+        body_token_width: token_width,
+        kind,
+    }
+}
+
+#[cfg(test)]
 fn collect_table_column_metrics(
     headers: &[String],
     cells: &[String],
@@ -1917,30 +1942,58 @@ fn collect_table_column_metrics(
         .map(|(index, width)| {
             let header = headers.get(index).map(String::as_str).unwrap_or("");
             let cell = cells.get(index).map(String::as_str).unwrap_or("");
-            let word_count = cell.split_whitespace().count();
-            let token_width = longest_token_width(cell);
-            let cell_width = display_width(cell);
-            let long_token_count = cell
-                .split_whitespace()
-                .filter(|token| display_width(token) >= 20)
-                .count();
-            let kind = if long_token_count > 0
-                && long_token_count >= word_count.saturating_sub(long_token_count)
-            {
-                TableColumnKind::TokenHeavy
-            } else if word_count >= 4 || cell_width >= 28 {
-                TableColumnKind::Narrative
-            } else {
-                TableColumnKind::Compact
-            };
-            TableColumnMetric {
-                max_width: (*width).max(1),
-                header_token_width: longest_token_width(header),
-                body_token_width: token_width,
-                kind,
-            }
+            column_metric(header, cell, *width)
         })
         .collect()
+}
+
+/// Compute one metric per column from ALL table rows, so every line of the
+/// table shares the same fitting decision and the columns line up vertically.
+/// The widest cell in a column is its representative — it is the cell that
+/// determines how much space the column wants.
+fn collect_table_column_metrics_for_table(
+    rows: &[Vec<TableCell>],
+    widths: &[usize],
+) -> Vec<TableColumnMetric> {
+    let header_texts = rows.first().map(|row| row_texts(row)).unwrap_or_default();
+    widths
+        .iter()
+        .enumerate()
+        .map(|(column, width)| {
+            let header = header_texts.get(column).map(String::as_str).unwrap_or("");
+            let representative = rows
+                .iter()
+                .filter_map(|row| row.get(column))
+                .map(|cell| cell.text.as_str())
+                .max_by_key(|text| display_width(text))
+                .unwrap_or("");
+            column_metric(header, representative, *width)
+        })
+        .collect()
+}
+
+/// Uniform fallback metrics (treat every column as plain narrative text),
+/// used when a table line carries no precomputed table-wide metrics.
+fn uniform_table_column_metrics(widths: &[usize]) -> Vec<TableColumnMetric> {
+    widths
+        .iter()
+        .map(|width| TableColumnMetric {
+            max_width: (*width).max(1),
+            header_token_width: 0,
+            body_token_width: 0,
+            kind: TableColumnKind::Narrative,
+        })
+        .collect()
+}
+
+/// Resolve the metrics a table line should fit against: its stored table-wide
+/// metrics when present, otherwise a uniform fallback derived from `widths`.
+fn resolve_table_metrics(metrics: &[TableColumnMetric], widths: &[usize]) -> Vec<TableColumnMetric> {
+    if metrics.len() == widths.len() {
+        metrics.to_vec()
+    } else {
+        uniform_table_column_metrics(widths)
+    }
 }
 
 fn longest_token_width(text: &str) -> usize {
@@ -1969,13 +2022,13 @@ fn column_shrink_priority(kind: TableColumnKind) -> usize {
 }
 
 pub(crate) fn wrapped_table_row_texts(
-    headers: &[String],
     cells: &[String],
     widths: &[usize],
     alignments: &[TableAlignment],
+    metrics: &[TableColumnMetric],
     max_width: usize,
 ) -> Vec<String> {
-    let fitted_widths = fitted_table_widths_for_cells(headers, cells, widths, max_width);
+    let fitted_widths = fitted_table_widths_with_metrics(widths, max_width, metrics);
     let wrapped_cells = fitted_widths
         .iter()
         .enumerate()
@@ -2034,7 +2087,7 @@ pub(crate) fn table_line_text(line: &PreviewLine) -> Option<String> {
                 .trim_end()
                 .to_string(),
         ),
-        PreviewLine::TableDivider { widths, kind } => Some(table_divider(widths, *kind)),
+        PreviewLine::TableDivider { widths, kind, .. } => Some(table_divider(widths, *kind)),
         _ => None,
     }
 }
@@ -2054,39 +2107,49 @@ pub(crate) fn wrapped_table_line_texts(
                     .collect(),
             )
         }
-        PreviewLine::TableHeader { widths, .. }
-            if should_render_table_records(widths, max_width) =>
-        {
+        PreviewLine::TableHeader {
+            widths, metrics, ..
+        } if should_render_table_records(widths, &resolve_table_metrics(metrics, widths), max_width) => {
             Some(Vec::new())
         }
         PreviewLine::TableHeader {
             cells,
             widths,
             alignments,
+            metrics,
             ..
         } => Some(wrapped_table_row_texts(
-            cells, cells, widths, alignments, max_width,
-        )),
-        PreviewLine::TableRow {
-            headers,
-            cells,
-            widths,
-            ..
-        } if should_render_table_records(widths, max_width) => {
-            Some(record_table_row_texts(headers, cells, max_width))
-        }
-        PreviewLine::TableRow {
-            headers,
             cells,
             widths,
             alignments,
+            &resolve_table_metrics(metrics, widths),
+            max_width,
+        )),
+        PreviewLine::TableRow {
+            headers,
+            cells,
+            widths,
+            metrics,
+            ..
+        } if should_render_table_records(widths, &resolve_table_metrics(metrics, widths), max_width) => {
+            Some(record_table_row_texts(headers, cells, max_width))
+        }
+        PreviewLine::TableRow {
+            cells,
+            widths,
+            alignments,
+            metrics,
             ..
         } => Some(wrapped_table_row_texts(
-            headers, cells, widths, alignments, max_width,
+            cells,
+            widths,
+            alignments,
+            &resolve_table_metrics(metrics, widths),
+            max_width,
         )),
-        PreviewLine::TableDivider { widths, kind }
-            if should_render_table_records(widths, max_width) =>
-        {
+        PreviewLine::TableDivider {
+            widths, metrics, kind,
+        } if should_render_table_records(widths, &resolve_table_metrics(metrics, widths), max_width) => {
             match kind {
                 TableDividerKind::Header => Some(Vec::new()),
                 TableDividerKind::Body => Some(vec![
@@ -2096,15 +2159,25 @@ pub(crate) fn wrapped_table_line_texts(
                 ]),
             }
         }
-        PreviewLine::TableDivider { widths, kind } => Some(vec![table_divider(
-            &fitted_table_widths(widths, max_width),
+        PreviewLine::TableDivider {
+            widths, metrics, kind,
+        } => Some(vec![table_divider(
+            &fitted_table_widths_with_metrics(
+                widths,
+                max_width,
+                &resolve_table_metrics(metrics, widths),
+            ),
             *kind,
         )]),
         _ => None,
     }
 }
 
-fn should_render_table_records(widths: &[usize], max_width: usize) -> bool {
+fn should_render_table_records(
+    widths: &[usize],
+    metrics: &[TableColumnMetric],
+    max_width: usize,
+) -> bool {
     if widths.len() < 2 {
         return false;
     }
@@ -2116,7 +2189,7 @@ fn should_render_table_records(widths: &[usize], max_width: usize) -> bool {
     if max_width < MIN_TABLE_COLUMN_MODE_WIDTH {
         return true;
     }
-    let fitted = fitted_table_widths(widths, max_width);
+    let fitted = fitted_table_widths_with_metrics(widths, max_width, metrics);
     fitted.iter().skip(1).any(|width| *width < 32)
 }
 
@@ -3136,6 +3209,47 @@ Here is a code block:
 
         assert_eq!(text[0], "Left    Center    Right");
         assert_eq!(text[2], "a         b           c");
+    }
+
+    #[test]
+    fn preview_markdown_table_aligns_second_column_when_first_column_wraps() {
+        // Mixed first-column lengths: the long one wraps to multiple lines.
+        // Every body row's second column must start at the same display column.
+        let lines = render_markdown_with_cwd(
+            "| Criteria | Verdict |\n\
+             | --- | --- |\n\
+             | MySQL-first schema | ALPHA expressed as plain columns |\n\
+             | separation of source history derived and baseline values across all the tables | BRAVO seven tables separated cleanly here |\n\
+             | payment dedup key | CHARLIE natural keys kept together |\n",
+            None,
+        );
+        let rendered = lines
+            .iter()
+            .flat_map(|line| {
+                wrapped_table_line_texts(line, 78).unwrap_or_else(|| vec![line_text(line)])
+            })
+            .collect::<Vec<_>>();
+
+        // Display column where a token first appears (counts wide chars correctly).
+        let display_col = |token: &str| -> usize {
+            rendered
+                .iter()
+                .find_map(|line| {
+                    line.find(token).map(|byte| display_width(&line[..byte]))
+                })
+                .unwrap_or_else(|| panic!("token {token:?} not found in {rendered:?}"))
+        };
+
+        let header = display_col("Verdict");
+        let short_a = display_col("ALPHA");
+        let wrapped = display_col("BRAVO");
+        let short_c = display_col("CHARLIE");
+
+        assert_eq!(
+            (short_a, wrapped, short_c),
+            (header, header, header),
+            "second column must start at the same display column for every row\n{rendered:#?}"
+        );
     }
 
     #[test]
