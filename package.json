@@ -1,0 +1,9 @@
+{
+  "name": "leaf-plugin",
+  "private": true,
+  "description": "Manifest tooling for the leaf Claude Code + Codex plugin marketplace",
+  "type": "module",
+  "scripts": {
+    "validate": "node scripts/validate-manifests.mjs"
+  }
+}
