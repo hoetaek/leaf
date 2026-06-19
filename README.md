@@ -18,26 +18,43 @@ repo-local body.
 
 ## Quick Start
 
-Install the Agent Skills:
+Install the Agent Skills as a plugin. The skills ship as one plugin (`leaf`)
+served from this repo as a marketplace for both Claude Code and Codex.
+
+**Claude Code:**
 
 ```bash
-npx skills@latest add https://github.com/hoetaek/leaf
+/plugin marketplace add hoetaek/leaf
+/plugin install leaf@leaf
 ```
 
-For a global skills install:
+The seven skills then appear namespaced as `/leaf:leaf-learn` … `/leaf:leaf-work`.
+Update later with `/plugin marketplace update leaf`.
+
+**Codex** (CLI 0.125+):
 
 ```bash
-npx skills@latest add https://github.com/hoetaek/leaf -g
+codex plugin marketplace add hoetaek/leaf
+codex plugin add leaf@leaf
 ```
 
-For a global Claude Code skills install:
+Or enable it in `~/.codex/config.toml`:
 
-```bash
-npx skills@latest add https://github.com/hoetaek/leaf -g -a claude-code
+```toml
+[plugins."leaf@leaf"]
+enabled = true
 ```
 
-Install the `leaf` CLI that gives those skills a repo-local body. Homebrew is
-the recommended install path:
+Update later with `codex plugin marketplace upgrade leaf`.
+
+> **Deprecated:** the previous `npx skills@latest add https://github.com/hoetaek/leaf`
+> install path is superseded by the plugin marketplace above. If you installed
+> the skills that way (a symlink under `~/.agents/skills/`), remove it and
+> re-install via the plugin.
+
+Install the `leaf` CLI that gives those skills a repo-local body. The plugin
+does not install the CLI; it only checks for it on session start and points you
+here. Homebrew is the recommended install path:
 
 ```bash
 brew install hoetaek/tap/leaf
@@ -89,8 +106,8 @@ LEAF closes uncertainty in order:
 | Feedback | The result still holds, and the lessons carry forward |
 
 The Learn gate contract lives in
-[`skills/leaf-learn`](skills/leaf-learn/SKILL.md); Example onward lives in
-[`skills/leaf-work`](skills/leaf-work/SKILL.md).
+[`leaf-learn`](plugins/leaf/skills/leaf-learn/SKILL.md); Example onward lives in
+[`leaf-work`](plugins/leaf/skills/leaf-work/SKILL.md).
 
 ## Concepts
 
@@ -208,24 +225,24 @@ layout leftovers, missing status fields, and stage/status mismatches.
 
 ## Agent Skills
 
-This repository ships Agent Skills:
+This repository ships Agent Skills bundled as the `leaf` plugin (see Quick Start):
 
 | Skill | Use it for |
 |---|---|
-| [`leaf-learn`](skills/leaf-learn/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
-| [`leaf-work`](skills/leaf-work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
-| [`leaf-reversed`](skills/leaf-reversed/SKILL.md) | Reconstructing a complete LEAF record from a finished artifact or result |
-| [`leaf-clean`](skills/leaf-clean/SKILL.md) | Cleaning LEAF documents into simple, complete current reports |
-| [`leaf-done`](skills/leaf-done/SKILL.md) | Deciding whether a finished leaf should stay, be pressed, or fall |
-| [`leaf-soul`](skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
+| [`leaf-learn`](plugins/leaf/skills/leaf-learn/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
+| [`leaf-work`](plugins/leaf/skills/leaf-work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
+| [`leaf-reversed`](plugins/leaf/skills/leaf-reversed/SKILL.md) | Reconstructing a complete LEAF record from a finished artifact or result |
+| [`leaf-clean`](plugins/leaf/skills/leaf-clean/SKILL.md) | Cleaning LEAF documents into simple, complete current reports |
+| [`leaf-done`](plugins/leaf/skills/leaf-done/SKILL.md) | Deciding whether a finished leaf should stay, be pressed, or fall |
+| [`leaf-profile`](plugins/leaf/skills/leaf-profile/SKILL.md) | Reading and updating the machine-global and repo-local LEAF profiles |
+| [`leaf-soul`](plugins/leaf/skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
 Install the LEAF skills together as a family — they are not independent.
 `leaf-learn`, `leaf-work`, `leaf-reversed`, `leaf-clean`, and `leaf-done` read
 `leaf-soul` through the sibling path `../leaf-soul/SKILL.md`; `leaf-learn` and
 `leaf-work` also read the gate references under `leaf-work` through
-`../leaf-work/references/`. The
-Quick Start command above installs the whole family; installing a single skill
-with `--skill` would leave those cross-skill references broken.
+`../leaf-work/references/`. Installing the `leaf` plugin ships the whole family
+together, so these cross-skill references resolve.
 
 ## Status
 
