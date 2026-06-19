@@ -1988,7 +1988,10 @@ fn uniform_table_column_metrics(widths: &[usize]) -> Vec<TableColumnMetric> {
 
 /// Resolve the metrics a table line should fit against: its stored table-wide
 /// metrics when present, otherwise a uniform fallback derived from `widths`.
-fn resolve_table_metrics(metrics: &[TableColumnMetric], widths: &[usize]) -> Vec<TableColumnMetric> {
+fn resolve_table_metrics(
+    metrics: &[TableColumnMetric],
+    widths: &[usize],
+) -> Vec<TableColumnMetric> {
     if metrics.len() == widths.len() {
         metrics.to_vec()
     } else {
@@ -2109,7 +2112,12 @@ pub(crate) fn wrapped_table_line_texts(
         }
         PreviewLine::TableHeader {
             widths, metrics, ..
-        } if should_render_table_records(widths, &resolve_table_metrics(metrics, widths), max_width) => {
+        } if should_render_table_records(
+            widths,
+            &resolve_table_metrics(metrics, widths),
+            max_width,
+        ) =>
+        {
             Some(Vec::new())
         }
         PreviewLine::TableHeader {
@@ -2131,7 +2139,12 @@ pub(crate) fn wrapped_table_line_texts(
             widths,
             metrics,
             ..
-        } if should_render_table_records(widths, &resolve_table_metrics(metrics, widths), max_width) => {
+        } if should_render_table_records(
+            widths,
+            &resolve_table_metrics(metrics, widths),
+            max_width,
+        ) =>
+        {
             Some(record_table_row_texts(headers, cells, max_width))
         }
         PreviewLine::TableRow {
@@ -2148,8 +2161,15 @@ pub(crate) fn wrapped_table_line_texts(
             max_width,
         )),
         PreviewLine::TableDivider {
-            widths, metrics, kind,
-        } if should_render_table_records(widths, &resolve_table_metrics(metrics, widths), max_width) => {
+            widths,
+            metrics,
+            kind,
+        } if should_render_table_records(
+            widths,
+            &resolve_table_metrics(metrics, widths),
+            max_width,
+        ) =>
+        {
             match kind {
                 TableDividerKind::Header => Some(Vec::new()),
                 TableDividerKind::Body => Some(vec![
@@ -2160,7 +2180,9 @@ pub(crate) fn wrapped_table_line_texts(
             }
         }
         PreviewLine::TableDivider {
-            widths, metrics, kind,
+            widths,
+            metrics,
+            kind,
         } => Some(vec![table_divider(
             &fitted_table_widths_with_metrics(
                 widths,
@@ -3234,9 +3256,7 @@ Here is a code block:
         let display_col = |token: &str| -> usize {
             rendered
                 .iter()
-                .find_map(|line| {
-                    line.find(token).map(|byte| display_width(&line[..byte]))
-                })
+                .find_map(|line| line.find(token).map(|byte| display_width(&line[..byte])))
                 .unwrap_or_else(|| panic!("token {token:?} not found in {rendered:?}"))
         };
 
