@@ -122,6 +122,9 @@ and writing what it finds to `01-Learn/02-references/` (one file per topic, name
 for what it covers). The families are fixed so coverage is legible; what each scout
 hunts for is fitted to this sprout.
 
+Because `$leaf-learn` semantically includes the scout fan-out, the command is an
+explicit delegation request for those scouts.
+
 | Scout | Question it answers | What it digs for (fit to the sprout) |
 |---|---|---|
 | **A. Terrain** | What exists? | external references & authoritative prior art, domain concepts & terminology, internal assets (existing code, docs, prior decisions, data), available tools/ecosystem |
