@@ -29,6 +29,12 @@ minor version instead of moving to `x.0.0`.
   `leaf-profile`→`profile`, `leaf-soul`→`soul`, `leaf-work`→`work`. The entry
   skill `using-leaf` keeps its name (matching the `using-superpowers`
   convention). **Breaking:** reinstall and reload to pick up the new names.
+- The plugin now **versions independently of the `leaf` CLI**, starting at
+  `0.1.0` (previously pinned to the CLI's `0.8.0`), so plugin-only changes ship
+  to users without waiting for a CLI release. The plugin declares a
+  compatibility floor of **`leaf` CLI ≥ 0.8.0** (documented in the README and
+  `using-leaf`). `validate-manifests.mjs` now checks the four manifests agree
+  with each other rather than matching `Cargo.toml`.
 
 ## 0.8.0 - 2026-06-18
 

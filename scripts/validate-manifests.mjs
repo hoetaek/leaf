@@ -6,7 +6,9 @@
 //   2. plugin name/version/description agree across CC plugin.json, Codex
 //      plugin.json, and both marketplace entries.
 //   3. Both marketplaces register the `leaf` plugin and point at ./plugins/leaf.
-//   4. The single version matches Cargo.toml (D1: plugin version tracks CLI).
+//   4. Every manifest carries the same plugin version (the plugin versions
+//      independently of the leaf CLI; the canonical value is CC plugin.json's
+//      `version`). The required leaf CLI floor is documented, not derived here.
 //   5. plugins/leaf/skills/ contains at least one skill with a SKILL.md.
 //
 // Exits non-zero on any failure so CI blocks drift.
@@ -32,17 +34,6 @@ const readJSON = (rel) => {
     return null;
   }
 };
-
-// Cargo.toml version (single source of truth).
-let cargoVersion = null;
-const cargoPath = join(ROOT, "Cargo.toml");
-if (existsSync(cargoPath)) {
-  const m = readFileSync(cargoPath, "utf8").match(/^\s*version\s*=\s*"([^"]+)"/m);
-  if (m) cargoVersion = m[1];
-  else fail("could not read version from Cargo.toml");
-} else {
-  fail("missing Cargo.toml");
-}
 
 const ccPlugin = readJSON("plugins/leaf/.claude-plugin/plugin.json");
 const codexPlugin = readJSON("plugins/leaf/.codex-plugin/plugin.json");
@@ -74,9 +65,9 @@ const codexEntry = codexMarket?.plugins?.find((p) => p.name === "leaf");
 if (ccMarket && !ccEntry) fail("CC marketplace.json: no plugin entry named `leaf`");
 if (codexMarket && !codexEntry) fail("Codex marketplace.json: no plugin entry named `leaf`");
 
-// 2 + 4. Version agreement across all manifests and Cargo.toml.
+// 2 + 4. Every manifest carries the same plugin version (independent of the CLI).
+const pluginVersion = ccPlugin?.version;
 const versions = {
-  "Cargo.toml": cargoVersion,
   "CC plugin.json": ccPlugin?.version,
   "Codex plugin.json": codexPlugin?.version,
   "CC marketplace entry": ccEntry?.version,
@@ -124,9 +115,9 @@ if (!existsSync(skillsDir)) {
 }
 
 // --audit: scan every manifest JSON under the plugin/marketplace dirs for a
-// `"version"` field and flag any that drifts from Cargo.toml. Catches a stray
-// version in a NEW manifest the four hardcoded checks above don't know about.
-if (process.argv.includes("--audit") && cargoVersion) {
+// `"version"` field and flag any that drifts from the plugin version. Catches a
+// stray version in a NEW manifest the four hardcoded checks above don't know about.
+if (process.argv.includes("--audit") && pluginVersion) {
   const SEMVER = /^\d+\.\d+\.\d+/;
   const collectJson = (rel) => {
     const abs = join(ROOT, rel);
@@ -167,11 +158,11 @@ if (process.argv.includes("--audit") && cargoVersion) {
     findVersions(json, "", found);
     for (const { path, value } of found) {
       audited += 1;
-      if (value !== cargoVersion)
-        fail(`audit: ${rel} ${path}=${value} != Cargo ${cargoVersion}`);
+      if (value !== pluginVersion)
+        fail(`audit: ${rel} ${path}=${value} != plugin ${pluginVersion}`);
     }
   }
-  console.log(`✓ audit: ${audited} version field(s) across manifests match ${cargoVersion}`);
+  console.log(`✓ audit: ${audited} version field(s) across manifests match ${pluginVersion}`);
 }
 
 if (errors.length) {
@@ -179,4 +170,4 @@ if (errors.length) {
   for (const e of errors) console.error(`  - ${e}`);
   process.exit(1);
 }
-console.log(`✓ manifests consistent at version ${cargoVersion}`);
+console.log(`✓ manifests consistent at plugin version ${pluginVersion}`);
