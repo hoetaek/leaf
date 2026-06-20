@@ -32,7 +32,8 @@ LEAF closes four kinds of uncertainty in order:
 
 `work` starts after `learn` has passed ① Intent and ② Unknowns &
 Context. It carries the same sprout from ③ through ⑧, moves passed work to
-`.leaf/02-leaves/` before ⑨, and invokes `done` after ⑩.
+`.leaf/02-leaves/` before ⑨, runs ⑨/⑩, then follows `using-leaf`
+("Ending a leaf") to keep, press, or fall.
 
 ## Always-on rules
 
@@ -44,18 +45,20 @@ Context. It carries the same sprout from ③ through ⑧, moves passed work to
 - **Conduct and voice come from `soul`.** Invoke `soul` at the start
   and follow it for reporting, language, fact/guess boundaries, review handoff,
   and rendered artifact display. `work` owns gate method and progress.
-  Whenever work needs another LEAF skill — `learn` for Learn, `clean`
-  for document cleanup, or `done` for keep/press/fall close-out — invoke
-  that skill rather than only referencing its file. Use `profile` when
-  `.leaf/PROFILE.md` needs to be read or updated.
+  Whenever work needs another LEAF skill — `learn` for Learn, `polish`
+  for document cleanup, or `press` to press a reference-worthy leaf — invoke
+  that skill rather than only referencing its file. The keep/press/fall
+  decision and the fall and keep actions live in `using-leaf`
+  ("Ending a leaf"). Use `profile` when `.leaf/PROFILE.md` needs to be read
+  or updated.
 - **Act by the relevant gate reference.** Identify the current gate, read its
   reference, tell the user the gate, and follow its pass/return conditions.
   For ①/② returns use `../learn/references/gate-01-intent.md` and
   `../learn/references/gate-02-unknowns-context.md`; use `references/gates.md`
   for ③ onward.
-- **Clean before review.** Before review or approval, run
-  `leaf checkpoint <slug> --<gate>` on each gate file you are about to clean,
-  then invoke `clean` on the touched gate/status files that need a
+- **Polish before review.** Before review or approval, run
+  `leaf checkpoint <slug> --<gate>` on each gate file you are about to polish,
+  then invoke `polish` on the touched gate/status files that need a
   simplicity pass.
 - **Keep status current.** Update `00-status.md` whenever phase, gate, next
   action, approval need, return, or closure state changes. Keep its `## Overview`
@@ -71,7 +74,8 @@ Context. It carries the same sprout from ③ through ⑧, moves passed work to
   explicit user approval unless pre-authorized.
 - **Move and close.** After ⑧ is explicitly passed or delivered, move the same
   folder from `.leaf/01-sprouts/` to `.leaf/02-leaves/`, update status, and run
-  `leaf doctor`. After ⑩ passes, invoke `done`.
+  `leaf doctor`. After ⑩ passes, follow `using-leaf` ("Ending a leaf") to
+  keep, press, or fall.
 - **Use `references/layout.md` before writing files.** It owns folder layout,
   gate filenames, status values, and file-vs-folder rules.
 

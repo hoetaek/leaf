@@ -1,7 +1,0 @@
-interface:
-  display_name: "LEAF Done"
-  short_description: "Decide whether a leaf should be kept, pressed, or fallen"
-  default_prompt: "Use $leaf:done to close a leaf: decide with the user whether to keep it, press it into a citable pressed.md digest, or move it to fallen with an explicit reason."
-
-policy:
-  allow_implicit_invocation: true

@@ -29,6 +29,14 @@ minor version instead of moving to `x.0.0`.
   `leaf-profile`→`profile`, `leaf-soul`→`soul`, `leaf-work`→`work`. The entry
   skill `using-leaf` keeps its name (matching the `using-superpowers`
   convention). **Breaking:** reinstall and reload to pick up the new names.
+- Renamed the `clean` skill to `polish` (clearer that it polishes a LEAF
+  document into a current report, not code/working-tree cleanup), and renamed
+  `done` to `press`, narrowing it to the single press action — writing a citable
+  `pressed.md` digest. The keep / press / fall **decision** and the lightweight
+  fall (`leaf fall`) and keep actions moved into `using-leaf` under a new
+  "Ending a leaf" section, so the always-injected router owns the close-out
+  decision while `press` stays a focused on-demand skill. **Breaking:** reinstall
+  and reload to pick up the new names.
 - The plugin now **versions independently of the `leaf` CLI**, starting at
   `0.1.0` (previously pinned to the CLI's `0.8.0`), so plugin-only changes ship
   to users without waiting for a CLI release. The plugin declares a

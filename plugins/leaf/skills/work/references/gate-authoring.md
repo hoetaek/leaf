@@ -26,10 +26,10 @@ review them.
 Before closing a gate, asking for approval on it, or letting a downstream gate
 consume it, make sure the canonical gate file reads as a current report rather
 than a transcript. If the file has stale options, duplicated reasoning, template
-residue, or unclear why/what, invoke `clean`.
+residue, or unclear why/what, invoke `polish`.
 
 `work` should not grow its own cleanup ritual. It drafts, grills, revises,
-and records gate readiness; `clean` performs the simplicity pass.
+and records gate readiness; `polish` performs the simplicity pass.
 
 ## Grill Foci
 

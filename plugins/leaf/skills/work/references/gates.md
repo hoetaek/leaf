@@ -382,7 +382,7 @@ Keep the plan true after drafting and feedback. This gate runs in
 `.leaf/02-leaves/<slug>/` after ⑧ has passed and `work` has completed the
 sprout-to-leaf transition. It may loop with ⑧ when review finds a defect, but a
 return to execution must preserve the leaf folder as the current body unless
-`done` closes it.
+close-out ends it (see `using-leaf`, "Ending a leaf").
 
 Review checks: Does the artifact satisfy criteria? Are claims supported by
 evidence? Does section order still fit the argument? Did drafting reveal missing
@@ -442,10 +442,11 @@ PROFILE entries may specialize `soul` conduct but never negate it. When an
 episode repeatedly demands a negation, surface it as a `soul` change signal
 instead of writing the entry.
 
-**Close-out — ⑩ 다음은 바로 `done`.** ⑩ passing does not end the work.
-Immediately after the retrospect passes, invoke `done`. Do not stop at the
-retrospect file, and do not report work complete before that decision is
-handled.
+**Close-out — ⑩ 다음은 바로 leaf 끝내기.** ⑩ passing does not end the work.
+Immediately after the retrospect passes, follow `using-leaf` ("Ending a leaf")
+to decide keep / press / fall — pressing via the `press` skill, falling via
+`leaf fall`. Do not stop at the retrospect file, and do not report work complete
+before that decision is handled.
 
 ---
 
@@ -467,4 +468,4 @@ handled.
 - Skipping the retrospective's review of mid-process discoveries.
 - Starting ⑨ Review while the passed work is still under `.leaf/01-sprouts/`.
 - Stopping after the retrospect file is written, leaving the leaf without a
-  keep/press/fall decision and the `done` handoff.
+  keep/press/fall decision (see `using-leaf`, "Ending a leaf").

@@ -1,5 +1,5 @@
 ---
-name: clean
+name: polish
 description: |
   Use before user review or gate close when a LEAF document needs to read as a
   simple current report, not draft notes. Preserve source truth while removing
@@ -8,9 +8,9 @@ description: |
   decide press/fall close-out, or maintain execution artifacts.
 ---
 
-# LEAF Clean
+# LEAF Polish
 
-Clean LEAF documents until they read like a finished report, not a transcript.
+Polish LEAF documents until they read like a finished report, not a transcript.
 
 The standard is Feynman-like: if the writer cannot explain the essence simply,
 they probably do not understand it yet. A good LEAF file keeps the needed why,
@@ -75,7 +75,7 @@ findings to.
   prose while migrating.
 - Re-run `leaf doctor` after migrating and confirm the findings are gone.
 
-## Clean Pass
+## Polish Pass
 
 Read the whole target before editing. Rewrite only after you can answer:
 
@@ -108,7 +108,7 @@ Extra checks: drift, surface, archive, fallen.
 
 ## Subagent Review
 
-Before calling a cleanup complete, delegate an independent review to a subagent.
+Before calling a polish complete, delegate an independent review to a subagent.
 The reviewer judges only document quality, not implementation truth. Give it the
 target file or `leaf review` output and this rubric:
 
@@ -126,7 +126,7 @@ Return:
 
 ## Pass Criteria
 
-A cleaned LEAF document passes when:
+A polished LEAF document passes when:
 
 - a new agent can state the why and what after one read;
 - the current decision is easier to find than the history of how it was reached;
@@ -142,7 +142,7 @@ A cleaned LEAF document passes when:
 
 Report:
 
-- target files cleaned;
+- target files polished;
 - what was removed or compressed;
 - what source truth was preserved;
 - subagent reviewer verdict;

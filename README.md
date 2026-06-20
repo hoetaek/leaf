@@ -74,7 +74,7 @@ Ask your agent to use `learn` to capture an idea and run the Learn phase on a
 sprout (lock ① Intent, resolve ② Unknowns & Context); use `work` to carry a
 sprout from ③ Example through ⑧ Artifact / Execution. After ⑧ passes,
 `work` moves the sprout into leaves before Feedback. Immediately after ⑩
-Retrospect, use `done`.
+Retrospect, follow `using-leaf` ("Ending a leaf") to keep, press, or fall.
 
 Other CLI install paths are available from the latest GitHub Release:
 
@@ -233,13 +233,13 @@ This repository ships Agent Skills bundled as the `leaf` plugin (see Quick Start
 | [`using-leaf`](plugins/leaf/skills/using-leaf/SKILL.md) | Entry/router: the LEAF loop and which leaf skill to use; injected at session start |
 | [`learn`](plugins/leaf/skills/learn/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
 | [`work`](plugins/leaf/skills/work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
-| [`clean`](plugins/leaf/skills/clean/SKILL.md) | Cleaning LEAF documents into simple, complete current reports |
-| [`done`](plugins/leaf/skills/done/SKILL.md) | Deciding whether a finished leaf should stay, be pressed, or fall |
+| [`polish`](plugins/leaf/skills/polish/SKILL.md) | Polishing LEAF documents into simple, complete current reports |
+| [`press`](plugins/leaf/skills/press/SKILL.md) | Pressing a reference-worthy leaf into a citable digest once press is the chosen close-out |
 | [`profile`](plugins/leaf/skills/profile/SKILL.md) | Reading and updating the machine-global and repo-local LEAF profiles |
 | [`soul`](plugins/leaf/skills/soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
 Install the LEAF skills together as a family — they are not independent.
-`learn`, `work`, `clean`, and `done` read
+`learn`, `work`, `polish`, and `press` read
 `soul` through the sibling path `../soul/SKILL.md`; `learn` and
 `work` also read the gate references under `work` through
 `../work/references/`. Installing the `leaf` plugin ships the whole family
