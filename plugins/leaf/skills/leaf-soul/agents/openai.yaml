@@ -1,7 +1,0 @@
-interface:
-  display_name: "LEAF Soul"
-  short_description: "Shared conduct and voice for the LEAF skill family"
-  default_prompt: "Use $leaf-soul to apply the shared LEAF conduct, voice, and reporting standard across LEAF work: report overview-first, separate fact from guess, show reviewable artifacts, and write in the user's preferred language."
-
-policy:
-  allow_implicit_invocation: true

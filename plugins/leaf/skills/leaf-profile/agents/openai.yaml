@@ -1,7 +1,0 @@
-interface:
-  display_name: "LEAF Profile"
-  short_description: "Manage the global ~/.config/leaf/profile.md and repo-local .leaf/PROFILE.md memory"
-  default_prompt: "Use $leaf-profile to read the effective profile via `leaf profile` or update the global ~/.config/leaf/profile.md and repo-local .leaf/PROFILE.md with the user's working language, recurring cross-leaf requirements, agent mistakes, wrong-answer notes, and reusable facts."
-
-policy:
-  allow_implicit_invocation: true
