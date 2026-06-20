@@ -1,0 +1,7 @@
+interface:
+  display_name: "Using LEAF"
+  short_description: "Entry/router for the LEAF workflow and which leaf skill to use"
+  default_prompt: "Use $using-leaf to orient in the LEAF workflow: the Learn→Example→Architect→Feedback loop, which leaf skill to invoke (leaf-soul first for conduct, leaf-learn to capture/learn, leaf-work to build), and that the `leaf` CLI gives the repo-local .leaf/ workspace."
+
+policy:
+  allow_implicit_invocation: true

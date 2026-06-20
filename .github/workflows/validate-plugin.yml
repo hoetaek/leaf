@@ -7,6 +7,7 @@ on:
       - ".agents/plugins/**"
       - "plugins/leaf/**"
       - "scripts/validate-manifests.mjs"
+      - "scripts/lint-shell.sh"
       - "Cargo.toml"
   push:
     branches: [develop, main]
@@ -19,4 +20,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: node scripts/validate-manifests.mjs
+      - run: node scripts/validate-manifests.mjs --audit
+
+  lint-shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - run: scripts/lint-shell.sh

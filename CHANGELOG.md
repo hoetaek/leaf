@@ -6,6 +6,22 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## Unreleased
+
+- The LEAF skills now ship as a Claude Code + Codex **plugin marketplace**
+  self-hosted from this repo. Install with `/plugin marketplace add hoetaek/leaf`
+  then `/plugin install leaf@leaf` (Claude Code), or `codex plugin marketplace
+  add hoetaek/leaf` then `codex plugin add leaf@leaf` (Codex 0.125+). The skills
+  moved under `plugins/leaf/skills/` (bodies unchanged); the `npx skills add`
+  path is deprecated.
+- Added a `using-leaf` skill that routes to the right LEAF gate skill, and a
+  SessionStart hook that injects it (platform-aware: Claude Code / Cursor /
+  Codex / SDK) and notes when the `leaf` CLI is missing without blocking the
+  session.
+- Added `scripts/validate-manifests.mjs` (with `--audit`) and
+  `scripts/lint-shell.sh`, both run in CI, to keep the dual-runtime manifests
+  version-synced with `Cargo.toml` and the hook scripts lint-clean.
+
 ## 0.8.0 - 2026-06-18
 
 - `leaf review` now surfaces a leaf's Learn references. The references live in

@@ -28,7 +28,7 @@ served from this repo as a marketplace for both Claude Code and Codex.
 /plugin install leaf@leaf
 ```
 
-The seven skills then appear namespaced as `/leaf:leaf-learn` … `/leaf:leaf-work`.
+The skills then appear namespaced as `/leaf:leaf-learn` … `/leaf:leaf-work`.
 Update later with `/plugin marketplace update leaf`.
 
 **Codex** (CLI 0.125+):
@@ -229,6 +229,7 @@ This repository ships Agent Skills bundled as the `leaf` plugin (see Quick Start
 
 | Skill | Use it for |
 |---|---|
+| [`using-leaf`](plugins/leaf/skills/using-leaf/SKILL.md) | Entry/router: the LEAF loop and which leaf skill to use; injected at session start |
 | [`leaf-learn`](plugins/leaf/skills/leaf-learn/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
 | [`leaf-work`](plugins/leaf/skills/leaf-work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
 | [`leaf-reversed`](plugins/leaf/skills/leaf-reversed/SKILL.md) | Reconstructing a complete LEAF record from a finished artifact or result |

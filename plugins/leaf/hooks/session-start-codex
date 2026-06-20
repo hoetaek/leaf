@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Codex SessionStart hook for the leaf plugin.
+# Codex sets neither CURSOR_PLUGIN_ROOT nor CLAUDE_PLUGIN_ROOT but consumes the
+# nested hookSpecificOutput.additionalContext form, so it gets its own entry.
+# Never blocks the session (always exits 0).
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=session-context.sh
+source "${SCRIPT_DIR}/session-context.sh"
+
+session_context="$(build_leaf_context "$SCRIPT_DIR")"
+
+printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$session_context"
+
+exit 0

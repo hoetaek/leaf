@@ -123,6 +123,57 @@ if (!existsSync(skillsDir)) {
   else console.log(`✓ ${skills.length} skills: ${skills.join(", ")}`);
 }
 
+// --audit: scan every manifest JSON under the plugin/marketplace dirs for a
+// `"version"` field and flag any that drifts from Cargo.toml. Catches a stray
+// version in a NEW manifest the four hardcoded checks above don't know about.
+if (process.argv.includes("--audit") && cargoVersion) {
+  const SEMVER = /^\d+\.\d+\.\d+/;
+  const collectJson = (rel) => {
+    const abs = join(ROOT, rel);
+    if (!existsSync(abs)) return [];
+    if (statSync(abs).isDirectory()) {
+      return readdirSync(abs).flatMap((name) => collectJson(join(rel, name)));
+    }
+    return rel.endsWith(".json") ? [rel] : [];
+  };
+  const findVersions = (node, path, out) => {
+    if (Array.isArray(node)) {
+      node.forEach((v, i) => findVersions(v, `${path}[${i}]`, out));
+    } else if (node && typeof node === "object") {
+      for (const [k, v] of Object.entries(node)) {
+        if (k === "version" && typeof v === "string" && SEMVER.test(v)) {
+          out.push({ path: `${path}.version`, value: v });
+        } else {
+          findVersions(v, path ? `${path}.${k}` : k, out);
+        }
+      }
+    }
+  };
+  const manifestFiles = [
+    ".claude-plugin",
+    ".agents/plugins",
+    "plugins/leaf/.claude-plugin",
+    "plugins/leaf/.codex-plugin",
+  ].flatMap(collectJson);
+  let audited = 0;
+  for (const rel of manifestFiles) {
+    let json;
+    try {
+      json = JSON.parse(readFileSync(join(ROOT, rel), "utf8"));
+    } catch {
+      continue;
+    }
+    const found = [];
+    findVersions(json, "", found);
+    for (const { path, value } of found) {
+      audited += 1;
+      if (value !== cargoVersion)
+        fail(`audit: ${rel} ${path}=${value} != Cargo ${cargoVersion}`);
+    }
+  }
+  console.log(`✓ audit: ${audited} version field(s) across manifests match ${cargoVersion}`);
+}
+
 if (errors.length) {
   console.error("✗ manifest validation failed:");
   for (const e of errors) console.error(`  - ${e}`);

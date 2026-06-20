@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# SessionStart hook for the leaf plugin (Claude Code / Cursor / SDK).
+# Injects the using-leaf skill as context, plus a CLI install note if missing.
+# Never blocks the session (always exits 0).
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=session-context.sh
+source "${SCRIPT_DIR}/session-context.sh"
+
+session_context="$(build_leaf_context "$SCRIPT_DIR")"
+
+# Emit only the field the current platform consumes.
+# Cursor expects additional_context; Claude Code expects nested
+# hookSpecificOutput.additionalContext; Copilot CLI / SDK expect top-level
+# additionalContext. printf (not heredoc) avoids a bash 5.3+ heredoc hang.
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+  printf '{\n  "additional_context": "%s"\n}\n' "$session_context"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
+  printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$session_context"
+else
+  printf '{\n  "additionalContext": "%s"\n}\n' "$session_context"
+fi
+
+exit 0
