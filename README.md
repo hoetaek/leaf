@@ -53,8 +53,9 @@ Update later with `codex plugin marketplace upgrade leaf`.
 > re-install via the plugin.
 
 Install the `leaf` CLI that gives those skills a repo-local body. The plugin
-does not install the CLI; it only checks for it on session start and points you
-here. Homebrew is the recommended install path:
+versions independently of the CLI and **requires `leaf` CLI ≥ 0.8.0**. The
+plugin does not install the CLI; it only checks for it on session start and
+points you here. Homebrew is the recommended install path:
 
 ```bash
 brew install hoetaek/tap/leaf
