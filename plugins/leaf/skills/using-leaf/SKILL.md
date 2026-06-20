@@ -31,7 +31,6 @@ chance it applies means invoke it.
 | `leaf-clean` | Cleaning a LEAF document into a simple current report before review or gate close |
 | `leaf-done` | Deciding whether a finished leaf should stay, be pressed (citable digest), or fall |
 | `leaf-profile` | Reading/updating the machine-global and repo-local LEAF profiles |
-| `leaf-reversed` | Reconstructing a complete LEAF record from an already-finished artifact |
 
 Process skills first (decide *how* to approach), then domain skills.
 

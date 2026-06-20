@@ -21,6 +21,8 @@ minor version instead of moving to `x.0.0`.
 - Added `scripts/validate-manifests.mjs` (with `--audit`) and
   `scripts/lint-shell.sh`, both run in CI, to keep the dual-runtime manifests
   version-synced with `Cargo.toml` and the hook scripts lint-clean.
+- Removed the `leaf-reversed` skill (no longer used). The plugin now ships seven
+  skills; `using-leaf` and the README skills list no longer reference it.
 
 ## 0.8.0 - 2026-06-18
 

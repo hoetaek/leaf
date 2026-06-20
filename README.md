@@ -232,14 +232,13 @@ This repository ships Agent Skills bundled as the `leaf` plugin (see Quick Start
 | [`using-leaf`](plugins/leaf/skills/using-leaf/SKILL.md) | Entry/router: the LEAF loop and which leaf skill to use; injected at session start |
 | [`leaf-learn`](plugins/leaf/skills/leaf-learn/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
 | [`leaf-work`](plugins/leaf/skills/leaf-work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
-| [`leaf-reversed`](plugins/leaf/skills/leaf-reversed/SKILL.md) | Reconstructing a complete LEAF record from a finished artifact or result |
 | [`leaf-clean`](plugins/leaf/skills/leaf-clean/SKILL.md) | Cleaning LEAF documents into simple, complete current reports |
 | [`leaf-done`](plugins/leaf/skills/leaf-done/SKILL.md) | Deciding whether a finished leaf should stay, be pressed, or fall |
 | [`leaf-profile`](plugins/leaf/skills/leaf-profile/SKILL.md) | Reading and updating the machine-global and repo-local LEAF profiles |
 | [`leaf-soul`](plugins/leaf/skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
 Install the LEAF skills together as a family — they are not independent.
-`leaf-learn`, `leaf-work`, `leaf-reversed`, `leaf-clean`, and `leaf-done` read
+`leaf-learn`, `leaf-work`, `leaf-clean`, and `leaf-done` read
 `leaf-soul` through the sibling path `../leaf-soul/SKILL.md`; `leaf-learn` and
 `leaf-work` also read the gate references under `leaf-work` through
 `../leaf-work/references/`. Installing the `leaf` plugin ships the whole family
