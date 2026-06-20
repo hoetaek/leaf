@@ -1,6 +1,6 @@
 ---
 name: using-leaf
-description: Use when starting LEAF work or deciding which leaf skill applies — establishes the LEAF loop, routes to the right gate skill, and points conduct at leaf-soul. Injected at session start.
+description: Use when starting LEAF work or deciding which leaf skill applies — establishes the LEAF loop, routes to the right gate skill, and points conduct at soul. Injected at session start.
 ---
 
 # Using LEAF
@@ -25,12 +25,12 @@ chance it applies means invoke it.
 
 | Skill | Use it for |
 |---|---|
-| `leaf-soul` | **First, always.** Shared conduct: plain explanation, fact-vs-guess, user-language, review handoff |
-| `leaf-learn` | Capturing/triaging an idea and running Learn (① Intent, ② Unknowns & Context) on a sprout |
-| `leaf-work` | Carrying a sprout after Learn from ③ Example through a shipped ⑧ Artifact, then ⑨/⑩ |
-| `leaf-clean` | Cleaning a LEAF document into a simple current report before review or gate close |
-| `leaf-done` | Deciding whether a finished leaf should stay, be pressed (citable digest), or fall |
-| `leaf-profile` | Reading/updating the machine-global and repo-local LEAF profiles |
+| `soul` | **First, always.** Shared conduct: plain explanation, fact-vs-guess, user-language, review handoff |
+| `learn` | Capturing/triaging an idea and running Learn (① Intent, ② Unknowns & Context) on a sprout |
+| `work` | Carrying a sprout after Learn from ③ Example through a shipped ⑧ Artifact, then ⑨/⑩ |
+| `clean` | Cleaning a LEAF document into a simple current report before review or gate close |
+| `done` | Deciding whether a finished leaf should stay, be pressed (citable digest), or fall |
+| `profile` | Reading/updating the machine-global and repo-local LEAF profiles |
 
 Process skills first (decide *how* to approach), then domain skills.
 
@@ -41,5 +41,5 @@ body — the `.leaf/` workspace (`leaf init`, `leaf new <slug>`, `leaf doctor`).
 If `leaf` is not installed, install it before relying on the workspace commands
 (`brew install hoetaek/tap/leaf`, or `cargo install --git https://github.com/hoetaek/leaf`).
 
-For vague, early, or idea-stage work, start with `leaf-learn`. To build a sprout
-that already passed Learn, use `leaf-work`.
+For vague, early, or idea-stage work, start with `learn`. To build a sprout
+that already passed Learn, use `work`.

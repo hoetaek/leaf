@@ -28,7 +28,7 @@ served from this repo as a marketplace for both Claude Code and Codex.
 /plugin install leaf@leaf
 ```
 
-The skills then appear namespaced as `/leaf:leaf-learn` … `/leaf:leaf-work`.
+The skills then appear namespaced as `/leaf:learn` … `/leaf:work`.
 Update later with `/plugin marketplace update leaf`.
 
 **Codex** (CLI 0.125+):
@@ -69,11 +69,11 @@ leaf init
 leaf new my-first-idea
 ```
 
-Ask your agent to use `leaf-learn` to capture an idea and run the Learn phase on a
-sprout (lock ① Intent, resolve ② Unknowns & Context); use `leaf-work` to carry a
+Ask your agent to use `learn` to capture an idea and run the Learn phase on a
+sprout (lock ① Intent, resolve ② Unknowns & Context); use `work` to carry a
 sprout from ③ Example through ⑧ Artifact / Execution. After ⑧ passes,
-`leaf-work` moves the sprout into leaves before Feedback. Immediately after ⑩
-Retrospect, use `leaf-done`.
+`work` moves the sprout into leaves before Feedback. Immediately after ⑩
+Retrospect, use `done`.
 
 Other CLI install paths are available from the latest GitHub Release:
 
@@ -106,8 +106,8 @@ LEAF closes uncertainty in order:
 | Feedback | The result still holds, and the lessons carry forward |
 
 The Learn gate contract lives in
-[`leaf-learn`](plugins/leaf/skills/leaf-learn/SKILL.md); Example onward lives in
-[`leaf-work`](plugins/leaf/skills/leaf-work/SKILL.md).
+[`learn`](plugins/leaf/skills/learn/SKILL.md); Example onward lives in
+[`work`](plugins/leaf/skills/work/SKILL.md).
 
 ## Concepts
 
@@ -130,7 +130,7 @@ leaf as `pressed.md`, not in a shared top-level pressed folder. When a pressed
 leaf cites or is cited by other leaves, cross-leaf citation metadata lives next
 to the digest as `linked.md`. `.leaf/PROFILE.md` is the repo-local acquired
 profile: `leaf init` scaffolds it, completed leaves consolidate working-style
-traits into it at ⑩ Retrospect, and `leaf-soul` reads it at the start of LEAF
+traits into it at ⑩ Retrospect, and `soul` reads it at the start of LEAF
 work. A machine-global profile at `~/.config/leaf/profile.md` layers underneath
 it for facts that apply to every repo on the machine, such as the user's
 working language; `leaf profile` prints the merged view.
@@ -203,7 +203,7 @@ width up to 112 columns; below 32 columns it falls back to a compact summary
 instead of forcing broken tree art.
 
 `leaf review <slug>` opens the same source-faithful review reader for one
-leaf-work item directly. In non-TTY output it writes the review document as
+work item directly. In non-TTY output it writes the review document as
 plain text.
 
 `leaf profile` prints the effective profile: the machine-global
@@ -230,18 +230,18 @@ This repository ships Agent Skills bundled as the `leaf` plugin (see Quick Start
 | Skill | Use it for |
 |---|---|
 | [`using-leaf`](plugins/leaf/skills/using-leaf/SKILL.md) | Entry/router: the LEAF loop and which leaf skill to use; injected at session start |
-| [`leaf-learn`](plugins/leaf/skills/leaf-learn/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
-| [`leaf-work`](plugins/leaf/skills/leaf-work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
-| [`leaf-clean`](plugins/leaf/skills/leaf-clean/SKILL.md) | Cleaning LEAF documents into simple, complete current reports |
-| [`leaf-done`](plugins/leaf/skills/leaf-done/SKILL.md) | Deciding whether a finished leaf should stay, be pressed, or fall |
-| [`leaf-profile`](plugins/leaf/skills/leaf-profile/SKILL.md) | Reading and updating the machine-global and repo-local LEAF profiles |
-| [`leaf-soul`](plugins/leaf/skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
+| [`learn`](plugins/leaf/skills/learn/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
+| [`work`](plugins/leaf/skills/work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
+| [`clean`](plugins/leaf/skills/clean/SKILL.md) | Cleaning LEAF documents into simple, complete current reports |
+| [`done`](plugins/leaf/skills/done/SKILL.md) | Deciding whether a finished leaf should stay, be pressed, or fall |
+| [`profile`](plugins/leaf/skills/profile/SKILL.md) | Reading and updating the machine-global and repo-local LEAF profiles |
+| [`soul`](plugins/leaf/skills/soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
 Install the LEAF skills together as a family — they are not independent.
-`leaf-learn`, `leaf-work`, `leaf-clean`, and `leaf-done` read
-`leaf-soul` through the sibling path `../leaf-soul/SKILL.md`; `leaf-learn` and
-`leaf-work` also read the gate references under `leaf-work` through
-`../leaf-work/references/`. Installing the `leaf` plugin ships the whole family
+`learn`, `work`, `clean`, and `done` read
+`soul` through the sibling path `../soul/SKILL.md`; `learn` and
+`work` also read the gate references under `work` through
+`../work/references/`. Installing the `leaf` plugin ships the whole family
 together, so these cross-skill references resolve.
 
 ## Status

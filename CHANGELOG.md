@@ -23,6 +23,12 @@ minor version instead of moving to `x.0.0`.
   version-synced with `Cargo.toml` and the hook scripts lint-clean.
 - Removed the `leaf-reversed` skill (no longer used). The plugin now ships seven
   skills; `using-leaf` and the README skills list no longer reference it.
+- Dropped the redundant `leaf-` prefix from the six gate skills now that both
+  Claude Code and Codex namespace plugin skills (`/leaf:clean`, `$leaf:clean`):
+  `leaf-clean`→`clean`, `leaf-done`→`done`, `leaf-learn`→`learn`,
+  `leaf-profile`→`profile`, `leaf-soul`→`soul`, `leaf-work`→`work`. The entry
+  skill `using-leaf` keeps its name (matching the `using-superpowers`
+  convention). **Breaking:** reinstall and reload to pick up the new names.
 
 ## 0.8.0 - 2026-06-18
 

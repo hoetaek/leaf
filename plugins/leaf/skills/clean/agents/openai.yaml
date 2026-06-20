@@ -1,0 +1,7 @@
+interface:
+  display_name: "LEAF Clean"
+  short_description: "Turn LEAF drafts into current reports"
+  default_prompt: "Use $leaf:clean before user review to turn a LEAF gate/status document into a simple current report."
+
+policy:
+  allow_implicit_invocation: true
