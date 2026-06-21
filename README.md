@@ -55,12 +55,38 @@ Update later with `codex plugin marketplace upgrade leaf`.
 Install the `leaf` CLI that gives those skills a repo-local body. The plugin
 versions independently of the CLI and **requires `leaf` CLI ≥ 0.8.0**. The
 plugin does not install the CLI; it only checks for it on session start and
-points you here. Homebrew is the recommended install path:
+points you here. Pick your platform:
+
+**macOS / Linux** — Homebrew (recommended):
 
 ```bash
 brew install hoetaek/tap/leaf
 leaf --version
 ```
+
+Or the shell installer:
+
+```bash
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/hoetaek/leaf/releases/latest/download/leaf-installer.sh | sh
+leaf --version
+```
+
+**Windows** — PowerShell installer:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://github.com/hoetaek/leaf/releases/latest/download/leaf-installer.ps1 | iex"
+leaf --version
+```
+
+**From source** (any platform with Rust):
+
+```bash
+cargo install --git https://github.com/hoetaek/leaf
+```
+
+Update Homebrew with `brew update && brew upgrade hoetaek/tap/leaf`; for the
+shell or PowerShell installer, re-run the install command for the latest
+release.
 
 Start inside a git repository:
 
@@ -75,25 +101,6 @@ sprout (lock ① Intent, resolve ② Unknowns & Context); use `work` to carry a
 sprout from ③ Example through ⑧ Artifact / Execution. After ⑧ passes,
 `work` moves the sprout into leaves before Feedback. Immediately after ⑩
 Retrospect, follow `using-leaf` ("Ending a leaf") to keep, press, or fall.
-
-Other CLI install paths are available from the latest GitHub Release:
-
-```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/hoetaek/leaf/releases/latest/download/leaf-installer.sh | sh
-```
-
-Or from the current source checkout:
-
-```bash
-cargo install --git https://github.com/hoetaek/leaf
-```
-
-Update the Homebrew install with:
-
-```bash
-brew update
-brew upgrade hoetaek/tap/leaf
-```
 
 ## The LEAF Loop
 
