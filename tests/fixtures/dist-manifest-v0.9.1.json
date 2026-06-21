@@ -1,0 +1,698 @@
+{
+  "dist_version": "0.31.0",
+  "announcement_tag": "v0.9.1",
+  "announcement_tag_is_implicit": false,
+  "announcement_is_prerelease": false,
+  "announcement_title": "v0.9.1",
+  "announcement_github_body": "## Install leaf 0.9.1\n\n### Install prebuilt binaries via shell script\n\n```sh\ncurl --proto '=https' --tlsv1.2 -LsSf https://github.com/hoetaek/leaf/releases/download/v0.9.1/leaf-installer.sh | sh\n```\n\n### Install prebuilt binaries via powershell script\n\n```sh\npowershell -ExecutionPolicy Bypass -c \"irm https://github.com/hoetaek/leaf/releases/download/v0.9.1/leaf-installer.ps1 | iex\"\n```\n\n### Install prebuilt binaries via Homebrew\n\n```sh\nbrew install hoetaek/tap/leaf\n```\n\n## Download leaf 0.9.1\n\n|  File  | Platform | Checksum |\n|--------|----------|----------|\n| [leaf-aarch64-apple-darwin.tar.xz](https://github.com/hoetaek/leaf/releases/download/v0.9.1/leaf-aarch64-apple-darwin.tar.xz) | Apple Silicon macOS | [checksum](https://github.com/hoetaek/leaf/releases/download/v0.9.1/leaf-aarch64-apple-darwin.tar.xz.sha256) |\n| [leaf-x86_64-apple-darwin.tar.xz](https://github.com/hoetaek/leaf/releases/download/v0.9.1/leaf-x86_64-apple-darwin.tar.xz) | Intel macOS | [checksum](https://github.com/hoetaek/leaf/releases/download/v0.9.1/leaf-x86_64-apple-darwin.tar.xz.sha256) |\n| [leaf-aarch64-pc-windows-msvc.zip](https://github.com/hoetaek/leaf/releases/download/v0.9.1/leaf-aarch64-pc-windows-msvc.zip) | ARM64 Windows | [checksum](https://github.com/hoetaek/leaf/releases/download/v0.9.1/leaf-aarch64-pc-windows-msvc.zip.sha256) |\n| [leaf-x86_64-pc-windows-msvc.zip](https://github.com/hoetaek/leaf/releases/download/v0.9.1/leaf-x86_64-pc-windows-msvc.zip) | x64 Windows | [checksum](https://github.com/hoetaek/leaf/releases/download/v0.9.1/leaf-x86_64-pc-windows-msvc.zip.sha256) |\n| [leaf-x86_64-unknown-linux-gnu.tar.xz](https://github.com/hoetaek/leaf/releases/download/v0.9.1/leaf-x86_64-unknown-linux-gnu.tar.xz) | x64 Linux | [checksum](https://github.com/hoetaek/leaf/releases/download/v0.9.1/leaf-x86_64-unknown-linux-gnu.tar.xz.sha256) |\n\n## Verifying GitHub Artifact Attestations\n\nThe artifacts in this release have attestations generated with GitHub Artifact Attestations. These can be verified by using the [GitHub CLI](https://cli.github.com/manual/gh_attestation_verify):\n```sh\ngh attestation verify <file-path of downloaded artifact> --repo hoetaek/leaf\n```\n\nYou can also download the attestation from [GitHub](https://github.com/hoetaek/leaf/attestations) and verify against that directly:\n```sh\ngh attestation verify <file-path of downloaded artifact> --bundle <file-path of downloaded attestation>\n```\n\n",
+  "releases": [
+    {
+      "app_name": "leaf",
+      "app_version": "0.9.1",
+      "env": {
+        "install_dir_env_var": "LEAF_INSTALL_DIR",
+        "unmanaged_dir_env_var": "LEAF_UNMANAGED_INSTALL",
+        "disable_update_env_var": "LEAF_DISABLE_UPDATE",
+        "no_modify_path_env_var": "LEAF_NO_MODIFY_PATH",
+        "print_quiet_env_var": "LEAF_PRINT_QUIET",
+        "print_verbose_env_var": "LEAF_PRINT_VERBOSE",
+        "download_url_env_var": "LEAF_DOWNLOAD_URL",
+        "github_base_url_env_var": "LEAF_INSTALLER_GITHUB_BASE_URL",
+        "ghe_base_url_env_var": "LEAF_INSTALLER_GHE_BASE_URL",
+        "github_token_env_var": "LEAF_GITHUB_TOKEN"
+      },
+      "display_name": "leaf",
+      "display": true,
+      "artifacts": [
+        "source.tar.gz",
+        "source.tar.gz.sha256",
+        "leaf-installer.sh",
+        "leaf-installer.ps1",
+        "leaf.rb",
+        "sha256.sum",
+        "leaf-aarch64-apple-darwin.tar.xz",
+        "leaf-aarch64-apple-darwin.tar.xz.sha256",
+        "leaf-aarch64-pc-windows-msvc.zip",
+        "leaf-aarch64-pc-windows-msvc.zip.sha256",
+        "leaf-x86_64-apple-darwin.tar.xz",
+        "leaf-x86_64-apple-darwin.tar.xz.sha256",
+        "leaf-x86_64-pc-windows-msvc.zip",
+        "leaf-x86_64-pc-windows-msvc.zip.sha256",
+        "leaf-x86_64-unknown-linux-gnu.tar.xz",
+        "leaf-x86_64-unknown-linux-gnu.tar.xz.sha256"
+      ],
+      "hosting": {
+        "github": {
+          "artifact_base_url": "https://github.com",
+          "artifact_download_path": "/hoetaek/leaf/releases/download/v0.9.1",
+          "owner": "hoetaek",
+          "repo": "leaf"
+        }
+      }
+    }
+  ],
+  "artifacts": {
+    "leaf-aarch64-apple-darwin.tar.xz": {
+      "name": "leaf-aarch64-apple-darwin.tar.xz",
+      "kind": "executable-zip",
+      "target_triples": [
+        "aarch64-apple-darwin"
+      ],
+      "assets": [
+        {
+          "name": "CHANGELOG.md",
+          "path": "CHANGELOG.md",
+          "kind": "changelog"
+        },
+        {
+          "name": "LICENSE-APACHE",
+          "path": "LICENSE-APACHE",
+          "kind": "license"
+        },
+        {
+          "name": "LICENSE-MIT",
+          "path": "LICENSE-MIT",
+          "kind": "license"
+        },
+        {
+          "name": "README.md",
+          "path": "README.md",
+          "kind": "readme"
+        },
+        {
+          "id": "leaf-aarch64-apple-darwin-exe-leaf",
+          "name": "leaf",
+          "path": "leaf",
+          "kind": "executable"
+        }
+      ],
+      "checksum": "leaf-aarch64-apple-darwin.tar.xz.sha256",
+      "checksums": {
+        "sha256": "572d8060cc954f85753cf079c9ac5e19e77b9b35dff49ae76ca890c0838be907"
+      }
+    },
+    "leaf-aarch64-apple-darwin.tar.xz.sha256": {
+      "name": "leaf-aarch64-apple-darwin.tar.xz.sha256",
+      "kind": "checksum",
+      "target_triples": [
+        "aarch64-apple-darwin"
+      ]
+    },
+    "leaf-aarch64-pc-windows-msvc.zip": {
+      "name": "leaf-aarch64-pc-windows-msvc.zip",
+      "kind": "executable-zip",
+      "target_triples": [
+        "aarch64-pc-windows-msvc"
+      ],
+      "assets": [
+        {
+          "name": "CHANGELOG.md",
+          "path": "CHANGELOG.md",
+          "kind": "changelog"
+        },
+        {
+          "name": "LICENSE-APACHE",
+          "path": "LICENSE-APACHE",
+          "kind": "license"
+        },
+        {
+          "name": "LICENSE-MIT",
+          "path": "LICENSE-MIT",
+          "kind": "license"
+        },
+        {
+          "name": "README.md",
+          "path": "README.md",
+          "kind": "readme"
+        },
+        {
+          "id": "leaf-aarch64-pc-windows-msvc-exe-leaf",
+          "name": "leaf",
+          "path": "leaf.exe",
+          "kind": "executable"
+        }
+      ],
+      "checksum": "leaf-aarch64-pc-windows-msvc.zip.sha256",
+      "checksums": {
+        "sha256": "ab14ff809b7f2588b964dcf44c752f6cc802ef739a6eba2490634324590ecaa9"
+      }
+    },
+    "leaf-aarch64-pc-windows-msvc.zip.sha256": {
+      "name": "leaf-aarch64-pc-windows-msvc.zip.sha256",
+      "kind": "checksum",
+      "target_triples": [
+        "aarch64-pc-windows-msvc"
+      ]
+    },
+    "leaf-installer.ps1": {
+      "name": "leaf-installer.ps1",
+      "kind": "installer",
+      "target_triples": [
+        "aarch64-pc-windows-gnu",
+        "aarch64-pc-windows-msvc",
+        "x86_64-pc-windows-gnu",
+        "x86_64-pc-windows-msvc"
+      ],
+      "install_hint": "powershell -ExecutionPolicy Bypass -c \"irm https://github.com/hoetaek/leaf/releases/download/v0.9.1/leaf-installer.ps1 | iex\"",
+      "description": "Install prebuilt binaries via powershell script"
+    },
+    "leaf-installer.sh": {
+      "name": "leaf-installer.sh",
+      "kind": "installer",
+      "target_triples": [
+        "aarch64-apple-darwin",
+        "aarch64-pc-windows-gnu",
+        "x86_64-apple-darwin",
+        "x86_64-pc-windows-gnu",
+        "x86_64-unknown-linux-gnu"
+      ],
+      "install_hint": "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/hoetaek/leaf/releases/download/v0.9.1/leaf-installer.sh | sh",
+      "description": "Install prebuilt binaries via shell script"
+    },
+    "leaf-x86_64-apple-darwin.tar.xz": {
+      "name": "leaf-x86_64-apple-darwin.tar.xz",
+      "kind": "executable-zip",
+      "target_triples": [
+        "x86_64-apple-darwin"
+      ],
+      "assets": [
+        {
+          "name": "CHANGELOG.md",
+          "path": "CHANGELOG.md",
+          "kind": "changelog"
+        },
+        {
+          "name": "LICENSE-APACHE",
+          "path": "LICENSE-APACHE",
+          "kind": "license"
+        },
+        {
+          "name": "LICENSE-MIT",
+          "path": "LICENSE-MIT",
+          "kind": "license"
+        },
+        {
+          "name": "README.md",
+          "path": "README.md",
+          "kind": "readme"
+        },
+        {
+          "id": "leaf-x86_64-apple-darwin-exe-leaf",
+          "name": "leaf",
+          "path": "leaf",
+          "kind": "executable"
+        }
+      ],
+      "checksum": "leaf-x86_64-apple-darwin.tar.xz.sha256",
+      "checksums": {
+        "sha256": "ec95d2194fa19e00eb79ec418a757b0434347e778a5e3d6672b415a6d3330dd8"
+      }
+    },
+    "leaf-x86_64-apple-darwin.tar.xz.sha256": {
+      "name": "leaf-x86_64-apple-darwin.tar.xz.sha256",
+      "kind": "checksum",
+      "target_triples": [
+        "x86_64-apple-darwin"
+      ]
+    },
+    "leaf-x86_64-pc-windows-msvc.zip": {
+      "name": "leaf-x86_64-pc-windows-msvc.zip",
+      "kind": "executable-zip",
+      "target_triples": [
+        "x86_64-pc-windows-msvc"
+      ],
+      "assets": [
+        {
+          "name": "CHANGELOG.md",
+          "path": "CHANGELOG.md",
+          "kind": "changelog"
+        },
+        {
+          "name": "LICENSE-APACHE",
+          "path": "LICENSE-APACHE",
+          "kind": "license"
+        },
+        {
+          "name": "LICENSE-MIT",
+          "path": "LICENSE-MIT",
+          "kind": "license"
+        },
+        {
+          "name": "README.md",
+          "path": "README.md",
+          "kind": "readme"
+        },
+        {
+          "id": "leaf-x86_64-pc-windows-msvc-exe-leaf",
+          "name": "leaf",
+          "path": "leaf.exe",
+          "kind": "executable"
+        }
+      ],
+      "checksum": "leaf-x86_64-pc-windows-msvc.zip.sha256",
+      "checksums": {
+        "sha256": "ebc4b0f5a4ea939cdad15dd7cebb3dbb64496772b589e90bff96fdb88976ee38"
+      }
+    },
+    "leaf-x86_64-pc-windows-msvc.zip.sha256": {
+      "name": "leaf-x86_64-pc-windows-msvc.zip.sha256",
+      "kind": "checksum",
+      "target_triples": [
+        "x86_64-pc-windows-msvc"
+      ]
+    },
+    "leaf-x86_64-unknown-linux-gnu.tar.xz": {
+      "name": "leaf-x86_64-unknown-linux-gnu.tar.xz",
+      "kind": "executable-zip",
+      "target_triples": [
+        "x86_64-unknown-linux-gnu"
+      ],
+      "assets": [
+        {
+          "name": "CHANGELOG.md",
+          "path": "CHANGELOG.md",
+          "kind": "changelog"
+        },
+        {
+          "name": "LICENSE-APACHE",
+          "path": "LICENSE-APACHE",
+          "kind": "license"
+        },
+        {
+          "name": "LICENSE-MIT",
+          "path": "LICENSE-MIT",
+          "kind": "license"
+        },
+        {
+          "name": "README.md",
+          "path": "README.md",
+          "kind": "readme"
+        },
+        {
+          "id": "leaf-x86_64-unknown-linux-gnu-exe-leaf",
+          "name": "leaf",
+          "path": "leaf",
+          "kind": "executable"
+        }
+      ],
+      "checksum": "leaf-x86_64-unknown-linux-gnu.tar.xz.sha256",
+      "checksums": {
+        "sha256": "031ac2f3e1917ad776306b557e6379367a84e3a97acd5eeff2df8590abc9c18a"
+      }
+    },
+    "leaf-x86_64-unknown-linux-gnu.tar.xz.sha256": {
+      "name": "leaf-x86_64-unknown-linux-gnu.tar.xz.sha256",
+      "kind": "checksum",
+      "target_triples": [
+        "x86_64-unknown-linux-gnu"
+      ]
+    },
+    "leaf.rb": {
+      "name": "leaf.rb",
+      "kind": "installer",
+      "target_triples": [
+        "aarch64-apple-darwin",
+        "aarch64-pc-windows-gnu",
+        "x86_64-apple-darwin",
+        "x86_64-pc-windows-gnu",
+        "x86_64-unknown-linux-gnu"
+      ],
+      "install_hint": "brew install hoetaek/tap/leaf",
+      "description": "Install prebuilt binaries via Homebrew"
+    },
+    "sha256.sum": {
+      "name": "sha256.sum",
+      "kind": "unified-checksum"
+    },
+    "source.tar.gz": {
+      "name": "source.tar.gz",
+      "kind": "source-tarball",
+      "checksum": "source.tar.gz.sha256",
+      "checksums": {
+        "sha256": "f8b477ad239aad264e84389741f3d1dc05650e82a6c3c5c7565ba64d57b9a001"
+      }
+    },
+    "source.tar.gz.sha256": {
+      "name": "source.tar.gz.sha256",
+      "kind": "checksum"
+    }
+  },
+  "systems": {
+    "build:global:": {
+      "id": "build:global:",
+      "cargo_version_line": "cargo 1.95.0 (f2d3ce0bd 2026-03-21)",
+      "build_environment": {
+        "linux": {
+          "glibc_version": {
+            "major": 2,
+            "series": 35
+          }
+        }
+      }
+    },
+    "build:local:aarch64-apple-darwin": {
+      "id": "build:local:aarch64-apple-darwin",
+      "cargo_version_line": "cargo 1.95.0 (f2d3ce0bd 2026-03-21)",
+      "build_environment": {
+        "macos": {
+          "os_version": "14.8.7"
+        }
+      }
+    },
+    "build:local:aarch64-pc-windows-msvc": {
+      "id": "build:local:aarch64-pc-windows-msvc",
+      "cargo_version_line": "cargo 1.95.0 (f2d3ce0bd 2026-03-21)",
+      "build_environment": {
+        "linux": {
+          "glibc_version": {
+            "major": 2,
+            "series": 41
+          }
+        }
+      }
+    },
+    "build:local:x86_64-apple-darwin": {
+      "id": "build:local:x86_64-apple-darwin",
+      "cargo_version_line": "cargo 1.95.0 (f2d3ce0bd 2026-03-21)",
+      "build_environment": {
+        "macos": {
+          "os_version": "15.7.7"
+        }
+      }
+    },
+    "build:local:x86_64-pc-windows-msvc": {
+      "id": "build:local:x86_64-pc-windows-msvc",
+      "cargo_version_line": "cargo 1.95.0 (f2d3ce0bd 2026-03-21)",
+      "build_environment": "windows"
+    },
+    "build:local:x86_64-unknown-linux-gnu": {
+      "id": "build:local:x86_64-unknown-linux-gnu",
+      "cargo_version_line": "cargo 1.95.0 (f2d3ce0bd 2026-03-21)",
+      "build_environment": {
+        "linux": {
+          "glibc_version": {
+            "major": 2,
+            "series": 35
+          }
+        }
+      }
+    },
+    "host:create:all:": {
+      "id": "host:create:all:",
+      "cargo_version_line": "cargo 1.95.0 (f2d3ce0bd 2026-03-21)",
+      "build_environment": {
+        "linux": {
+          "glibc_version": {
+            "major": 2,
+            "series": 35
+          }
+        }
+      }
+    },
+    "host:upload,release:all:": {
+      "id": "host:upload,release:all:",
+      "cargo_version_line": "cargo 1.95.0 (f2d3ce0bd 2026-03-21)",
+      "build_environment": {
+        "linux": {
+          "glibc_version": {
+            "major": 2,
+            "series": 35
+          }
+        }
+      }
+    }
+  },
+  "assets": {
+    "leaf-aarch64-apple-darwin-exe-leaf": {
+      "id": "leaf-aarch64-apple-darwin-exe-leaf",
+      "name": "leaf",
+      "system": "build:local:aarch64-apple-darwin",
+      "target_triples": [
+        "aarch64-apple-darwin"
+      ],
+      "linkage": {
+        "system": [
+          {
+            "path": "/usr/lib/libSystem.B.dylib",
+            "package_manager": null
+          },
+          {
+            "path": "/usr/lib/libiconv.2.dylib",
+            "package_manager": null
+          },
+          {
+            "path": "/usr/lib/libobjc.A.dylib",
+            "package_manager": null
+          }
+        ],
+        "frameworks": [
+          {
+            "path": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+            "package_manager": null
+          },
+          {
+            "path": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+            "package_manager": null
+          },
+          {
+            "path": "/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics",
+            "package_manager": null
+          },
+          {
+            "path": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+            "package_manager": null
+          }
+        ]
+      }
+    },
+    "leaf-aarch64-pc-windows-msvc-exe-leaf": {
+      "id": "leaf-aarch64-pc-windows-msvc-exe-leaf",
+      "name": "leaf",
+      "system": "build:local:aarch64-pc-windows-msvc",
+      "target_triples": [
+        "aarch64-pc-windows-msvc"
+      ],
+      "linkage": {
+        "other": [
+          {
+            "path": "ADVAPI32.dll",
+            "package_manager": null
+          },
+          {
+            "path": "KERNEL32.dll",
+            "package_manager": null
+          },
+          {
+            "path": "USER32.dll",
+            "package_manager": null
+          },
+          {
+            "path": "api-ms-win-core-synch-l1-2-0.dll",
+            "package_manager": null
+          },
+          {
+            "path": "bcryptprimitives.dll",
+            "source": "wine-staging-amd64",
+            "package_manager": "apt"
+          },
+          {
+            "path": "ntdll.dll",
+            "source": "wine-staging-i386",
+            "package_manager": "apt"
+          }
+        ]
+      }
+    },
+    "leaf-x86_64-apple-darwin-exe-leaf": {
+      "id": "leaf-x86_64-apple-darwin-exe-leaf",
+      "name": "leaf",
+      "system": "build:local:x86_64-apple-darwin",
+      "target_triples": [
+        "x86_64-apple-darwin"
+      ],
+      "linkage": {
+        "system": [
+          {
+            "path": "/usr/lib/libSystem.B.dylib",
+            "package_manager": null
+          },
+          {
+            "path": "/usr/lib/libiconv.2.dylib",
+            "package_manager": null
+          },
+          {
+            "path": "/usr/lib/libobjc.A.dylib",
+            "package_manager": null
+          }
+        ],
+        "frameworks": [
+          {
+            "path": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+            "package_manager": null
+          },
+          {
+            "path": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+            "package_manager": null
+          },
+          {
+            "path": "/System/Library/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics",
+            "package_manager": null
+          },
+          {
+            "path": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+            "package_manager": null
+          }
+        ]
+      }
+    },
+    "leaf-x86_64-pc-windows-msvc-exe-leaf": {
+      "id": "leaf-x86_64-pc-windows-msvc-exe-leaf",
+      "name": "leaf",
+      "system": "build:local:x86_64-pc-windows-msvc",
+      "target_triples": [
+        "x86_64-pc-windows-msvc"
+      ],
+      "linkage": {
+        "other": [
+          {
+            "path": "ADVAPI32.dll",
+            "package_manager": null
+          },
+          {
+            "path": "KERNEL32.dll",
+            "package_manager": null
+          },
+          {
+            "path": "USER32.dll",
+            "package_manager": null
+          },
+          {
+            "path": "api-ms-win-core-synch-l1-2-0.dll",
+            "package_manager": null
+          },
+          {
+            "path": "bcryptprimitives.dll",
+            "package_manager": null
+          },
+          {
+            "path": "kernel32.dll",
+            "package_manager": null
+          },
+          {
+            "path": "ntdll.dll",
+            "package_manager": null
+          }
+        ]
+      }
+    },
+    "leaf-x86_64-unknown-linux-gnu-exe-leaf": {
+      "id": "leaf-x86_64-unknown-linux-gnu-exe-leaf",
+      "name": "leaf",
+      "system": "build:local:x86_64-unknown-linux-gnu",
+      "target_triples": [
+        "x86_64-unknown-linux-gnu"
+      ],
+      "linkage": {
+        "system": [
+          {
+            "path": "/usr/lib/x86_64-linux-gnu/libc.so.6",
+            "package_manager": null
+          },
+          {
+            "path": "/usr/lib/x86_64-linux-gnu/libgcc_s.so.1",
+            "package_manager": null
+          },
+          {
+            "path": "/usr/lib/x86_64-linux-gnu/libm.so.6",
+            "package_manager": null
+          }
+        ]
+      }
+    }
+  },
+  "publish_prereleases": false,
+  "force_latest": false,
+  "ci": {
+    "github": {
+      "artifacts_matrix": {
+        "include": [
+          {
+            "runner": "macos-14",
+            "host": "aarch64-apple-darwin",
+            "install_dist": {
+              "shell": "sh",
+              "run": "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.31.0/cargo-dist-installer.sh | sh"
+            },
+            "dist_args": "--artifacts=local --target=aarch64-apple-darwin",
+            "targets": [
+              "aarch64-apple-darwin"
+            ],
+            "cache_provider": "github"
+          },
+          {
+            "runner": "ubuntu-22.04",
+            "host": "x86_64-unknown-linux-gnu",
+            "container": {
+              "image": "messense/cargo-xwin",
+              "host": "x86_64-unknown-linux-musl",
+              "package_manager": "apt"
+            },
+            "install_dist": {
+              "shell": "sh",
+              "run": "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.31.0/cargo-dist-installer.sh | sh"
+            },
+            "dist_args": "--artifacts=local --target=aarch64-pc-windows-msvc",
+            "targets": [
+              "aarch64-pc-windows-msvc"
+            ],
+            "packages_install": "if ! command -v cargo-xwin > /dev/null 2>&1; then\n  if ! command -v pip3 > /dev/null 2>&1; then\n    dnf install --assumeyes python3-pip\n    pip3 install --upgrade pip\n  fi\n  pip3 install cargo-xwin\nfi",
+            "cache_provider": "github"
+          },
+          {
+            "runner": "macos-15-intel",
+            "host": "x86_64-apple-darwin",
+            "install_dist": {
+              "shell": "sh",
+              "run": "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.31.0/cargo-dist-installer.sh | sh"
+            },
+            "dist_args": "--artifacts=local --target=x86_64-apple-darwin",
+            "targets": [
+              "x86_64-apple-darwin"
+            ],
+            "cache_provider": "github"
+          },
+          {
+            "runner": "windows-2022",
+            "host": "x86_64-pc-windows-msvc",
+            "install_dist": {
+              "shell": "pwsh",
+              "run": "irm https://github.com/axodotdev/cargo-dist/releases/download/v0.31.0/cargo-dist-installer.ps1 | iex"
+            },
+            "dist_args": "--artifacts=local --target=x86_64-pc-windows-msvc",
+            "targets": [
+              "x86_64-pc-windows-msvc"
+            ],
+            "cache_provider": "github"
+          },
+          {
+            "runner": "ubuntu-22.04",
+            "host": "x86_64-unknown-linux-gnu",
+            "install_dist": {
+              "shell": "sh",
+              "run": "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.31.0/cargo-dist-installer.sh | sh"
+            },
+            "dist_args": "--artifacts=local --target=x86_64-unknown-linux-gnu",
+            "targets": [
+              "x86_64-unknown-linux-gnu"
+            ],
+            "cache_provider": "github"
+          }
+        ]
+      },
+      "pr_run_mode": "plan"
+    }
+  },
+  "linkage": [],
+  "upload_files": [],
+  "github_attestations": true
+}

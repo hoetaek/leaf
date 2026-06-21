@@ -14,6 +14,7 @@ categories = ["command-line-utilities"]
 include = [
     "Cargo.toml",
     "Cargo.lock",
+    "build.rs",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
     "LICENSE-APACHE",
@@ -29,11 +30,18 @@ anyhow = "1"
 arboard = { version = "3.6.1", default-features = false }
 clap = { version = "4", features = ["derive"] }
 crossterm = "0.29"
+lzma-rs = "0.3"
 pulldown-cmark = "0.13"
 ratatui = "0.30.1"
+self-replace = "1"
+semver = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
 syntect = "5"
+tar = "0.4"
+tempfile = "3"
+ureq = { version = "3", default-features = false, features = ["rustls"] }
 # Constraint-only dependency: time 0.3.48 breaks ratatui-widgets' blanket
 # `From` impls with E0119 under fresh resolution (e.g. `cargo install`
 # without --locked). Remove once a fixed time release ships or 0.3.48 is
@@ -43,6 +51,7 @@ toml = "1.1.2"
 two-face = { version = "0.5", default-features = false, features = ["syntect-default-onig"] }
 unicode-width = "0.2"
 url = "2"
+zip = { version = "2", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 assert_cmd = "2"
