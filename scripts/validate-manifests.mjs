@@ -5,7 +5,8 @@
 //   1. Required fields present in each manifest.
 //   2. plugin name/version/description agree across CC plugin.json, Codex
 //      plugin.json, and both marketplace entries.
-//   3. Both marketplaces register the `leaf` plugin and point at ./plugins/leaf.
+//   3. Both marketplaces register the `leaf` plugin; Claude points at
+//      ./plugins/leaf, Codex points at the hook-free ./plugins/leaf-codex.
 //   4. Every manifest carries the same plugin version (the plugin versions
 //      independently of the leaf CLI; the canonical value is CC plugin.json's
 //      `version`). The required leaf CLI floor is documented, not derived here.
@@ -39,8 +40,18 @@ const readJSON = (rel) => {
   }
 };
 
+const collectFiles = (abs, prefix = "") => {
+  if (!existsSync(abs)) return [];
+  return readdirSync(abs, { withFileTypes: true }).flatMap((entry) => {
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+    const p = join(abs, entry.name);
+    if (entry.isDirectory()) return collectFiles(p, rel);
+    return entry.isFile() ? [rel] : [];
+  });
+};
+
 const ccPlugin = readJSON("plugins/leaf/.claude-plugin/plugin.json");
-const codexPlugin = readJSON("plugins/leaf/.codex-plugin/plugin.json");
+const codexPlugin = readJSON("plugins/leaf-codex/.codex-plugin/plugin.json");
 const ccMarket = readJSON(".claude-plugin/marketplace.json");
 const codexMarket = readJSON(".agents/plugins/marketplace.json");
 
@@ -103,13 +114,15 @@ if (new Set(names).size > 1) fail(`plugin name mismatch: ${[...new Set(names)].j
 // 3. Marketplace sources point at the plugin dir.
 if (ccEntry && ccEntry.source !== "./plugins/leaf")
   fail(`CC marketplace source should be "./plugins/leaf", got ${JSON.stringify(ccEntry.source)}`);
-if (codexEntry && codexEntry.source?.path !== "./plugins/leaf")
+if (codexEntry && codexEntry.source?.path !== "./plugins/leaf-codex")
   fail(
-    `Codex marketplace source.path should be "./plugins/leaf", got ${JSON.stringify(codexEntry.source)}`,
+    `Codex marketplace source.path should be "./plugins/leaf-codex", got ${JSON.stringify(codexEntry.source)}`,
   );
 
 // 5. At least one skill with SKILL.md.
 const skillsDir = join(ROOT, "plugins/leaf/skills");
+const codexRoot = join(ROOT, "plugins/leaf-codex");
+const codexSkillsDir = join(codexRoot, "skills");
 if (!existsSync(skillsDir)) {
   fail("missing plugins/leaf/skills/");
 } else {
@@ -162,6 +175,49 @@ if (!existsSync(skillsDir)) {
   if (skillsOk) console.log(`✓ ${skills.length} skills: ${skills.join(", ")}`);
 }
 
+if (!existsSync(codexSkillsDir)) {
+  fail("missing plugins/leaf-codex/skills link or directory");
+} else if (existsSync(skillsDir)) {
+  const codexSkills = readdirSync(codexSkillsDir).filter((d) => {
+    const p = join(codexSkillsDir, d);
+    return statSync(p).isDirectory() && existsSync(join(p, "SKILL.md"));
+  });
+  const sourceSkills = readdirSync(skillsDir).filter((d) => {
+    const p = join(skillsDir, d);
+    return statSync(p).isDirectory() && existsSync(join(p, "SKILL.md"));
+  });
+  const sourceSet = new Set(sourceSkills);
+  const codexSet = new Set(codexSkills);
+  const missing = sourceSkills.filter((name) => !codexSet.has(name));
+  const extra = codexSkills.filter((name) => !sourceSet.has(name));
+  if (missing.length || extra.length) {
+    fail(
+      `plugins/leaf-codex/skills must mirror plugins/leaf/skills; missing=${missing.join(",") || "-"} extra=${extra.join(",") || "-"}`,
+    );
+  }
+  const sourceFiles = collectFiles(skillsDir).sort();
+  const codexFiles = collectFiles(codexSkillsDir).sort();
+  const sourceFileSet = new Set(sourceFiles);
+  const codexFileSet = new Set(codexFiles);
+  const missingFiles = sourceFiles.filter((rel) => !codexFileSet.has(rel));
+  const extraFiles = codexFiles.filter((rel) => !sourceFileSet.has(rel));
+  if (missingFiles.length || extraFiles.length) {
+    fail(
+      `plugins/leaf-codex/skills file tree must mirror plugins/leaf/skills; missing=${missingFiles.join(",") || "-"} extra=${extraFiles.join(",") || "-"}`,
+    );
+  }
+  for (const rel of sourceFiles.filter((name) => codexFileSet.has(name))) {
+    const sourceContent = readFileSync(join(skillsDir, rel), "utf8");
+    const codexContent = readFileSync(join(codexSkillsDir, rel), "utf8");
+    if (sourceContent !== codexContent) {
+      fail(`plugins/leaf-codex/skills/${rel} must match plugins/leaf/skills/${rel}`);
+    }
+  }
+}
+if (existsSync(join(codexRoot, "hooks")) || existsSync(join(codexRoot, "hooks.json"))) {
+  fail("Codex plugin root must not contain default-discovered hooks");
+}
+
 const commandsDir = join(ROOT, "plugins/leaf/commands");
 if (!existsSync(commandsDir)) {
   fail("missing plugins/leaf/commands/");
@@ -205,7 +261,7 @@ if (process.argv.includes("--audit") && pluginVersion) {
     ".claude-plugin",
     ".agents/plugins",
     "plugins/leaf/.claude-plugin",
-    "plugins/leaf/.codex-plugin",
+    "plugins/leaf-codex/.codex-plugin",
   ].flatMap(collectJson);
   let audited = 0;
   for (const rel of manifestFiles) {

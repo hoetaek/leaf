@@ -19,6 +19,8 @@ minor version instead of moving to `x.0.0`.
   only, without special-casing source checkouts via `cargo install --path .`.
 - Removed the unsupported Codex plugin `commands` manifest field and updated
   manifest validation to require the install skill instead.
+- Split the Codex marketplace entry onto a hook-free plugin root so Claude keeps
+  its SessionStart hook while Codex no longer discovers `hooks/hooks.json`.
 
 ## 0.2.1 - 2026-06-21
 
