@@ -10,8 +10,13 @@ minor version instead of moving to `x.0.0`.
 
 - Removed the Codex SessionStart hook registration so `leaf:using-leaf` is no
   longer injected into every Codex session as additional context. Codex still
-  gets the LEAF skills and `/leaf:install` command through the plugin manifest;
-  agents load `using-leaf` on demand instead.
+  gets the LEAF skills through the plugin manifest; agents load `using-leaf` on
+  demand instead.
+- Added `$leaf:install` as a Codex-compatible skill so the CLI installer appears
+  through Codex's supported skill/slash surface. The Claude-style
+  `/leaf:install` command remains available from `plugins/leaf/commands/`.
+- Removed the unsupported Codex plugin `commands` manifest field and updated
+  manifest validation to require the install skill instead.
 
 ## 0.2.1 - 2026-06-21
 
@@ -66,6 +71,20 @@ minor version instead of moving to `x.0.0`.
   compatibility floor of **`leaf` CLI ≥ 0.8.0** (documented in the README and
   `using-leaf`). `validate-manifests.mjs` now checks the four manifests agree
   with each other rather than matching `Cargo.toml`.
+
+## 0.10.0 - 2026-06-21
+
+- Added `leaf update`: the installed binary fetches the latest stable GitHub
+  release, verifies its sha256, and atomically self-replaces (a `claude install`
+  analog). Direct implementation (`ureq` + `self-replace`, no async runtime); the
+  asset is resolved from the release's own `dist-manifest.json` rather than a
+  hardcoded name, so it tracks whatever targets are distributed. Never downgrades;
+  "already up to date" is a no-op. A Homebrew-managed binary is detected and left
+  untouched with guidance to use `brew upgrade` instead.
+- After a successful `leaf update`, a best-effort notice reports when the
+  installed leaf **plugin** is behind the latest, with the Claude Code and Codex
+  update commands. The plugin is owned by the marketplace, so this only advises;
+  any detection failure is silent and never affects the update.
 
 ## 0.9.1 - 2026-06-21
 
