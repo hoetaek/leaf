@@ -47,6 +47,7 @@ pub fn run() -> Result<ExitCode> {
     let to = match decide(&current, &release.version) {
         Plan::UpToDate => {
             println!("already up to date ({current})");
+            notify_plugin_drift();
             return Ok(ExitCode::SUCCESS);
         }
         Plan::Update { to, .. } => to,
@@ -85,7 +86,71 @@ pub fn run() -> Result<ExitCode> {
 
     install_over_self(&exe, &new_bytes)?;
     println!("installed    {current} → {to}  at {}", exe.display());
+    notify_plugin_drift();
     Ok(ExitCode::SUCCESS)
+}
+
+// ── plugin drift notice (best-effort; never affects exit status) ─────────────
+
+const PLUGIN_MANIFEST_URL: &str =
+    "https://raw.githubusercontent.com/hoetaek/leaf/HEAD/plugins/leaf/.claude-plugin/plugin.json";
+
+/// Print a notice if the installed leaf plugin is behind the latest. Best-effort:
+/// any failure (network, fs, parse) is swallowed so it never changes the update's
+/// outcome. The plugin is owned by Claude Code/Codex, so we only advise — never
+/// touch it [C5, same principle as the brew refusal].
+fn notify_plugin_drift() {
+    let Some(local) = local_plugin_version() else {
+        return;
+    };
+    let Some(latest) = latest_plugin_version() else {
+        return;
+    };
+    if let Some(notice) = drift_notice(&local, &latest) {
+        println!("\n{notice}");
+    }
+}
+
+/// Latest plugin version from the repo's plugin.json on the default branch
+/// (`HEAD` resolves it without hardcoding the branch).
+fn latest_plugin_version() -> Option<Version> {
+    let body = http_get_bytes(PLUGIN_MANIFEST_URL).ok()?;
+    let json: serde_json::Value = serde_json::from_slice(&body).ok()?;
+    Version::parse(json.get("version")?.as_str()?).ok()
+}
+
+/// Best-effort highest plugin version cached by Claude Code or Codex. The caches
+/// keep multiple versions and the precisely-active one needs each runtime's
+/// private config, so the max cached version is used as a proxy.
+fn local_plugin_version() -> Option<Version> {
+    let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"))?;
+    let home = Path::new(&home);
+    let roots = [
+        home.join(".claude/plugins/cache/leaf/leaf"),
+        home.join(".codex/plugins/cache/leaf/leaf"),
+    ];
+    let names = roots
+        .iter()
+        .flat_map(|root| std::fs::read_dir(root).into_iter().flatten().flatten())
+        .filter_map(|entry| entry.file_name().into_string().ok());
+    max_semver(names)
+}
+
+/// Highest parseable semver among names (non-semver names ignored). Pure.
+fn max_semver(names: impl Iterator<Item = String>) -> Option<Version> {
+    names.filter_map(|n| Version::parse(&n).ok()).max()
+}
+
+/// The drift notice, or None when the local plugin is not behind. Pure.
+fn drift_notice(local: &Version, latest: &Version) -> Option<String> {
+    if local >= latest {
+        return None;
+    }
+    Some(format!(
+        "note: leaf plugin {local} installed, {latest} available\n  \
+         update it in Claude Code:  /plugin marketplace update leaf\n  \
+         or in Codex:               codex plugin marketplace upgrade leaf"
+    ))
 }
 
 /// Write the new binary beside the current one and atomically swap it in.
@@ -492,6 +557,28 @@ mod tests {
         let mut bad = archive.clone();
         bad[0] ^= 0xff;
         assert!(verify_sha256(&bad, &sha).is_err());
+    }
+
+    #[test]
+    fn max_semver_picks_highest_ignoring_junk() {
+        let names = ["0.1.0", "0.3.0", "0.2.1", "not-a-version", "0.10.0"]
+            .into_iter()
+            .map(String::from);
+        assert_eq!(max_semver(names), Some(Version::new(0, 10, 0)));
+        assert_eq!(max_semver(std::iter::empty()), None);
+    }
+
+    #[test]
+    fn drift_notice_only_when_behind() {
+        let v030 = Version::new(0, 3, 0);
+        let v031 = Version::new(0, 3, 1);
+        let n = drift_notice(&v030, &v031).expect("behind → notice");
+        assert!(n.contains("0.3.0 installed, 0.3.1 available"));
+        assert!(n.contains("/plugin marketplace update leaf"));
+        assert!(n.contains("codex plugin marketplace upgrade leaf"));
+        // equal or ahead → silent
+        assert!(drift_notice(&v031, &v031).is_none());
+        assert!(drift_notice(&Version::new(0, 4, 0), &v031).is_none());
     }
 
     #[test]
