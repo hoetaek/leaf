@@ -47,6 +47,10 @@ enabled = true
 
 Update later with `codex plugin marketplace upgrade leaf`.
 
+The skills then appear namespaced as `$leaf:learn` … `$leaf:work`. Codex also
+ships `$leaf:install` for installing the CLI; enabled skills appear in Codex's
+slash command list.
+
 > **Deprecated:** the previous `npx skills@latest add https://github.com/hoetaek/leaf`
 > install path is superseded by the plugin marketplace above. If you installed
 > the skills that way (a symlink under `~/.agents/skills/`), remove it and
@@ -55,17 +59,25 @@ Update later with `codex plugin marketplace upgrade leaf`.
 Install the `leaf` CLI that gives those skills a repo-local body. The plugin
 versions independently of the CLI and **requires `leaf` CLI ≥ 0.8.0**. The
 plugin does not install the CLI. In Claude Code/Cursor-style runtimes it may
-point you here from its session-start hook; in Codex, LEAF skills load on demand
-without a session-start context injection. Pick your platform:
+point you to `/leaf:install` from its session-start hook; in Codex, use
+`$leaf:install` from the enabled skill list. You can also install manually by
+platform:
 
-**macOS / Linux** — Homebrew (recommended):
+**macOS** — Homebrew (recommended):
 
 ```bash
 brew install hoetaek/tap/leaf
 leaf --version
 ```
 
-Or the shell installer:
+If Homebrew is unavailable, use the shell installer:
+
+```bash
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/hoetaek/leaf/releases/latest/download/leaf-installer.sh | sh
+leaf --version
+```
+
+**Linux** — shell installer:
 
 ```bash
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/hoetaek/leaf/releases/latest/download/leaf-installer.sh | sh

@@ -11,7 +11,7 @@
       "name": "leaf",
       "source": {
         "source": "local",
-        "path": "./plugins/leaf"
+        "path": "./plugins/leaf-codex"
       },
       "policy": {
         "installation": "AVAILABLE",
