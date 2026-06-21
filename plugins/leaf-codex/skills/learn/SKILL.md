@@ -221,6 +221,11 @@ If split is clear and the user asked to capture the work, create or resume
 sibling sprouts. Otherwise recommend the split and name candidates. Do not learn
 a known mixed sprout as one topic unless the grouping reason is explicit.
 
+This table is the *signal* for whether parts diverge. When the work is to
+**decide how to split** — which single grain to cut along, how the pieces order
+and link — use the `split` skill, which reuses this Split Check for its
+"whether/when" layer.
+
 ## Status Labels
 
 Use these in `00-status.md`:
