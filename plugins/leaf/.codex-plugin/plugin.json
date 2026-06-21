@@ -11,7 +11,6 @@
   "license": "MIT OR Apache-2.0",
   "skills": "./skills/",
   "commands": "./commands/",
-  "hooks": "./hooks/hooks-codex.json",
   "interface": {
     "displayName": "LEAF",
     "shortDescription": "Learn·Example·Architect·Feedback workflow for coding agents",

@@ -10,6 +10,8 @@
 //      independently of the leaf CLI; the canonical value is CC plugin.json's
 //      `version`). The required leaf CLI floor is documented, not derived here.
 //   5. plugins/leaf/skills/ contains at least one skill with a SKILL.md.
+//   6. Codex does not register SessionStart hooks; LEAF should not inject
+//      additional context into every Codex session.
 //
 // Exits non-zero on any failure so CI blocks drift.
 
@@ -46,6 +48,7 @@ if (codexPlugin) {
   if (!codexPlugin.name) fail("Codex plugin.json: missing `name`");
   if (!codexPlugin.skills) fail("Codex plugin.json: missing `skills`");
   if (!codexPlugin.commands) fail("Codex plugin.json: missing `commands`");
+  if (codexPlugin.hooks) fail("Codex plugin.json: must not register `hooks`");
   if (!codexPlugin.interface?.displayName)
     fail("Codex plugin.json: missing `interface.displayName`");
 }
@@ -122,6 +125,10 @@ if (!existsSync(commandsDir)) {
   const commands = readdirSync(commandsDir).filter((name) => name.endsWith(".md"));
   if (commands.length === 0) fail("plugins/leaf/commands/ has no markdown command files");
   else console.log(`✓ ${commands.length} commands: ${commands.join(", ")}`);
+}
+
+for (const rel of ["plugins/leaf/hooks/hooks-codex.json", "plugins/leaf/hooks/session-start-codex"]) {
+  if (existsSync(join(ROOT, rel))) fail(`Codex hook file should not be shipped: ${rel}`);
 }
 
 // --audit: scan every manifest JSON under the plugin/marketplace dirs for a

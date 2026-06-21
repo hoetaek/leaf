@@ -54,8 +54,9 @@ Update later with `codex plugin marketplace upgrade leaf`.
 
 Install the `leaf` CLI that gives those skills a repo-local body. The plugin
 versions independently of the CLI and **requires `leaf` CLI ≥ 0.8.0**. The
-plugin does not install the CLI; it only checks for it on session start and
-points you here. Pick your platform:
+plugin does not install the CLI. In Claude Code/Cursor-style runtimes it may
+point you here from its session-start hook; in Codex, LEAF skills load on demand
+without a session-start context injection. Pick your platform:
 
 **macOS / Linux** — Homebrew (recommended):
 
@@ -240,7 +241,7 @@ This repository ships Agent Skills bundled as the `leaf` plugin (see Quick Start
 
 | Skill | Use it for |
 |---|---|
-| [`using-leaf`](plugins/leaf/skills/using-leaf/SKILL.md) | Entry/router: the LEAF loop and which leaf skill to use; injected at session start |
+| [`using-leaf`](plugins/leaf/skills/using-leaf/SKILL.md) | Entry/router: the LEAF loop and which leaf skill to use; injected at session start where hooks are enabled, loaded on demand in Codex |
 | [`learn`](plugins/leaf/skills/learn/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
 | [`work`](plugins/leaf/skills/work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
 | [`polish`](plugins/leaf/skills/polish/SKILL.md) | Polishing LEAF documents into simple, complete current reports |

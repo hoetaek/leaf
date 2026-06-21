@@ -6,6 +6,13 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## Unreleased
+
+- Removed the Codex SessionStart hook registration so `leaf:using-leaf` is no
+  longer injected into every Codex session as additional context. Codex still
+  gets the LEAF skills and `/leaf:install` command through the plugin manifest;
+  agents load `using-leaf` on demand instead.
+
 ## 0.2.1 - 2026-06-21
 
 - Added a `/leaf:install` command that installs the `leaf` CLI, auto-detecting
