@@ -84,8 +84,9 @@ leaf --version
 cargo install --git https://github.com/hoetaek/leaf
 ```
 
-Update Homebrew with `brew upgrade hoetaek/tap/leaf`; for the shell or
-PowerShell installer, re-run the install command for the latest release.
+Update Homebrew with `brew update && brew upgrade hoetaek/tap/leaf`; for the
+shell or PowerShell installer, re-run the install command for the latest
+release.
 
 Start inside a git repository:
 
