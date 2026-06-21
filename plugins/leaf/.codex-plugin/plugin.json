@@ -10,7 +10,6 @@
   "repository": "https://github.com/hoetaek/leaf",
   "license": "MIT OR Apache-2.0",
   "skills": "./skills/",
-  "commands": "./commands/",
   "interface": {
     "displayName": "LEAF",
     "shortDescription": "Learn·Example·Architect·Feedback workflow for coding agents",

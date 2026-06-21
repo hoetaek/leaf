@@ -15,6 +15,8 @@ minor version instead of moving to `x.0.0`.
 - Added `$leaf:install` as a Codex-compatible skill so the CLI installer appears
   through Codex's supported skill/slash surface. The Claude-style
   `/leaf:install` command remains available from `plugins/leaf/commands/`.
+- Simplified the install skill and command to choose installers by current OS
+  only, without special-casing source checkouts via `cargo install --path .`.
 - Removed the unsupported Codex plugin `commands` manifest field and updated
   manifest validation to require the install skill instead.
 

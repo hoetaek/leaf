@@ -9,8 +9,10 @@
 //   4. Every manifest carries the same plugin version (the plugin versions
 //      independently of the leaf CLI; the canonical value is CC plugin.json's
 //      `version`). The required leaf CLI floor is documented, not derived here.
-//   5. plugins/leaf/skills/ contains at least one skill with a SKILL.md.
-//   6. Codex does not register SessionStart hooks; LEAF should not inject
+//   5. plugins/leaf/skills/ contains skills with SKILL.md, including install
+//      so Codex exposes the CLI installer through its supported skill surface.
+//   6. Claude-style commands are still shipped for hosts that support them.
+//   7. Codex does not register SessionStart hooks; LEAF should not inject
 //      additional context into every Codex session.
 //
 // Exits non-zero on any failure so CI blocks drift.
@@ -47,7 +49,8 @@ if (ccPlugin && !ccPlugin.name) fail("CC plugin.json: missing `name`");
 if (codexPlugin) {
   if (!codexPlugin.name) fail("Codex plugin.json: missing `name`");
   if (!codexPlugin.skills) fail("Codex plugin.json: missing `skills`");
-  if (!codexPlugin.commands) fail("Codex plugin.json: missing `commands`");
+  if (codexPlugin.commands)
+    fail("Codex plugin.json: must not register unsupported `commands`; use skills/install");
   if (codexPlugin.hooks) fail("Codex plugin.json: must not register `hooks`");
   if (!codexPlugin.interface?.displayName)
     fail("Codex plugin.json: missing `interface.displayName`");
@@ -114,8 +117,49 @@ if (!existsSync(skillsDir)) {
     const p = join(skillsDir, d);
     return statSync(p).isDirectory() && existsSync(join(p, "SKILL.md"));
   });
-  if (skills.length === 0) fail("plugins/leaf/skills/ has no skill with a SKILL.md");
-  else console.log(`✓ ${skills.length} skills: ${skills.join(", ")}`);
+  let skillsOk = true;
+  if (skills.length === 0) {
+    fail("plugins/leaf/skills/ has no skill with a SKILL.md");
+    skillsOk = false;
+  }
+  if (!skills.includes("install")) {
+    fail("plugins/leaf/skills/install/SKILL.md is required for Codex install discovery");
+    skillsOk = false;
+  }
+  if (!existsSync(join(skillsDir, "install", "agents", "openai.yaml"))) {
+    fail("plugins/leaf/skills/install/agents/openai.yaml is required for Codex install display");
+    skillsOk = false;
+  } else {
+    const installOpenaiYaml = readFileSync(
+      join(skillsDir, "install", "agents", "openai.yaml"),
+      "utf8",
+    );
+    if (!installOpenaiYaml.includes("allow_implicit_invocation: true")) {
+      fail(
+        "plugins/leaf/skills/install/agents/openai.yaml must set `allow_implicit_invocation: true` so Codex surfaces leaf:install with other LEAF skills",
+      );
+      skillsOk = false;
+    }
+  }
+  const installDocs = [
+    ["plugins/leaf/skills/install/SKILL.md", join(skillsDir, "install", "SKILL.md")],
+    ["plugins/leaf/commands/install.md", join(ROOT, "plugins/leaf/commands/install.md")],
+  ];
+  for (const [rel, abs] of installDocs) {
+    if (!existsSync(abs)) continue;
+    const installDoc = readFileSync(abs, "utf8");
+    if (installDoc.includes("cargo install --path")) {
+      fail(`${rel}: install flow must not special-case source checkouts with cargo install --path`);
+      skillsOk = false;
+    }
+    for (const required of ["macOS", "Linux", "Windows", "leaf --version"]) {
+      if (!installDoc.includes(required)) {
+        fail(`${rel}: install flow must mention ${required}`);
+        skillsOk = false;
+      }
+    }
+  }
+  if (skillsOk) console.log(`✓ ${skills.length} skills: ${skills.join(", ")}`);
 }
 
 const commandsDir = join(ROOT, "plugins/leaf/commands");
