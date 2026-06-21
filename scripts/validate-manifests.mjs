@@ -45,6 +45,7 @@ if (ccPlugin && !ccPlugin.name) fail("CC plugin.json: missing `name`");
 if (codexPlugin) {
   if (!codexPlugin.name) fail("Codex plugin.json: missing `name`");
   if (!codexPlugin.skills) fail("Codex plugin.json: missing `skills`");
+  if (!codexPlugin.commands) fail("Codex plugin.json: missing `commands`");
   if (!codexPlugin.interface?.displayName)
     fail("Codex plugin.json: missing `interface.displayName`");
 }
@@ -112,6 +113,15 @@ if (!existsSync(skillsDir)) {
   });
   if (skills.length === 0) fail("plugins/leaf/skills/ has no skill with a SKILL.md");
   else console.log(`✓ ${skills.length} skills: ${skills.join(", ")}`);
+}
+
+const commandsDir = join(ROOT, "plugins/leaf/commands");
+if (!existsSync(commandsDir)) {
+  fail("missing plugins/leaf/commands/");
+} else {
+  const commands = readdirSync(commandsDir).filter((name) => name.endsWith(".md"));
+  if (commands.length === 0) fail("plugins/leaf/commands/ has no markdown command files");
+  else console.log(`✓ ${commands.length} commands: ${commands.join(", ")}`);
 }
 
 // --audit: scan every manifest JSON under the plugin/marketplace dirs for a
