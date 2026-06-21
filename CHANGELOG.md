@@ -6,7 +6,7 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
-## Unreleased
+## 0.3.1 - 2026-06-21
 
 - Removed the Codex SessionStart hook registration so `leaf:using-leaf` is no
   longer injected into every Codex session as additional context. Codex still
