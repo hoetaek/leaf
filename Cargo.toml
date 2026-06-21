@@ -41,7 +41,6 @@ sha2 = "0.10"
 syntect = "5"
 tar = "0.4"
 tempfile = "3"
-ureq = { version = "3", default-features = false, features = ["rustls"] }
 # Constraint-only dependency: time 0.3.48 breaks ratatui-widgets' blanket
 # `From` impls with E0119 under fresh resolution (e.g. `cargo install`
 # without --locked). Remove once a fixed time release ships or 0.3.48 is
@@ -52,6 +51,16 @@ two-face = { version = "0.5", default-features = false, features = ["syntect-def
 unicode-width = "0.2"
 url = "2"
 zip = { version = "2", default-features = false, features = ["deflate"] }
+
+# `leaf update` HTTPS client. rustls (via `ring`) everywhere except Windows,
+# where `ring` fails to cross-compile for `aarch64-pc-windows-msvc` under
+# cargo-dist's cargo-xwin toolchain — there we use native-tls (SChannel), which
+# needs no C crypto build. Linux therefore still avoids OpenSSL.
+[target.'cfg(not(windows))'.dependencies]
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+
+[target.'cfg(windows)'.dependencies]
+ureq = { version = "3", default-features = false, features = ["native-tls"] }
 
 [dev-dependencies]
 assert_cmd = "2"
