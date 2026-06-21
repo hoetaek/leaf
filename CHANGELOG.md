@@ -60,6 +60,13 @@ minor version instead of moving to `x.0.0`.
   `using-leaf`). `validate-manifests.mjs` now checks the four manifests agree
   with each other rather than matching `Cargo.toml`.
 
+## 0.9.1 - 2026-06-21
+
+- Added a native Windows ARM64 build (`aarch64-pc-windows-msvc`). Windows on ARM
+  no longer relies on x64 emulation — the PowerShell installer now fetches a
+  native ARM64 binary on those machines. (`onig`/`oniguruma` cross-compiles
+  cleanly for the target; verified in CI before release.)
+
 ## 0.9.0 - 2026-06-21
 
 - Added a Windows native install path. `dist` now builds the
