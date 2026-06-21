@@ -60,6 +60,18 @@ minor version instead of moving to `x.0.0`.
   `using-leaf`). `validate-manifests.mjs` now checks the four manifests agree
   with each other rather than matching `Cargo.toml`.
 
+## 0.9.0 - 2026-06-21
+
+- Added a Windows native install path. `dist` now builds the
+  `x86_64-pc-windows-msvc` target and emits a `powershell` installer, so each
+  release publishes `leaf-x86_64-pc-windows-msvc.zip` and `leaf-installer.ps1`
+  alongside the macOS/Linux artifacts. Windows users install with
+  `powershell -ExecutionPolicy ByPass -c "irm https://github.com/hoetaek/leaf/releases/latest/download/leaf-installer.ps1 | iex"`.
+- Restructured the README install section to present each OS's best path as a
+  peer — macOS/Linux (Homebrew + shell installer), Windows (PowerShell
+  installer), and from source — each with a `leaf --version` check, instead of
+  burying the shell installer under "Other CLI install paths".
+
 ## 0.8.0 - 2026-06-18
 
 - `leaf review` now surfaces a leaf's Learn references. The references live in
