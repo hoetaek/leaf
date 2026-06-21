@@ -33,7 +33,17 @@ ${using_leaf}"
   if ! command -v leaf >/dev/null 2>&1; then
     content="${content}
 
-⚠️  The \`leaf\` CLI is not on PATH. The skills drive a repo-local \`.leaf/\` workspace through it. Install it: \`brew install hoetaek/tap/leaf\` (or \`cargo install --git https://github.com/hoetaek/leaf\`)."
+⚠️ REQUIRED — the \`leaf\` CLI is not on PATH.
+
+The skills above drive a repo-local \`.leaf/\` workspace through this binary;
+every \`leaf\` command (\`leaf init\`, \`leaf new\`, \`leaf doctor\`) WILL FAIL
+until it is installed. Before doing any LEAF work, you MUST tell the user to run:
+
+    /leaf:install
+
+Surface this command to the user explicitly and wait for them to run it. Do not
+silently skip it, and do not install the binary yourself. \"The user probably
+already knows\" or \"I'll mention it later\" is the wrong instinct — state it now."
   fi
 
   content="${content}

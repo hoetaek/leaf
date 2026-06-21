@@ -70,8 +70,10 @@ because future work should be able to cite it.
 
 The skills give the workflow its method; the `leaf` CLI gives it a repo-local
 body — the `.leaf/` workspace (`leaf init`, `leaf new <slug>`, `leaf doctor`).
-This plugin requires **`leaf` CLI ≥ 0.8.0**. If `leaf` is not installed, install
-it before relying on the workspace commands (`brew install hoetaek/tap/leaf`, or
+This plugin requires **`leaf` CLI ≥ 0.8.0**, and every workspace command WILL
+FAIL until it is installed. If `leaf` is not on PATH, you MUST tell the user to
+run `/leaf:install` before any LEAF work — do not silently skip it. Where that
+command is unavailable, fall back to `brew install hoetaek/tap/leaf` (or
 `cargo install --git https://github.com/hoetaek/leaf`).
 
 For vague, early, or idea-stage work, start with `learn`. To build a sprout
