@@ -6,6 +6,19 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.2.1 - 2026-06-21
+
+- Added a `/leaf:install` command that installs the `leaf` CLI, auto-detecting
+  the source repo (`cargo install --path .`) versus a normal checkout
+  (`brew install hoetaek/tap/leaf`, falling back to `cargo install --git`), then
+  verifying `leaf --version`.
+- Strengthened the SessionStart CLI-missing notice: instead of a passive install
+  hint, it now mandates that the agent surface `/leaf:install` to the user
+  (without installing the binary itself), mirroring the imperative tone of the
+  `using-superpowers` entry skill. The `using-leaf` skill body carries the same
+  nudge with the raw `brew`/`cargo` commands as a fallback for platforms without
+  the slash command.
+
 ## 0.2.0 - 2026-06-21
 
 - Renamed the `clean` skill to `polish` (clearer that it polishes a LEAF
