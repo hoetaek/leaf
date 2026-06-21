@@ -1,0 +1,21 @@
+{
+  "name": "leaf",
+  "version": "0.3.0",
+  "description": "LEAF: Learn·Example·Architect·Feedback collaboration workflow skills",
+  "author": {
+    "name": "hoetaek",
+    "email": "hoetaek@indischool.com"
+  },
+  "homepage": "https://github.com/hoetaek/leaf",
+  "repository": "https://github.com/hoetaek/leaf",
+  "license": "MIT OR Apache-2.0",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks-codex.json",
+  "interface": {
+    "displayName": "LEAF",
+    "shortDescription": "Learn·Example·Architect·Feedback workflow for coding agents",
+    "longDescription": "LEAF carries work through four kinds of uncertainty in order — Learn (intent & context), Example (prove one instance), Architect (generalize into a generator), Feedback (review & retrospect) — so agents validate one cheap instance before scaling instead of generating confident slop.",
+    "category": "Productivity",
+    "developerName": "hoetaek"
+  }
+}

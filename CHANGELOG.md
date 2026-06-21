@@ -6,6 +6,72 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.2.1 - 2026-06-21
+
+- Added a `/leaf:install` command that installs the `leaf` CLI, auto-detecting
+  the source repo (`cargo install --path .`) versus a normal checkout
+  (`brew install hoetaek/tap/leaf`, falling back to `cargo install --git`), then
+  verifying `leaf --version`.
+- Strengthened the SessionStart CLI-missing notice: instead of a passive install
+  hint, it now mandates that the agent surface `/leaf:install` to the user
+  (without installing the binary itself), mirroring the imperative tone of the
+  `using-superpowers` entry skill. The `using-leaf` skill body carries the same
+  nudge with the raw `brew`/`cargo` commands as a fallback for platforms without
+  the slash command.
+
+## 0.2.0 - 2026-06-21
+
+- Renamed the `clean` skill to `polish` (clearer that it polishes a LEAF
+  document into a current report, not code/working-tree cleanup), and renamed
+  `done` to `press`, narrowing it to the single press action — writing a citable
+  `pressed.md` digest. The keep / press / fall **decision** and the lightweight
+  fall (`leaf fall`) and keep actions moved into `using-leaf` under a new
+  "Ending a leaf" section, so the always-injected router owns the close-out
+  decision while `press` stays a focused on-demand skill. **Breaking:** reinstall
+  and reload to pick up the new names.
+
+## 0.1.0 - 2026-06-20
+
+- The LEAF skills now ship as a Claude Code + Codex **plugin marketplace**
+  self-hosted from this repo. Install with `/plugin marketplace add hoetaek/leaf`
+  then `/plugin install leaf@leaf` (Claude Code), or `codex plugin marketplace
+  add hoetaek/leaf` then `codex plugin add leaf@leaf` (Codex 0.125+). The skills
+  moved under `plugins/leaf/skills/` (bodies unchanged); the `npx skills add`
+  path is deprecated.
+- Added a `using-leaf` skill that routes to the right LEAF gate skill, and a
+  SessionStart hook that injects it (platform-aware: Claude Code / Cursor /
+  Codex / SDK) and notes when the `leaf` CLI is missing without blocking the
+  session.
+- Added `scripts/validate-manifests.mjs` (with `--audit`) and
+  `scripts/lint-shell.sh`, both run in CI, to keep the dual-runtime manifests
+  version-synced with `Cargo.toml` and the hook scripts lint-clean.
+- Removed the `leaf-reversed` skill (no longer used). The plugin now ships seven
+  skills; `using-leaf` and the README skills list no longer reference it.
+- Dropped the redundant `leaf-` prefix from the six gate skills now that both
+  Claude Code and Codex namespace plugin skills (`/leaf:clean`, `$leaf:clean`):
+  `leaf-clean`→`clean`, `leaf-done`→`done`, `leaf-learn`→`learn`,
+  `leaf-profile`→`profile`, `leaf-soul`→`soul`, `leaf-work`→`work`. The entry
+  skill `using-leaf` keeps its name (matching the `using-superpowers`
+  convention). **Breaking:** reinstall and reload to pick up the new names.
+- The plugin now **versions independently of the `leaf` CLI**, starting at
+  `0.1.0` (previously pinned to the CLI's `0.8.0`), so plugin-only changes ship
+  to users without waiting for a CLI release. The plugin declares a
+  compatibility floor of **`leaf` CLI ≥ 0.8.0** (documented in the README and
+  `using-leaf`). `validate-manifests.mjs` now checks the four manifests agree
+  with each other rather than matching `Cargo.toml`.
+
+## 0.9.0 - 2026-06-21
+
+- Added a Windows native install path. `dist` now builds the
+  `x86_64-pc-windows-msvc` target and emits a `powershell` installer, so each
+  release publishes `leaf-x86_64-pc-windows-msvc.zip` and `leaf-installer.ps1`
+  alongside the macOS/Linux artifacts. Windows users install with
+  `powershell -ExecutionPolicy ByPass -c "irm https://github.com/hoetaek/leaf/releases/latest/download/leaf-installer.ps1 | iex"`.
+- Restructured the README install section to present each OS's best path as a
+  peer — macOS/Linux (Homebrew + shell installer), Windows (PowerShell
+  installer), and from source — each with a `leaf --version` check, instead of
+  burying the shell installer under "Other CLI install paths".
+
 ## 0.8.0 - 2026-06-18
 
 - `leaf review` now surfaces a leaf's Learn references. The references live in

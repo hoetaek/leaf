@@ -18,31 +18,75 @@ repo-local body.
 
 ## Quick Start
 
-Install the Agent Skills:
+Install the Agent Skills as a plugin. The skills ship as one plugin (`leaf`)
+served from this repo as a marketplace for both Claude Code and Codex.
+
+**Claude Code:**
 
 ```bash
-npx skills@latest add https://github.com/hoetaek/leaf
+/plugin marketplace add hoetaek/leaf
+/plugin install leaf@leaf
 ```
 
-For a global skills install:
+The skills then appear namespaced as `/leaf:learn` … `/leaf:work`.
+Update later with `/plugin marketplace update leaf`.
+
+**Codex** (CLI 0.125+):
 
 ```bash
-npx skills@latest add https://github.com/hoetaek/leaf -g
+codex plugin marketplace add hoetaek/leaf
+codex plugin add leaf@leaf
 ```
 
-For a global Claude Code skills install:
+Or enable it in `~/.codex/config.toml`:
 
-```bash
-npx skills@latest add https://github.com/hoetaek/leaf -g -a claude-code
+```toml
+[plugins."leaf@leaf"]
+enabled = true
 ```
 
-Install the `leaf` CLI that gives those skills a repo-local body. Homebrew is
-the recommended install path:
+Update later with `codex plugin marketplace upgrade leaf`.
+
+> **Deprecated:** the previous `npx skills@latest add https://github.com/hoetaek/leaf`
+> install path is superseded by the plugin marketplace above. If you installed
+> the skills that way (a symlink under `~/.agents/skills/`), remove it and
+> re-install via the plugin.
+
+Install the `leaf` CLI that gives those skills a repo-local body. The plugin
+versions independently of the CLI and **requires `leaf` CLI ≥ 0.8.0**. The
+plugin does not install the CLI; it only checks for it on session start and
+points you here. Pick your platform:
+
+**macOS / Linux** — Homebrew (recommended):
 
 ```bash
 brew install hoetaek/tap/leaf
 leaf --version
 ```
+
+Or the shell installer:
+
+```bash
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/hoetaek/leaf/releases/latest/download/leaf-installer.sh | sh
+leaf --version
+```
+
+**Windows** — PowerShell installer:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://github.com/hoetaek/leaf/releases/latest/download/leaf-installer.ps1 | iex"
+leaf --version
+```
+
+**From source** (any platform with Rust):
+
+```bash
+cargo install --git https://github.com/hoetaek/leaf
+```
+
+Update Homebrew with `brew update && brew upgrade hoetaek/tap/leaf`; for the
+shell or PowerShell installer, re-run the install command for the latest
+release.
 
 Start inside a git repository:
 
@@ -52,30 +96,11 @@ leaf init
 leaf new my-first-idea
 ```
 
-Ask your agent to use `leaf-learn` to capture an idea and run the Learn phase on a
-sprout (lock ① Intent, resolve ② Unknowns & Context); use `leaf-work` to carry a
+Ask your agent to use `learn` to capture an idea and run the Learn phase on a
+sprout (lock ① Intent, resolve ② Unknowns & Context); use `work` to carry a
 sprout from ③ Example through ⑧ Artifact / Execution. After ⑧ passes,
-`leaf-work` moves the sprout into leaves before Feedback. Immediately after ⑩
-Retrospect, use `leaf-done`.
-
-Other CLI install paths are available from the latest GitHub Release:
-
-```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/hoetaek/leaf/releases/latest/download/leaf-installer.sh | sh
-```
-
-Or from the current source checkout:
-
-```bash
-cargo install --git https://github.com/hoetaek/leaf
-```
-
-Update the Homebrew install with:
-
-```bash
-brew update
-brew upgrade hoetaek/tap/leaf
-```
+`work` moves the sprout into leaves before Feedback. Immediately after ⑩
+Retrospect, follow `using-leaf` ("Ending a leaf") to keep, press, or fall.
 
 ## The LEAF Loop
 
@@ -89,8 +114,8 @@ LEAF closes uncertainty in order:
 | Feedback | The result still holds, and the lessons carry forward |
 
 The Learn gate contract lives in
-[`skills/leaf-learn`](skills/leaf-learn/SKILL.md); Example onward lives in
-[`skills/leaf-work`](skills/leaf-work/SKILL.md).
+[`learn`](plugins/leaf/skills/learn/SKILL.md); Example onward lives in
+[`work`](plugins/leaf/skills/work/SKILL.md).
 
 ## Concepts
 
@@ -113,7 +138,7 @@ leaf as `pressed.md`, not in a shared top-level pressed folder. When a pressed
 leaf cites or is cited by other leaves, cross-leaf citation metadata lives next
 to the digest as `linked.md`. `.leaf/PROFILE.md` is the repo-local acquired
 profile: `leaf init` scaffolds it, completed leaves consolidate working-style
-traits into it at ⑩ Retrospect, and `leaf-soul` reads it at the start of LEAF
+traits into it at ⑩ Retrospect, and `soul` reads it at the start of LEAF
 work. A machine-global profile at `~/.config/leaf/profile.md` layers underneath
 it for facts that apply to every repo on the machine, such as the user's
 working language; `leaf profile` prints the merged view.
@@ -186,7 +211,7 @@ width up to 112 columns; below 32 columns it falls back to a compact summary
 instead of forcing broken tree art.
 
 `leaf review <slug>` opens the same source-faithful review reader for one
-leaf-work item directly. In non-TTY output it writes the review document as
+work item directly. In non-TTY output it writes the review document as
 plain text.
 
 `leaf profile` prints the effective profile: the machine-global
@@ -208,24 +233,24 @@ layout leftovers, missing status fields, and stage/status mismatches.
 
 ## Agent Skills
 
-This repository ships Agent Skills:
+This repository ships Agent Skills bundled as the `leaf` plugin (see Quick Start):
 
 | Skill | Use it for |
 |---|---|
-| [`leaf-learn`](skills/leaf-learn/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
-| [`leaf-work`](skills/leaf-work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
-| [`leaf-reversed`](skills/leaf-reversed/SKILL.md) | Reconstructing a complete LEAF record from a finished artifact or result |
-| [`leaf-clean`](skills/leaf-clean/SKILL.md) | Cleaning LEAF documents into simple, complete current reports |
-| [`leaf-done`](skills/leaf-done/SKILL.md) | Deciding whether a finished leaf should stay, be pressed, or fall |
-| [`leaf-soul`](skills/leaf-soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
+| [`using-leaf`](plugins/leaf/skills/using-leaf/SKILL.md) | Entry/router: the LEAF loop and which leaf skill to use; injected at session start |
+| [`learn`](plugins/leaf/skills/learn/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
+| [`work`](plugins/leaf/skills/work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
+| [`polish`](plugins/leaf/skills/polish/SKILL.md) | Polishing LEAF documents into simple, complete current reports |
+| [`press`](plugins/leaf/skills/press/SKILL.md) | Pressing a reference-worthy leaf into a citable digest once press is the chosen close-out |
+| [`profile`](plugins/leaf/skills/profile/SKILL.md) | Reading and updating the machine-global and repo-local LEAF profiles |
+| [`soul`](plugins/leaf/skills/soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
 Install the LEAF skills together as a family — they are not independent.
-`leaf-learn`, `leaf-work`, `leaf-reversed`, `leaf-clean`, and `leaf-done` read
-`leaf-soul` through the sibling path `../leaf-soul/SKILL.md`; `leaf-learn` and
-`leaf-work` also read the gate references under `leaf-work` through
-`../leaf-work/references/`. The
-Quick Start command above installs the whole family; installing a single skill
-with `--skill` would leave those cross-skill references broken.
+`learn`, `work`, `polish`, and `press` read
+`soul` through the sibling path `../soul/SKILL.md`; `learn` and
+`work` also read the gate references under `work` through
+`../work/references/`. Installing the `leaf` plugin ships the whole family
+together, so these cross-skill references resolve.
 
 ## Status
 

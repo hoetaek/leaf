@@ -1,0 +1,19 @@
+{
+  "name": "leaf",
+  "owner": {
+    "name": "hoetaek",
+    "email": "hoetaek@indischool.com"
+  },
+  "metadata": {
+    "description": "LEAF workflow skills — Claude Code + Codex plugin marketplace",
+    "version": "0.3.0"
+  },
+  "plugins": [
+    {
+      "name": "leaf",
+      "source": "./plugins/leaf",
+      "description": "LEAF: Learn·Example·Architect·Feedback collaboration workflow skills (7 skills)",
+      "version": "0.3.0"
+    }
+  ]
+}

@@ -2945,10 +2945,12 @@ mod tests {
                 crate::preview::TableAlignment::None,
                 crate::preview::TableAlignment::None,
             ],
+            metrics: Vec::new(),
         });
         let divider = preview_line(&PreviewLine::TableDivider {
             widths: vec![11, 4],
             kind: crate::preview::TableDividerKind::Header,
+            metrics: Vec::new(),
         });
         let list_item = preview_line(&PreviewLine::ListItem {
             marker: "•".to_string(),
@@ -3186,6 +3188,7 @@ mod tests {
             links: vec![],
             widths: vec![18],
             alignments: vec![crate::preview::TableAlignment::None],
+            metrics: Vec::new(),
         });
 
         let rendered = review_table_lines(&line, 80).expect("table row");
@@ -3869,6 +3872,7 @@ mod tests {
             links: vec![],
             widths: vec![destination.len()],
             alignments: vec![crate::preview::TableAlignment::None],
+            metrics: Vec::new(),
         });
 
         let rendered = review_table_lines(&line, 80).expect("table row");
@@ -3904,6 +3908,7 @@ mod tests {
             }],
             widths: vec![visible.len()],
             alignments: vec![crate::preview::TableAlignment::None],
+            metrics: Vec::new(),
         });
 
         let rendered = review_table_lines(&line, 80).expect("table row");
@@ -3952,6 +3957,7 @@ mod tests {
                 crate::preview::TableAlignment::None,
                 crate::preview::TableAlignment::None,
             ],
+            metrics: Vec::new(),
         });
 
         let rendered = review_table_lines(&line, 80).expect("table row");
@@ -3994,6 +4000,7 @@ mod tests {
             }],
             widths: vec![visible.len()],
             alignments: vec![crate::preview::TableAlignment::None],
+            metrics: Vec::new(),
         });
 
         let rendered = review_table_lines(&line, 16).expect("table row");
