@@ -61,6 +61,8 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// Update leaf to the latest stable release.
+    Update,
 }
 
 #[derive(Debug, Args)]
@@ -267,6 +269,7 @@ fn execute(cli: Cli) -> Result<ExitCode> {
                 Ok(ExitCode::SUCCESS)
             }
         }
+        Commands::Update => crate::update::run(),
     }
 }
 

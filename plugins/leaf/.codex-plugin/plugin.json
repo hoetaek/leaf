@@ -1,6 +1,6 @@
 {
   "name": "leaf",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "LEAF: Learn·Example·Architect·Feedback collaboration workflow skills",
   "author": {
     "name": "hoetaek",
@@ -10,7 +10,7 @@
   "repository": "https://github.com/hoetaek/leaf",
   "license": "MIT OR Apache-2.0",
   "skills": "./skills/",
-  "hooks": "./hooks/hooks-codex.json",
+  "commands": "./commands/",
   "interface": {
     "displayName": "LEAF",
     "shortDescription": "Learn·Example·Architect·Feedback workflow for coding agents",

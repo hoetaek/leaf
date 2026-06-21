@@ -18,6 +18,7 @@ mod storage;
 mod syntax;
 mod tree;
 mod tui;
+mod update;
 
 pub fn run() -> anyhow::Result<std::process::ExitCode> {
     cli::run()
