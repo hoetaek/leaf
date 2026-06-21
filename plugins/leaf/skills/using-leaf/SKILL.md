@@ -18,10 +18,44 @@ LEAF closes four kinds of uncertainty in order:
 | **Architect** | Generalize that instance into a shippable generator (⑤ Design · ⑥ Critic · ⑦ Tasks · ⑧ Artifact) |
 | **Feedback** | Confirm it still holds, then settle what was established (⑨ Review · ⑩ Retrospect) |
 
-## Which skill to use
+## Invoke before you work
 
-Invoke the relevant LEAF skill **before** doing substantial work — even a 1%
-chance it applies means invoke it.
+This is a forcing function, not a suggestion.
+
+<EXTREMELY-IMPORTANT>
+If there is even a 1% chance a leaf skill applies to what you are about to do,
+you MUST invoke it BEFORE you respond or act. This is not negotiable. This is
+not optional. You cannot rationalize your way out of it. Knowing the LEAF loop
+is not running it — only the skill carries the gates.
+</EXTREMELY-IMPORTANT>
+
+**You are looking at LEAF work when you see:**
+
+- a document, essay, memo, report, spec, study note, proposal, or presentation
+  to produce or substantially revise
+- an idea to capture, triage, or park ("save this", "maybe later", a brainstorm
+  fragment, a half-formed curiosity)
+- a task to understand, research, benchmark, or map a topic
+- a build, prototype, or code task large enough to need design before scaling
+- any substantial knowledge or build work carried in this repo
+
+If it fits, route through the table below **before** you answer or act. It is
+NOT LEAF work only when the reply is one or two sentences, a trivial mechanical
+edit, or a direct lookup — then just answer.
+
+**Red flags — these thoughts mean STOP, you are rationalizing past the skill:**
+
+| Thought | Reality |
+|---|---|
+| "I'll just write the doc directly" | Producing the artifact IS what `work` governs. Invoke it first. |
+| "I know the LEAF loop, I don't need the skill" | Knowing the loop ≠ running its gates. Invoke it. |
+| "The CLI / `.leaf` isn't set up, so leaf doesn't apply" | The skills carry the method regardless — install per "The CLI is the body", don't skip the workflow. |
+| "This is too small for the whole loop" | The loop scales down. Invoke it and let the gate be cheap; skipping is how slop starts. |
+| "Let me gather context first, then decide" | `learn` IS how you gather context. Invoke it before exploring. |
+| "It's a code task, not a leaf task" | `work` covers code and mixed deliverables, not just prose. |
+| "The user asked a question, not for LEAF work" | A substantial knowledge task is leaf work. Check the boundary above before answering. |
+
+## Which skill to use
 
 | Skill | Use it for |
 |---|---|
