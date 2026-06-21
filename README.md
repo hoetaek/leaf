@@ -84,9 +84,11 @@ leaf --version
 cargo install --git https://github.com/hoetaek/leaf
 ```
 
-Update Homebrew with `brew update && brew upgrade hoetaek/tap/leaf`; for the
-shell or PowerShell installer, re-run the install command for the latest
-release.
+**Updating.** If you installed with the shell or PowerShell installer (or from
+source), run `leaf update` to fetch and self-replace with the latest stable
+release. Homebrew installs are updated with `brew update && brew upgrade
+hoetaek/tap/leaf` — `leaf update` detects a Homebrew-managed binary and defers
+to brew rather than overwriting it.
 
 Start inside a git repository:
 
@@ -158,6 +160,7 @@ leaf review <slug>
 leaf profile
 leaf checkpoint <slug> --<gate>
 leaf doctor [--json]
+leaf update
 ```
 
 `leaf init` initializes `.leaf/` storage in the current git repository and

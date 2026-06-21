@@ -29,6 +29,8 @@ allow = [
     "Apache-2.0 WITH LLVM-exception",
     "BSD-3-Clause",
     "CC0-1.0",
+    # Mozilla CA root bundle shipped by webpki-roots (ureq's rustls trust store).
+    "CDLA-Permissive-2.0",
     "ISC",
     "MIT",
     "Unicode-3.0",
