@@ -37,6 +37,9 @@ is not running it — only the skill carries the gates.
   fragment, a half-formed curiosity)
 - a task to understand, research, benchmark, or map a topic
 - a build, prototype, or code task large enough to need design before scaling
+- a work item that may need splitting into separate leaves — bundled scope, a
+  sprout holding independent cores, or "should this be one thing or several?"
+  (route to `split`)
 - any substantial knowledge or build work carried in this repo
 
 If it fits, route through the table below **before** you answer or act. It is
