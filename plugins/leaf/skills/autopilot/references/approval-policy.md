@@ -1,11 +1,11 @@
 # LEAF Autopilot Approval Policy
 
-Use this reference when deciding whether `leaf-autopilot` may continue without
+Use this reference when deciding whether `autopilot` may continue without
 asking the user.
 
 ## Decision Model
 
-`leaf-autopilot` uses three layers:
+`autopilot` uses three layers:
 
 1. **Human-reviewed triple** — `why`, `what`, and `wireframe` are reviewed before
    autopilot starts. This is the ownership boundary.

@@ -1,11 +1,11 @@
 ---
-name: leaf-autopilot
+name: autopilot
 description: Use after a LEAF sprout's why / what / wireframe triple has been explicitly reviewed by the user, when the user wants the remaining LEAF gates to proceed automatically through Example, Architect, Execution, Review, and Retrospect. Trigger on "$leaf:autopilot", "LEAF autopilot", "triple is approved, continue automatically", "run the rest of LEAF without asking", or "after this lock, handle the rest". Do not use before the triple is reviewed, for unclear intent, for destructive/external/credential/cost/security/privacy-sensitive work without explicit pre-authorization, or when the user wants normal per-gate approval.
 ---
 
 # LEAF Autopilot
 
-`leaf-autopilot` carries a LEAF sprout after the human-reviewed `why / what /
+`autopilot` carries a LEAF sprout after the human-reviewed `why / what /
 wireframe` triple. It does not remove LEAF's judgment boundary; it moves the
 boundary to the triple lock, then runs the remaining gates with automatic
 reviews, hard stops, and evidence.
