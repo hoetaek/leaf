@@ -65,6 +65,7 @@ edit, or a direct lookup — then just answer.
 | `soul` | **First, always.** Shared conduct: plain explanation, fact-vs-guess, user-language, review handoff |
 | `learn` | Capturing/triaging an idea and running Learn (① Intent, ② Unknowns & Context) on a sprout |
 | `split` | Deciding how to split one work item into separate leaves — whether to split, along which single grain, and how the pieces order and link |
+| `leaf-autopilot` | Carrying a sprout automatically after the human-reviewed `why / what / wireframe` triple, with automatic gate review, hard stops, and completion audit |
 | `work` | Carrying a sprout after Learn from ③ Example through a shipped ⑧ Artifact, then ⑨/⑩ |
 | `polish` | Polishing a LEAF document into a simple current report before review or gate close |
 | `press` | Pressing a reference-worthy leaf into a citable digest once press is the chosen close-out |

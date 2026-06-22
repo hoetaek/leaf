@@ -22,8 +22,9 @@ reviews, hard stops, and evidence.
   pre-authorization gap appears. Leave the review evidence in the gate file,
   `08-execution.md`, or `09-review.md`.
 - **Do not duplicate LEAF.** Invoke and follow `leaf:work`, `leaf:polish`,
-  `leaf:press`, `leaf:profile`, and `leaf:soul` when their contracts apply.
-  This skill orchestrates them; it does not rewrite their gate rules.
+  `leaf:press`, `leaf:profile`, `leaf:soul`, and `leaf:using-leaf` when their
+  contracts apply. This skill orchestrates them; it does not rewrite their gate
+  rules.
 - **Status is the dashboard.** Keep `00-status.md` current after every gate,
   return, hard stop, execution session, and sprout-to-leaf move.
 
@@ -32,11 +33,12 @@ reviews, hard stops, and evidence.
 Before doing work:
 
 1. Read `../soul/SKILL.md` and apply its conduct rules.
-2. Run `git status --short --branch` and `leaf doctor`.
-3. Read the sprout's `00-status.md`, `01-Learn/01-intent.md`, and
+2. Read `../using-leaf/SKILL.md` for close-out rules and routing boundaries.
+3. Run `git status --short --branch` and `leaf doctor`.
+4. Read the sprout's `00-status.md`, `01-Learn/01-intent.md`, and
    `01-Learn/02-unknowns.md`.
-4. Verify the triple is human-reviewed and internally consistent.
-5. Read `references/approval-policy.md` when the request involves execution,
+5. Verify the triple is human-reviewed and internally consistent.
+6. Read `references/approval-policy.md` when the request involves execution,
    external side effects, credentials, cost, security, privacy, or ambiguity
    about what autopilot may decide.
 
