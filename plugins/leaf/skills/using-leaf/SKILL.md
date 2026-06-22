@@ -67,7 +67,7 @@ edit, or a direct lookup — then just answer.
 | `split` | Deciding how to split one work item into separate leaves — whether to split, along which single grain, and how the pieces order and link |
 | `autopilot` | Carrying a sprout automatically after the human-reviewed `why / what / wireframe` triple, with automatic gate review, hard stops, and completion audit |
 | `work` | Carrying a sprout after Learn from ③ Example through a shipped ⑧ Artifact, then ⑨/⑩ |
-| `polish` | Polishing a LEAF document into a simple current report before review or gate close |
+| `polish` | Polishing the cumulative LEAF document into a simple connected report at each phase boundary, before review, or before close-out |
 | `press` | Pressing a reference-worthy leaf into a citable digest once press is the chosen close-out |
 | `profile` | Reading/updating the machine-global and repo-local LEAF profiles |
 
@@ -78,7 +78,10 @@ Process skills first (decide *how* to approach), then domain skills.
 After ⑩ Retrospect, a leaf does not just stop — decide what kind of end it
 deserves. Recommend one option, name the reason in one sentence, then let the
 user confirm when the choice is not already explicit. Run `leaf doctor` before
-and after close-out.
+and after close-out. Before the keep / press / fall decision, invoke `polish` on
+the cumulative whole (all phases read as one connected report) so the leaf is
+closed out as a finished report, not draft notes — this is the final phase
+boundary.
 
 - **Keep** — still useful but not ready for citation. Update only the minimal
   `00-status.md` note that makes the keep decision visible. Do not create

@@ -21,6 +21,10 @@ reviews, hard stops, and evidence.
 - **Review still happens.** Gate reviews are automatic unless a hard stop or
   pre-authorization gap appears. Leave the review evidence in the gate file,
   `08-execution.md`, or `09-review.md`.
+- **Polish at every phase boundary.** Because autopilot removes the human pause
+  that normally triggers it, explicitly invoke `leaf:polish` on the cumulative
+  whole at the end of each phase (Learn, Example, Architect, Feedback) and before
+  close-out. Do not let an un-polished draft reach review or close-out.
 - **Do not duplicate LEAF.** Invoke and follow `leaf:work`, `leaf:polish`,
   `leaf:press`, `leaf:profile`, `leaf:soul`, and `leaf:using-leaf` when their
   contracts apply. This skill orchestrates them; it does not rewrite their gate
@@ -92,6 +96,8 @@ Before reporting completion, show:
 - gates completed and evidence paths;
 - commands run, including `leaf doctor` and any tests/build/lint;
 - automatic review or critic verdicts;
+- the cumulative-whole `leaf:polish` run at each phase boundary and before
+  close-out, with where its evidence is recorded;
 - hard stops checked and not triggered, or the stop that remains;
 - files changed outside `.leaf/`, if any.
 

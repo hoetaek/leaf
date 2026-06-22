@@ -72,7 +72,9 @@ const FILES: &[(&str, &str)] = &[
     ),
     (
         "02-Example/03-criteria.md",
-        "# Criteria\n\nState purpose, constraints, and observable acceptance checks here.\n",
+        "<!-- LEAF phase 경계: 이 phase를 시작하기 전, 직전까지의 누적 문서(Learn…)를 \
+         하나로 읽고 `leaf:polish`로 다듬고 들어올 것. -->\n\n\
+         # Criteria\n\nState purpose, constraints, and observable acceptance checks here.\n",
     ),
     (
         "02-Example/04-wireframe.md",
@@ -80,11 +82,22 @@ const FILES: &[(&str, &str)] = &[
     ),
     (
         "03-Architect/05-design.md",
-        "# Design\n\nRecord the implementation-facing design after the concrete example holds.\n",
+        "<!-- LEAF phase 경계: 이 phase를 시작하기 전, 직전까지의 누적 문서(Learn→Example)를 \
+         하나로 읽고 `leaf:polish`로 다듬고 들어올 것. -->\n\n\
+         # Design\n\nRecord the implementation-facing design after the concrete example holds.\n",
     ),
     (
         "03-Architect/07-tasks.md",
         "# Tasks\n\nBreak the work into reviewable implementation slices.\n",
+    ),
+    (
+        "04-Feedback/README.md",
+        "<!-- LEAF phase 경계: 이 phase를 시작하기 전, 직전까지의 누적 문서(Learn→Architect)를 \
+         하나로 읽고 `leaf:polish`로 다듬고 들어올 것. -->\n\n\
+         # Feedback\n\n\
+         이 phase의 exit는 close-out이다. ⑩ Retrospect 후 keep/press/fall 결정 전에, 누적 전체\n\
+         (Learn→Feedback)를 하나의 보고서로 `leaf:polish`하여 최종 산출물이 draft 상태로\n\
+         마감되지 않게 한다. ⑨ Review는 `09-review.md`, ⑩ Retrospect는 `10-retrospect.md`에 쓴다.\n",
     ),
 ];
 

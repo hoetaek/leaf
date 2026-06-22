@@ -1,9 +1,10 @@
 ---
 name: polish
 description: |
-  Use before user review or gate close when a LEAF document needs to read as a
-  simple current report, not draft notes. Preserve source truth while removing
-  stale options, process chatter, duplicate reasoning, status drift, or
+  Use at each phase boundary (and before user review or gate close) to make the
+  cumulative LEAF document — all phases so far read as one connected report — read
+  simply and flow naturally, not as draft notes. Preserve source truth while
+  removing stale options, process chatter, duplicate reasoning, status drift, or
   doctor-reported legacy layout/status fields. Do not use to create the artifact,
   decide press/fall close-out, or maintain execution artifacts.
 ---
@@ -25,6 +26,18 @@ Use that sentence as the quality bar. More words are not higher quality. The
 best document is the one that leaves nothing important hidden and nothing
 unnecessary in the way.
 
+## Polish Unit — phase 경계의 누적 전체
+
+polish의 기본 단위는 단일 파일이 아니라 **하나의 phase 경계에서 그때까지 쌓인 전체
+LEAF 문서**다. phase 경계(Learn·Example·Architect·Feedback의 끝, 그리고 close-out)에
+도달하면, 직전까지의 모든 phase를 *하나의 이어지는 보고서*로 읽고 — phase 사이가
+자연스럽게 연결되는지, 중복·드리프트·끊김이 없는지를 본다. 이 누적 전체 흐름 점검은
+사용자가 요청할 때만 하는 모드가 아니라 **기본 동작**이다. `leaf review <slug>` 출력이
+그 누적 전체를 한눈에 보는 입구다.
+
+단일 gate 파일이나 `00-status.md`만 다듬는 국소 청소는 작은 drift를 빠르게 고칠 때 쓰는
+**보조 모드**로 남는다 — 기본을 대체하지 않는다.
+
 ## Boundary
 
 - Work on LEAF document quality only.
@@ -45,12 +58,14 @@ leaf doctor
 leaf review <slug>
 ```
 
-Then identify the smallest document surface to clean:
+Then choose the surface. The default is the cumulative whole; single-file passes
+are the auxiliary small-drift mode:
 
-- one gate file before it is shown to the user or closed;
-- `00-status.md` when overview, current gate, or next action drifted;
-- a whole `leaf review <slug>` report when the user asks whether the leaf reads
-  coherently end to end.
+- **default — the whole `leaf review <slug>` report** at a phase boundary or
+  close-out: read all phases so far as one connected report and check it flows
+  end to end;
+- one gate file before it is shown to the user or closed (small, local drift);
+- `00-status.md` when overview, current gate, or next action drifted.
 
 Before editing a gate document, run `leaf checkpoint <slug> --<gate>`.
 
