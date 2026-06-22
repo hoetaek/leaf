@@ -59,6 +59,11 @@ enum Commands {
     },
     /// Print the effective profile (global profile layered with repo-local PROFILE.md).
     Profile,
+    /// Advance to the next LEAF phase, pausing if the current phase is unpolished.
+    Next {
+        /// Leaf-work slug to advance.
+        slug: String,
+    },
     /// Preserve a timestamped copy of one canonical gate document.
     Checkpoint(CheckpointArgs),
     /// Diagnose .leaf readiness for leaf list.
@@ -255,6 +260,14 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             let text = crate::profile::effective_profile(std::env::current_dir()?)?;
             print!("{text}");
             Ok(ExitCode::SUCCESS)
+        }
+        Commands::Next { slug } => {
+            let slug = crate::slug::validate(&slug)?;
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            crate::storage::ensure_leaf_root(&paths)?;
+            let inventory = crate::inventory::load(&paths.root)?;
+            let root_path = leaf_work_path_for_slug(&inventory, &slug)?;
+            crate::phase::run_next(&root_path)
         }
         Commands::Checkpoint(args) => {
             let slug = crate::slug::validate(&args.slug)?;

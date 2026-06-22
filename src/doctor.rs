@@ -240,6 +240,7 @@ fn check_entries(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<
                 .or_default()
                 .push(PathBuf::from(format!(".leaf/{dir_name}/{name}")));
             check_item_status(stage_dir, dir_name, &name, &path, findings);
+            check_item_boundary_polish(stage_dir, dir_name, &name, &path, findings);
             check_item_pressed_digest(stage_dir, dir_name, &name, &path, findings);
             check_item_linked_metadata(stage_dir, dir_name, &name, &path, findings);
         }
@@ -580,6 +581,59 @@ fn check_item_status(
             )
             .with_path(rel_status.clone()),
         );
+    }
+}
+
+/// Report any *already-passed* phase that still carries the polish-pending
+/// marker (`leaf:polish` removes it). This is the floor under `leaf next`: it
+/// makes a skipped boundary polish visible even when `leaf next` was bypassed.
+/// Non-blocking (Warn), and only for in-flight or completed work.
+fn check_item_boundary_polish(
+    stage_dir: StageDir,
+    dir_name: &str,
+    slug: &str,
+    item_path: &Path,
+    findings: &mut Vec<DoctorFinding>,
+) {
+    if stage_dir == StageDir::Fallen {
+        return;
+    }
+
+    let status_path = item_path.join("00-status.md");
+    // status_unreadable is already reported by check_item_status.
+    let Ok(content) = fs::read_to_string(&status_path) else {
+        return;
+    };
+
+    let summary = parse_status_summary(&content, stage_dir);
+    let Some(current) = summary
+        .current_phase
+        .as_deref()
+        .and_then(crate::phase::Phase::from_status_value)
+    else {
+        return;
+    };
+
+    for phase in crate::phase::Phase::ORDER {
+        if phase.index() >= current.index() {
+            break;
+        }
+        if crate::phase::phase_unpolished(&item_path.join(phase.dir())) {
+            findings.push(
+                DoctorFinding::warn(
+                    "boundary_unpolished",
+                    format!(
+                        "phase {} was left unpolished before the boundary; run leaf:polish on it, then remove its marker",
+                        phase.name()
+                    ),
+                )
+                .with_impact(
+                    "경계 polish 누락 — 누적 문서가 하나의 보고서로 다듬어지지 않은 채 다음 phase로 넘어갔다"
+                        .to_string(),
+                )
+                .with_path(format!(".leaf/{dir_name}/{slug}/{}", phase.dir())),
+            );
+        }
     }
 }
 

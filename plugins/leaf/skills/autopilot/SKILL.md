@@ -21,10 +21,15 @@ reviews, hard stops, and evidence.
 - **Review still happens.** Gate reviews are automatic unless a hard stop or
   pre-authorization gap appears. Leave the review evidence in the gate file,
   `08-execution.md`, or `09-review.md`.
-- **Polish at every phase boundary.** Because autopilot removes the human pause
-  that normally triggers it, explicitly invoke `leaf:polish` on the cumulative
-  whole at the end of each phase (Learn, Example, Architect, Feedback) and before
-  close-out. Do not let an un-polished draft reach review or close-out.
+- **Polish at every phase boundary, gated by `leaf next`.** Because autopilot
+  removes the human pause that normally triggers it, explicitly invoke
+  `leaf:polish` on the cumulative whole at the end of each phase (Learn, Example,
+  Architect, Feedback) and before close-out, then cross the boundary with
+  `leaf next <slug>`. Polishing removes the phase's `<!-- leaf:polish-pending -->`
+  marker; if it is still present, `leaf next` **pauses (멈칫)** instead of
+  advancing and `leaf doctor` flags `boundary_unpolished`. Treat that pause as the
+  signal to polish — do not bypass it by hand-creating the next phase. Do not let
+  an un-polished draft reach review or close-out.
 - **Do not duplicate LEAF.** Invoke and follow `leaf:work`, `leaf:polish`,
   `leaf:press`, `leaf:profile`, `leaf:soul`, and `leaf:using-leaf` when their
   contracts apply. This skill orchestrates them; it does not rewrite their gate
