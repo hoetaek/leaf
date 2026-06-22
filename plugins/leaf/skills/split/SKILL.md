@@ -92,11 +92,18 @@ Split the work into children (N ≥ 2). For each child record:
 - **grain** — which side of the dominant cut it is.
 - **lineage** — `split from: <parent>` (one direction, ancestry).
 - **directional dependency (if any)** — "A blocked-by B". Write it as
-  **human-readable prose** in the status file (`split reason:`, `source <X>:`).
-  Be honest about scope: leaf does **not** parse unknown status fields, so there
-  is **no machine consumer** of this in this increment — it is a note a human
-  reads so the dependency direction is not lost. A real machine-readable edge
-  model belongs to the `citation-link-recording` leaf, not here.
+  human-readable prose in the status file (`split reason:`, `source <X>:`), and
+  also record the eventual graph edge it implies. Split itself still does not
+  create `linked.md` before a child is pressed, because `linked.md` belongs next
+  to a pressed digest. The split judgment should make the later edge obvious.
+
+Use this mapping when a split relationship becomes pressed knowledge:
+
+| Split relation | Later `linked.md` edge |
+|---|---|
+| child came from parent | `derived_from` -> `leaf:<parent-slug>` |
+| child A is blocked by child B | in A: `depends_on` -> `leaf:<child-b-slug>` |
+| sibling leaves are related but unordered | `related_to` -> `leaf:<sibling-slug>` |
 
 **Order:** topologically sort by the directional dependencies → which child must
 come first.
@@ -122,6 +129,8 @@ Before emitting children, and **at every recursion level**:
 - verdict: split now / keep grouped / ask
 - if split: the dominant grain + the lost-cohesion line
 - child list: each child's grain, lineage, directional dependency
+- link plan: future `linked.md` rows for pressed children, using only
+  `derived_from`, `depends_on`, or `related_to`
 - order: the topological sequence
 - the over-decomposition guard result
 
@@ -132,8 +141,9 @@ Before emitting children, and **at every recursion level**:
   parent `leaf fall --reason split`, child `leaf new`, and link wiring are not
   automated yet. The keep/press/fall actions and the `split` fallen reason live
   in `using-leaf` ("Ending a leaf").
-- **Do not invent a link/edge format.** Directional dependency is prose this
-  increment; the durable edge model is `citation-link-recording`'s job.
+- **Do not create `linked.md` early.** It belongs beside `pressed.md` in
+  `.leaf/02-leaves/<slug>/` after the relevant child becomes citable. Before
+  then, keep the link plan in the split output/status prose.
 - Conduct, voice, and language come from `soul`.
 
 ## Worked check

@@ -5,6 +5,30 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+const PRESSED_FRONTMATTER_TYPE: &str = "Leaf Pressed Digest";
+const PRESSED_FRONTMATTER_FIELDS: &[&str] = &[
+    "type",
+    "title",
+    "description",
+    "resource",
+    "tags",
+    "timestamp",
+    "citation_handle",
+    "stage",
+];
+const PRESSED_FRONTMATTER_TEMPLATE: &str = "\
+---
+type: Leaf Pressed Digest
+title: <human-readable title>
+description: <one-sentence summary for indexes and previews>
+resource: <source path>
+tags: [leaf, <short-topic-tag>]
+timestamp: <ISO 8601 local timestamp>
+citation_handle: leaf:{slug}
+stage: leaf
+---
+";
+
 #[derive(Debug)]
 pub(crate) struct DoctorReport {
     pub(crate) leaf_root: PathBuf,
@@ -216,6 +240,8 @@ fn check_entries(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<
                 .or_default()
                 .push(PathBuf::from(format!(".leaf/{dir_name}/{name}")));
             check_item_status(stage_dir, dir_name, &name, &path, findings);
+            check_item_pressed_digest(stage_dir, dir_name, &name, &path, findings);
+            check_item_linked_metadata(stage_dir, dir_name, &name, &path, findings);
         }
     }
 
@@ -229,6 +255,232 @@ fn check_entries(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<
     }
 
     Ok(())
+}
+
+/// Read and validate optional `<item>/linked.md` graph edges.
+fn check_item_linked_metadata(
+    stage_dir: StageDir,
+    dir_name: &str,
+    slug: &str,
+    item_path: &Path,
+    findings: &mut Vec<DoctorFinding>,
+) {
+    let linked_path = item_path.join("linked.md");
+    let rel_linked = format!(".leaf/{dir_name}/{slug}/linked.md");
+
+    let metadata = match fs::metadata(&linked_path) {
+        Ok(metadata) => metadata,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return,
+        Err(err) => {
+            findings.push(
+                DoctorFinding::warn(
+                    "linked_metadata_unreadable",
+                    format!("failed to inspect linked metadata: {err}"),
+                )
+                .with_path(rel_linked),
+            );
+            return;
+        }
+    };
+
+    if !metadata.is_file() {
+        findings.push(
+            DoctorFinding::warn(
+                "linked_metadata_not_file",
+                "linked.md exists but is not a regular file",
+            )
+            .with_path(rel_linked),
+        );
+        return;
+    }
+
+    if stage_dir != StageDir::Leaves {
+        findings.push(
+            DoctorFinding::warn(
+                "linked_metadata_wrong_stage",
+                "linked.md belongs next to pressed.md in .leaf/02-leaves",
+            )
+            .with_path(rel_linked.clone()),
+        );
+    }
+
+    if !item_path.join("pressed.md").is_file() {
+        findings.push(
+            DoctorFinding::warn(
+                "linked_metadata_without_pressed",
+                "linked.md should only exist next to a pressed.md digest",
+            )
+            .with_path(rel_linked.clone()),
+        );
+    }
+
+    let content = match fs::read_to_string(&linked_path) {
+        Ok(content) => content,
+        Err(err) => {
+            findings.push(
+                DoctorFinding::warn(
+                    "linked_metadata_unreadable",
+                    format!("failed to read linked metadata: {err}"),
+                )
+                .with_path(rel_linked),
+            );
+            return;
+        }
+    };
+
+    let mut edge_count = 0usize;
+    for (line_index, line) in content.lines().enumerate() {
+        match crate::graph::parse_link_line(line) {
+            Ok(Some(_)) => edge_count += 1,
+            Ok(None) => {}
+            Err(message) => {
+                findings.push(
+                    DoctorFinding::warn("linked_metadata_invalid_edge", message)
+                        .with_impact(expected_linked_metadata_message())
+                        .with_path(format!("{rel_linked}:{}", line_index + 1)),
+                );
+            }
+        }
+    }
+
+    if edge_count == 0 {
+        findings.push(
+            DoctorFinding::warn(
+                "linked_metadata_no_edges",
+                "linked.md has no graph edges; remove it or add `predicate -> target` rows",
+            )
+            .with_impact(expected_linked_metadata_message())
+            .with_path(rel_linked),
+        );
+    }
+}
+
+/// Read and validate `<item>/pressed.md` when a visible leaf-work directory has one.
+fn check_item_pressed_digest(
+    stage_dir: StageDir,
+    dir_name: &str,
+    slug: &str,
+    item_path: &Path,
+    findings: &mut Vec<DoctorFinding>,
+) {
+    let digest_path = item_path.join("pressed.md");
+    let rel_digest = format!(".leaf/{dir_name}/{slug}/pressed.md");
+
+    let metadata = match fs::metadata(&digest_path) {
+        Ok(metadata) => metadata,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return,
+        Err(err) => {
+            findings.push(
+                DoctorFinding::warn(
+                    "pressed_digest_unreadable",
+                    format!("failed to inspect pressed digest: {err}"),
+                )
+                .with_path(rel_digest),
+            );
+            return;
+        }
+    };
+
+    if !metadata.is_file() {
+        findings.push(
+            DoctorFinding::warn(
+                "pressed_digest_not_file",
+                "pressed.md exists but is not a regular file",
+            )
+            .with_path(rel_digest),
+        );
+        return;
+    }
+
+    if stage_dir != StageDir::Leaves {
+        findings.push(
+            DoctorFinding::warn(
+                "pressed_digest_wrong_stage",
+                "pressed.md belongs only in .leaf/02-leaves after ⑧ passes",
+            )
+            .with_path(rel_digest.clone()),
+        );
+    }
+
+    let content = match fs::read_to_string(&digest_path) {
+        Ok(content) => content,
+        Err(err) => {
+            findings.push(
+                DoctorFinding::warn(
+                    "pressed_digest_unreadable",
+                    format!("failed to read pressed digest: {err}"),
+                )
+                .with_path(rel_digest),
+            );
+            return;
+        }
+    };
+
+    let Some(frontmatter) = parse_yaml_frontmatter(&content) else {
+        findings.push(
+            DoctorFinding::warn(
+                "pressed_frontmatter_missing",
+                "pressed.md must start with OKF-compatible YAML frontmatter",
+            )
+            .with_impact(expected_pressed_frontmatter_message())
+            .with_path(rel_digest),
+        );
+        return;
+    };
+
+    let missing_fields = PRESSED_FRONTMATTER_FIELDS
+        .iter()
+        .copied()
+        .filter(|field| !frontmatter_has_key(frontmatter, field))
+        .collect::<Vec<_>>();
+    if !missing_fields.is_empty() {
+        findings.push(
+            DoctorFinding::warn(
+                "pressed_frontmatter_missing_fields",
+                format!(
+                    "pressed.md frontmatter missing fields: {}",
+                    missing_fields.join(", ")
+                ),
+            )
+            .with_impact(expected_pressed_frontmatter_message())
+            .with_path(rel_digest.clone()),
+        );
+    }
+
+    match frontmatter_value(frontmatter, "type") {
+        Some(value) if value == PRESSED_FRONTMATTER_TYPE => {}
+        Some(value) => {
+            findings.push(
+                DoctorFinding::warn(
+                    "pressed_frontmatter_invalid_type",
+                    format!(
+                        "pressed.md frontmatter type must be {PRESSED_FRONTMATTER_TYPE:?}, got {value:?}"
+                    ),
+                )
+                .with_impact(expected_pressed_frontmatter_message())
+                .with_path(rel_digest.clone()),
+            );
+        }
+        None => {}
+    }
+
+    match frontmatter_value(frontmatter, "stage") {
+        Some(value) if value == Stage::Leaf.label() => {}
+        Some(value) => {
+            findings.push(
+                DoctorFinding::warn(
+                    "pressed_frontmatter_invalid_stage",
+                    format!(
+                        "pressed.md frontmatter stage must be {:?}, got {value:?}",
+                        Stage::Leaf.label()
+                    ),
+                )
+                .with_impact(expected_pressed_frontmatter_message())
+                .with_path(rel_digest),
+            );
+        }
+        None => {}
+    }
 }
 
 /// Read and validate `<item>/00-status.md` for one visible leaf-work directory.
@@ -345,6 +597,68 @@ fn has_status_field(content: &str, field: &str) -> bool {
     })
 }
 
+fn parse_yaml_frontmatter(content: &str) -> Option<&str> {
+    let mut lines = content.lines();
+    if lines.next()?.trim() != "---" {
+        return None;
+    }
+
+    let start = content.find('\n').map_or(content.len(), |index| index + 1);
+    let mut offset = start;
+    for line in lines {
+        if line.trim() == "---" {
+            return content.get(start..offset);
+        }
+        offset += line.len();
+        if content.as_bytes().get(offset) == Some(&b'\n') {
+            offset += 1;
+        }
+    }
+
+    None
+}
+
+fn frontmatter_has_key(frontmatter: &str, key: &str) -> bool {
+    frontmatter_value(frontmatter, key).is_some()
+}
+
+fn frontmatter_value(frontmatter: &str, key: &str) -> Option<String> {
+    for line in frontmatter.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        let Some((raw_key, raw_value)) = trimmed.split_once(':') else {
+            continue;
+        };
+        if raw_key.trim() != key {
+            continue;
+        }
+        return Some(unquote_yaml_scalar(raw_value.trim()).to_string());
+    }
+
+    None
+}
+
+fn unquote_yaml_scalar(value: &str) -> &str {
+    if value.len() >= 2
+        && ((value.starts_with('"') && value.ends_with('"'))
+            || (value.starts_with('\'') && value.ends_with('\'')))
+    {
+        &value[1..value.len() - 1]
+    } else {
+        value
+    }
+}
+
+fn expected_pressed_frontmatter_message() -> String {
+    format!("expected frontmatter:\n{PRESSED_FRONTMATTER_TEMPLATE}")
+}
+
+fn expected_linked_metadata_message() -> &'static str {
+    "expected link rows like `- `cites` -> `leaf:other-slug` - optional note`; allowed predicates: cites, refines, supersedes, depends_on, derived_from, related_to"
+}
+
 impl DoctorReport {
     pub(crate) fn new(leaf_root: impl Into<PathBuf>, findings: Vec<DoctorFinding>) -> Self {
         DoctorReport {
@@ -410,6 +724,11 @@ impl DoctorFinding {
         P: Into<PathBuf>,
     {
         self.location = Location::Paths(paths.into_iter().map(Into::into).collect());
+        self
+    }
+
+    pub(crate) fn with_impact(mut self, impact: impl Into<String>) -> Self {
+        self.impact = Some(impact.into());
         self
     }
 }
@@ -722,6 +1041,351 @@ mod tests {
             Severity::Warn,
             "pressed_stage_dir_present",
             Some(Location::Path(".leaf/04-pressed".into())),
+        );
+    }
+
+    #[test]
+    fn check_accepts_pressed_digest_with_okf_frontmatter() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_stage_dirs(&root);
+        write_status(
+            &root,
+            ".leaf/02-leaves/reference/00-status.md",
+            "- stage: leaf\n\
+             - current phase: Feedback\n\
+             - current gate: ⑨ Review\n\
+             - first missing gate: ⑩ Retrospect\n\
+             - next action: review\n",
+        );
+        root.child(".leaf/02-leaves/reference/pressed.md")
+            .write_str(
+                "---\n\
+                 type: Leaf Pressed Digest\n\
+                 title: Reference Leaf\n\
+                 description: One-sentence summary.\n\
+                 resource: .leaf/02-leaves/reference\n\
+                 tags: [leaf, reference]\n\
+                 timestamp: 2026-06-22T10:00:00+09:00\n\
+                 citation_handle: leaf:reference\n\
+                 stage: leaf\n\
+                 ---\n\
+                 \n\
+                 # Reference Leaf\n",
+            )
+            .expect("pressed digest");
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(!report.has_errors());
+        assert!(
+            report
+                .findings
+                .iter()
+                .all(|finding| !finding.code.starts_with("pressed_frontmatter")),
+            "valid pressed digest should not emit frontmatter findings: {:?}",
+            report.findings
+        );
+    }
+
+    #[test]
+    fn check_warns_for_pressed_digest_missing_frontmatter() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_stage_dirs(&root);
+        write_status(
+            &root,
+            ".leaf/02-leaves/reference/00-status.md",
+            "- stage: leaf\n\
+             - current phase: Feedback\n\
+             - current gate: ⑨ Review\n\
+             - first missing gate: ⑩ Retrospect\n\
+             - next action: review\n",
+        );
+        root.child(".leaf/02-leaves/reference/pressed.md")
+            .write_str("# Reference Leaf\n")
+            .expect("pressed digest");
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(!report.has_errors());
+        let finding = assert_finding(
+            &report,
+            Severity::Warn,
+            "pressed_frontmatter_missing",
+            Some(Location::Path(
+                ".leaf/02-leaves/reference/pressed.md".into(),
+            )),
+        );
+        let impact = finding.impact.as_deref().expect("frontmatter template");
+        assert!(impact.contains("expected frontmatter:"));
+        assert!(impact.contains("type: Leaf Pressed Digest"));
+        assert!(impact.contains("citation_handle: leaf:{slug}"));
+    }
+
+    #[test]
+    fn check_warns_for_pressed_digest_missing_fields_and_invalid_type() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_stage_dirs(&root);
+        write_status(
+            &root,
+            ".leaf/02-leaves/reference/00-status.md",
+            "- stage: leaf\n\
+             - current phase: Feedback\n\
+             - current gate: ⑨ Review\n\
+             - first missing gate: ⑩ Retrospect\n\
+             - next action: review\n",
+        );
+        root.child(".leaf/02-leaves/reference/pressed.md")
+            .write_str(
+                "---\n\
+                 type: Note\n\
+                 title: Reference Leaf\n\
+                 ---\n\
+                 \n\
+                 # Reference Leaf\n",
+            )
+            .expect("pressed digest");
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(!report.has_errors());
+        let missing = assert_finding(
+            &report,
+            Severity::Warn,
+            "pressed_frontmatter_missing_fields",
+            Some(Location::Path(
+                ".leaf/02-leaves/reference/pressed.md".into(),
+            )),
+        );
+        assert!(missing.message.contains("description"));
+        assert!(missing.message.contains("citation_handle"));
+        assert!(
+            missing
+                .impact
+                .as_deref()
+                .expect("frontmatter template")
+                .contains("timestamp: <ISO 8601 local timestamp>")
+        );
+        let invalid_type = assert_finding(
+            &report,
+            Severity::Warn,
+            "pressed_frontmatter_invalid_type",
+            Some(Location::Path(
+                ".leaf/02-leaves/reference/pressed.md".into(),
+            )),
+        );
+        assert!(invalid_type.message.contains("Leaf Pressed Digest"));
+        assert!(invalid_type.message.contains("Note"));
+    }
+
+    #[test]
+    fn check_warns_when_pressed_digest_is_not_in_leaves() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_stage_dirs(&root);
+        write_status(
+            &root,
+            ".leaf/01-sprouts/draft/00-status.md",
+            "- stage: sprout\n\
+             - current phase: Learn\n\
+             - current gate: ② Unknowns & Context\n\
+             - first missing gate: ③ Criteria\n\
+             - next action: continue\n",
+        );
+        root.child(".leaf/01-sprouts/draft/pressed.md")
+            .write_str(
+                "---\n\
+                 type: Leaf Pressed Digest\n\
+                 title: Draft\n\
+                 description: Draft summary.\n\
+                 resource: .leaf/01-sprouts/draft\n\
+                 tags: [leaf, draft]\n\
+                 timestamp: 2026-06-22T10:00:00+09:00\n\
+                 citation_handle: leaf:draft\n\
+                 stage: leaf\n\
+                 ---\n\
+                 \n\
+                 # Draft\n",
+            )
+            .expect("pressed digest");
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(!report.has_errors());
+        assert_finding(
+            &report,
+            Severity::Warn,
+            "pressed_digest_wrong_stage",
+            Some(Location::Path(".leaf/01-sprouts/draft/pressed.md".into())),
+        );
+    }
+
+    #[test]
+    fn check_warns_for_pressed_digest_frontmatter_stage_not_leaf() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_stage_dirs(&root);
+        write_status(
+            &root,
+            ".leaf/02-leaves/reference/00-status.md",
+            "- stage: leaf\n\
+             - current phase: Feedback\n\
+             - current gate: ⑨ Review\n\
+             - first missing gate: ⑩ Retrospect\n\
+             - next action: review\n",
+        );
+        root.child(".leaf/02-leaves/reference/pressed.md")
+            .write_str(
+                "---\n\
+                 type: Leaf Pressed Digest\n\
+                 title: Reference Leaf\n\
+                 description: One-sentence summary.\n\
+                 resource: .leaf/02-leaves/reference\n\
+                 tags: [leaf, reference]\n\
+                 timestamp: 2026-06-22T10:00:00+09:00\n\
+                 citation_handle: leaf:reference\n\
+                 stage: sprout\n\
+                 ---\n\
+                 \n\
+                 # Reference Leaf\n",
+            )
+            .expect("pressed digest");
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(!report.has_errors());
+        let finding = assert_finding(
+            &report,
+            Severity::Warn,
+            "pressed_frontmatter_invalid_stage",
+            Some(Location::Path(
+                ".leaf/02-leaves/reference/pressed.md".into(),
+            )),
+        );
+        assert!(finding.message.contains("leaf"));
+        assert!(finding.message.contains("sprout"));
+    }
+
+    #[test]
+    fn check_accepts_linked_metadata_edges_next_to_pressed_digest() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_stage_dirs(&root);
+        write_status(
+            &root,
+            ".leaf/02-leaves/reference/00-status.md",
+            "- stage: leaf\n\
+             - current phase: Feedback\n\
+             - current gate: ⑨ Review\n\
+             - first missing gate: ⑩ Retrospect\n\
+             - next action: review\n",
+        );
+        root.child(".leaf/02-leaves/reference/pressed.md")
+            .write_str(
+                "---\n\
+                 type: Leaf Pressed Digest\n\
+                 title: Reference Leaf\n\
+                 description: One-sentence summary.\n\
+                 resource: .leaf/02-leaves/reference\n\
+                 tags: [leaf, reference]\n\
+                 timestamp: 2026-06-22T10:00:00+09:00\n\
+                 citation_handle: leaf:reference\n\
+                 stage: leaf\n\
+                 ---\n\
+                 \n\
+                 # Reference Leaf\n",
+            )
+            .expect("pressed digest");
+        root.child(".leaf/02-leaves/reference/linked.md")
+            .write_str("# Links\n\n- `cites` -> `okf:spec` - OKF source\n")
+            .expect("linked metadata");
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(!report.has_errors());
+        assert!(
+            report
+                .findings
+                .iter()
+                .all(|finding| !finding.code.starts_with("linked_metadata")),
+            "valid linked metadata should not emit findings: {:?}",
+            report.findings
+        );
+    }
+
+    #[test]
+    fn check_warns_for_invalid_linked_metadata_edges() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_stage_dirs(&root);
+        write_status(
+            &root,
+            ".leaf/02-leaves/reference/00-status.md",
+            "- stage: leaf\n\
+             - current phase: Feedback\n\
+             - current gate: ⑨ Review\n\
+             - first missing gate: ⑩ Retrospect\n\
+             - next action: review\n",
+        );
+        root.child(".leaf/02-leaves/reference/pressed.md")
+            .write_str(
+                "---\n\
+                 type: Leaf Pressed Digest\n\
+                 title: Reference Leaf\n\
+                 description: One-sentence summary.\n\
+                 resource: .leaf/02-leaves/reference\n\
+                 tags: [leaf, reference]\n\
+                 timestamp: 2026-06-22T10:00:00+09:00\n\
+                 citation_handle: leaf:reference\n\
+                 stage: leaf\n\
+                 ---\n",
+            )
+            .expect("pressed digest");
+        root.child(".leaf/02-leaves/reference/linked.md")
+            .write_str("# Links\n\n- `causes` -> `leaf:other`\n")
+            .expect("linked metadata");
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(!report.has_errors());
+        let finding = assert_finding(
+            &report,
+            Severity::Warn,
+            "linked_metadata_invalid_edge",
+            Some(Location::Path(
+                ".leaf/02-leaves/reference/linked.md:3".into(),
+            )),
+        );
+        assert!(finding.message.contains("unknown link predicate"));
+        assert!(
+            finding
+                .impact
+                .as_deref()
+                .expect("linked template")
+                .contains("allowed predicates")
+        );
+    }
+
+    #[test]
+    fn check_warns_for_linked_metadata_without_pressed_digest() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_stage_dirs(&root);
+        write_status(
+            &root,
+            ".leaf/02-leaves/reference/00-status.md",
+            "- stage: leaf\n\
+             - current phase: Feedback\n\
+             - current gate: ⑨ Review\n\
+             - first missing gate: ⑩ Retrospect\n\
+             - next action: review\n",
+        );
+        root.child(".leaf/02-leaves/reference/linked.md")
+            .write_str("# Links\n\n- `related_to` -> `leaf:other`\n")
+            .expect("linked metadata");
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(!report.has_errors());
+        assert_finding(
+            &report,
+            Severity::Warn,
+            "linked_metadata_without_pressed",
+            Some(Location::Path(".leaf/02-leaves/reference/linked.md".into())),
         );
     }
 

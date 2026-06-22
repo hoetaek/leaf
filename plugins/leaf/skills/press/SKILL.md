@@ -14,7 +14,10 @@ description: |
 
 Press a reference-worthy leaf into a citable digest. Pressing condenses the leaf
 into `pressed.md` — smaller in size, preserved in value, like a pressed
-specimen — so future work can cite it without rereading the whole leaf.
+specimen — so future work can cite it without rereading the whole leaf. A
+pressed digest is also the natural LEAF boundary for agent-readable knowledge:
+new `pressed.md` files start with OKF-compatible YAML frontmatter so tools can
+route, index, and link them as typed concepts without parsing the prose body.
 
 Pressing is one outcome of ending a leaf. The keep / press / fall decision, and
 the fall and keep actions, live in `using-leaf` ("Ending a leaf"). Enter this
@@ -38,10 +41,12 @@ leaf review <slug>
 
 Resolve the source:
 
-- Prefer an existing leaf when the slug exists in more than one stage.
-- Use a sprout only when the user explicitly asks for provisional press.
-- Use fallen only when the user explicitly asks to summarize archived material.
-- If the source is ambiguous, ask which one is canonical.
+- Press only an existing `.leaf/02-leaves/<slug>/` leaf. A sprout is not
+  pressable: finish ⑧, move it into leaves, and run Feedback first. Fallen work
+  is not pressable because falling means it is not being kept as reusable
+  reference knowledge.
+- If the slug exists in more than one stage, ask which lifecycle state should be
+  resolved before pressing.
 
 ## When To Press
 
@@ -59,12 +64,18 @@ Create or refresh `<source>/pressed.md`. Also write or replace
 Use this `pressed.md` shape:
 
 ```markdown
-# <human-readable title>
+---
+type: Leaf Pressed Digest
+title: <human-readable title>
+description: <one-sentence summary for indexes and previews>
+resource: <source path>
+tags: [leaf, <short-topic-tag>]
+timestamp: <ISO 8601 local timestamp>
+citation_handle: leaf:{slug}
+stage: leaf
+---
 
-- source: <source path>
-- pressed at: <local timestamp>
-- citation handle: leaf:{slug}
-- stage: <leaf / sprout / fallen if known>
+# <human-readable title>
 
 ## Citation Summary
 
@@ -105,10 +116,26 @@ Rules:
 
 - `pressed.md` is a digest, not source truth; original LEAF files remain
   authoritative.
+- The frontmatter is for consumption and indexing. Keep `type` as
+  `Leaf Pressed Digest`; set `resource` to the source LEAF path; keep
+  `citation_handle` as a producer-defined field; set `stage` to `leaf`; choose
+  a few short tags that help retrieval without inventing a broad taxonomy.
+- Do not move active workflow state (`current gate`, `next action`, open review
+  status) into pressed frontmatter. That state belongs in `00-status.md`; pressed
+  frontmatter describes stable citable knowledge.
 - Keep direct quotations short and only when original wording matters.
 - If the source is thin, say so instead of filling gaps.
 - Write `linked.md` only when source files evidence a relation to another leaf
   or the user names one. If no links exist, skip it.
+- When writing `linked.md`, use exportable graph rows under `# Links`:
+
+  ```markdown
+  - `cites` -> `leaf:other-slug` - optional note
+  ```
+
+  Allowed predicates are `cites`, `refines`, `supersedes`, `depends_on`,
+  `derived_from`, and `related_to`. Keep prose notes after the target; do not
+  invent a broad ontology before real pressed leaves need it.
 
 ## Report
 

@@ -46,6 +46,12 @@ enum Commands {
         #[arg(long)]
         demo: bool,
     },
+    /// Export the pressed leaf knowledge graph.
+    Graph {
+        /// Write machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Open the review reader for one leaf-work slug.
     Review {
         /// Leaf-work slug to review.
@@ -212,6 +218,19 @@ fn execute(cli: Cli) -> Result<ExitCode> {
                 crate::tree::write_text(&mut stdout, &model, options)?;
             }
             stdout.flush().context("flush leaf tree text")?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Commands::Graph { json } => {
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            let graph = crate::graph::load(&paths.root)?;
+            let stdout = std::io::stdout();
+            let mut stdout = stdout.lock();
+            if json {
+                crate::graph::write_json(&mut stdout, &graph)?;
+            } else {
+                crate::graph::write_text(&mut stdout, &graph)?;
+            }
+            stdout.flush().context("flush leaf graph output")?;
             Ok(ExitCode::SUCCESS)
         }
         Commands::Review { slug } => {

@@ -94,6 +94,7 @@ fn help_lists_init_and_new() {
         .stdout(predicate::str::contains("profile"))
         .stdout(predicate::str::contains("checkpoint"))
         .stdout(predicate::str::contains("tree"))
+        .stdout(predicate::str::contains("graph"))
         .stdout(predicate::str::contains("doctor"));
 }
 
@@ -106,6 +107,67 @@ fn tree_help_describes_demo_as_top_to_bottom_not_left_to_right() {
         .stdout(predicate::str::contains("--demo"))
         .stdout(predicate::str::contains("top-to-bottom"))
         .stdout(predicate::str::contains("left-to-right").not());
+}
+
+#[test]
+fn graph_json_exports_pressed_leaf_nodes_and_link_edges() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+    write_status(
+        &repo,
+        ".leaf/02-leaves/reference/00-status.md",
+        "- stage: leaf\n\
+         - current phase: Feedback\n\
+         - current gate: ⑨ Review\n\
+         - first missing gate: ⑩ Retrospect\n\
+         - next action: review\n",
+    );
+    repo.child(".leaf/02-leaves/reference/pressed.md")
+        .write_str(
+            "---\n\
+             type: Leaf Pressed Digest\n\
+             title: Reference Leaf\n\
+             description: One-sentence summary.\n\
+             resource: .leaf/02-leaves/reference\n\
+             tags: [leaf, reference]\n\
+             timestamp: 2026-06-22T10:00:00+09:00\n\
+             citation_handle: leaf:reference\n\
+             stage: leaf\n\
+             ---\n\
+             \n\
+             # Reference Leaf\n",
+        )
+        .expect("pressed digest");
+    repo.child(".leaf/02-leaves/reference/linked.md")
+        .write_str("# Links\n\n- `cites` -> `okf:spec` - OKF source\n")
+        .expect("linked metadata");
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["graph", "--json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("valid json");
+
+    assert_eq!(json["leaf_root"], ".leaf");
+    assert_eq!(json["nodes"][0]["id"], "leaf:reference");
+    assert_eq!(json["nodes"][0]["title"], "Reference Leaf");
+    assert_eq!(
+        json["nodes"][0]["tags"],
+        serde_json::json!(["leaf", "reference"])
+    );
+    assert_eq!(json["edges"][0]["source"], "leaf:reference");
+    assert_eq!(json["edges"][0]["predicate"], "cites");
+    assert_eq!(json["edges"][0]["target"], "okf:spec");
+    assert_eq!(json["edges"][0]["note"], "OKF source");
 }
 
 #[test]
