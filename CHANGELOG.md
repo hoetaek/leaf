@@ -6,6 +6,31 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.12.0 - 2026-06-23
+
+- Added `leaf next <slug>` — crosses a phase boundary as a real machine event.
+  Before advancing it checks the phase being left for a `<!-- leaf:polish-pending -->`
+  marker; if present it **pauses (멈칫)** and asks for `leaf:polish` instead of
+  silently advancing. Polishing removes the marker, then `leaf next` scaffolds the
+  next phase and updates the `current phase` / `current gate` lines in
+  `00-status.md`.
+- `leaf new` now scaffolds **only the Learn phase**; later phases are grown
+  lazily by `leaf next`. (Breaking: a fresh sprout no longer contains
+  `02-Example/`, `03-Architect/`, `04-Feedback/` until you advance into them.)
+- Expanded `leaf doctor` with `boundary_unpolished` — a non-blocking WARN for any
+  already-passed phase whose polish marker is still present, so a skipped
+  boundary polish is visible instead of silent. Detection is line-anchored on the
+  machine token, so prose that merely mentions it does not false-positive.
+
+## 0.5.0 - 2026-06-23
+
+- `polish` skill: removing a phase's `<!-- leaf:polish-pending -->` marker is now
+  the defined final step of a boundary polish — the single signal `leaf next` and
+  `leaf doctor` read for "this phase is polished."
+- `work` / `autopilot` skills: phase boundaries are now crossed with `leaf next`,
+  which pauses when the phase is unpolished; `using-leaf` documents the command
+  and raises the required CLI to `leaf` ≥ 0.12.0.
+
 ## 0.11.0 - 2026-06-22
 
 - Added `leaf graph` — exports the pressed-leaf knowledge graph, with nodes for

@@ -10,6 +10,7 @@ mod inventory;
 mod lifecycle;
 mod list_columns;
 mod list_output;
+mod phase;
 mod preview;
 mod profile;
 mod review;

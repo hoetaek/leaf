@@ -1103,20 +1103,23 @@ fn new_creates_sprout_skeleton_and_bootstraps_repo() {
         .assert()
         .success();
 
+    // Lazy scaffold: `leaf new` creates only the Learn phase. Later phases are
+    // grown by `leaf next` at each boundary.
     for path in [
         ".leaf/01-sprouts/research-memo/00-status.md",
         ".leaf/01-sprouts/research-memo/01-Learn/01-intent.md",
         ".leaf/01-sprouts/research-memo/01-Learn/02-unknowns.md",
         ".leaf/01-sprouts/research-memo/01-Learn/02-references/README.md",
-        ".leaf/01-sprouts/research-memo/02-Example/03-criteria.md",
-        ".leaf/01-sprouts/research-memo/02-Example/04-wireframe.md",
-        ".leaf/01-sprouts/research-memo/03-Architect/05-design.md",
-        ".leaf/01-sprouts/research-memo/03-Architect/07-tasks.md",
     ] {
         repo.child(path).assert(predicate::path::is_file());
     }
-    repo.child(".leaf/01-sprouts/research-memo/04-Feedback")
-        .assert(predicate::path::is_dir());
+    for path in [
+        ".leaf/01-sprouts/research-memo/02-Example",
+        ".leaf/01-sprouts/research-memo/03-Architect",
+        ".leaf/01-sprouts/research-memo/04-Feedback",
+    ] {
+        repo.child(path).assert(predicate::path::missing());
+    }
     repo.child(".leaf/02-leaves/research-memo")
         .assert(predicate::path::missing());
     repo.child(".leaf/03-fallen")
@@ -1157,6 +1160,92 @@ fn new_sprout_passes_doctor_without_warnings() {
             "result   ready: leaf list should display cleanly",
         ))
         .stdout(predicate::str::contains("status_missing_fields").not());
+}
+
+#[test]
+fn next_pauses_when_current_phase_unpolished() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+
+    // A fresh Learn phase carries the polish-pending token, so `next` pauses.
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["next", "research-memo"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("멈칫"));
+
+    // Nothing advanced: the next phase was not grown and the phase is unchanged.
+    repo.child(".leaf/01-sprouts/research-memo/02-Example")
+        .assert(predicate::path::missing());
+    repo.child(".leaf/01-sprouts/research-memo/00-status.md")
+        .assert(predicate::str::contains("- current phase: Learn"));
+}
+
+#[test]
+fn next_advances_after_polish_removes_token() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+
+    // Simulate leaf:polish: rewrite Learn's gate file without the token.
+    repo.child(".leaf/01-sprouts/research-memo/01-Learn/01-intent.md")
+        .write_str("# Intent\n\nPolished and connected.\n")
+        .expect("polish intent");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["next", "research-memo"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Example 진입"));
+
+    // Example was grown lazily and the status preamble advanced.
+    repo.child(".leaf/01-sprouts/research-memo/02-Example/03-criteria.md")
+        .assert(predicate::path::is_file());
+    repo.child(".leaf/01-sprouts/research-memo/00-status.md")
+        .assert(predicate::str::contains("- current phase: Example"));
+}
+
+#[test]
+fn doctor_flags_unpolished_passed_phase() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+
+    // A sprout at Example whose Learn phase was left unpolished (next bypassed).
+    write_status(
+        &repo,
+        ".leaf/01-sprouts/research-memo/00-status.md",
+        "- stage: sprout\n\
+         - current phase: Example\n\
+         - current gate: ③ Criteria\n\
+         - first missing gate: ④ Wireframe\n\
+         - next action: build wireframe\n",
+    );
+    repo.child(".leaf/01-sprouts/research-memo/01-Learn/01-intent.md")
+        .write_str("<!-- leaf:polish-pending -->\n# Intent\n\nrough\n")
+        .expect("unpolished learn");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .stdout(predicate::str::contains("boundary_unpolished"))
+        .stdout(predicate::str::contains("Learn"));
 }
 
 #[test]
@@ -1270,9 +1359,14 @@ fn checkpoint_accepts_numeric_gate_flag() {
         .args(["new", "research-memo"])
         .assert()
         .success();
+    // Lazy scaffold: these gate files do not exist until grown, so the test
+    // creates them before checkpointing (write_str creates parent dirs).
     repo.child(".leaf/01-sprouts/research-memo/03-Architect/07-tasks.md")
         .write_str("task graph\n")
         .expect("tasks");
+    repo.child(".leaf/01-sprouts/research-memo/02-Example/03-criteria.md")
+        .write_str("# Criteria\n")
+        .expect("criteria");
 
     leaf_command()
         .current_dir(repo.path())
@@ -1299,11 +1393,8 @@ fn checkpoint_copies_folder_based_wireframe() {
         .args(["new", "research-memo"])
         .assert()
         .success();
-    std::fs::remove_file(
-        repo.path()
-            .join(".leaf/01-sprouts/research-memo/02-Example/04-wireframe.md"),
-    )
-    .expect("replace scaffolded wireframe file with folder layout");
+    // Lazy scaffold: the Example phase is not grown yet, so build the
+    // folder-based wireframe layout directly.
     repo.child(".leaf/01-sprouts/research-memo/02-Example/04-wireframe/index.html")
         .write_str("<html></html>\n")
         .expect("wireframe html");

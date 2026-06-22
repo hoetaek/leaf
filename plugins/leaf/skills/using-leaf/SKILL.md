@@ -60,7 +60,10 @@ Don't keep or press just because effort was spent.
 ## The CLI is the body
 
 The `leaf` CLI gives the workflow a repo-local `.leaf/` body (`leaf init`,
-`leaf new`, `leaf doctor`); requires `leaf` ≥ 0.8.0. If `leaf` is not on PATH,
+`leaf new`, `leaf next`, `leaf doctor`); requires `leaf` ≥ 0.12.0. `leaf next`
+crosses a phase boundary, pausing (멈칫) if the phase you are leaving still
+carries its `<!-- leaf:polish-pending -->` marker — polish removes it. If `leaf`
+is not on PATH,
 tell the user to run the install entry (`$leaf:install` in Codex, `/leaf:install`
 in Claude) before any LEAF work — don't skip it.
 
