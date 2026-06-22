@@ -6,6 +6,18 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.11.0 - 2026-06-22
+
+- Added `leaf graph` — exports the pressed-leaf knowledge graph, with nodes for
+  each pressed leaf and edges derived from `linked.md` predicates (`cites`,
+  `refines`, `supersedes`, `depends_on`, `derived_from`, `related_to`).
+- Expanded `leaf doctor` to validate citable-knowledge structure for `leaf list`
+  and graph readiness: `pressed.md` must carry OKF-compatible YAML frontmatter,
+  `linked.md` must hold parseable `predicate -> target` graph edges, and both
+  belong only in `.leaf/02-leaves`.
+- Added a scaffold placeholder reflecting the polish phase-boundary model.
+- Aligned the LEAF lifecycle validation contract across `doctor` and `review`.
+
 ## 0.4.0 - 2026-06-22
 
 - Added the `leaf:split` skill — a judgment framework for splitting one work
