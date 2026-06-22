@@ -1056,10 +1056,10 @@ fn doctor_json_outputs_flat_findings_with_paths() {
         &repo,
         ".leaf/02-leaves/duplicate/00-status.md",
         "- stage: leaf\n\
-         - current phase: Architect\n\
-         - current gate: ⑦ Tasks\n\
-         - first missing gate: ⑧ Artifact\n\
-         - next action: implement\n",
+         - current phase: Feedback\n\
+         - current gate: ⑨ Review\n\
+         - first missing gate: ⑩ Retrospect\n\
+         - next action: review\n",
     );
     repo.child(".leaf/03-fallen")
         .create_dir_all()

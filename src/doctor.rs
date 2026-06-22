@@ -562,7 +562,23 @@ fn check_item_status(
                     expected.label()
                 ),
             )
-            .with_path(rel_status),
+            .with_path(rel_status.clone()),
+        );
+    }
+
+    if stage_dir == StageDir::Leaves
+        && summary
+            .current_gate
+            .as_deref()
+            .and_then(parse_gate_index)
+            .is_some_and(|gate| gate < 9)
+    {
+        findings.push(
+            DoctorFinding::warn(
+                "leaf_before_feedback",
+                "leaf stage is for work that has passed ⑧ and entered Feedback",
+            )
+            .with_path(rel_status.clone()),
         );
     }
 }
@@ -578,6 +594,38 @@ fn expected_stage(stage_dir: StageDir) -> Option<Stage> {
         StageDir::Leaves => Some(Stage::Leaf),
         StageDir::Fallen => Some(Stage::Fallen),
         StageDir::Pressed => None,
+    }
+}
+
+fn parse_gate_index(value: &str) -> Option<usize> {
+    let first = value.trim_start().chars().next()?;
+    match first {
+        '①' => Some(1),
+        '②' => Some(2),
+        '③' => Some(3),
+        '④' => Some(4),
+        '⑤' => Some(5),
+        '⑥' => Some(6),
+        '⑦' => Some(7),
+        '⑧' => Some(8),
+        '⑨' => Some(9),
+        '⑩' => Some(10),
+        ch if ch.is_ascii_digit() => value
+            .trim_start()
+            .chars()
+            .take_while(|ch| ch.is_ascii_digit())
+            .collect::<String>()
+            .parse::<usize>()
+            .ok(),
+        'g' | 'G' => value
+            .trim_start()
+            .strip_prefix(['g', 'G'])?
+            .chars()
+            .take_while(|ch| ch.is_ascii_digit())
+            .collect::<String>()
+            .parse::<usize>()
+            .ok(),
+        _ => None,
     }
 }
 
@@ -984,6 +1032,31 @@ mod tests {
                 .contains("stage sprout conflicts with directory 02-leaves")
         );
         assert!(finding.message.contains("expected leaf"));
+    }
+
+    #[test]
+    fn check_warns_for_leaf_before_feedback() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_stage_dirs(&root);
+        write_status(
+            &root,
+            ".leaf/02-leaves/early/00-status.md",
+            "- stage: leaf\n\
+             - current phase: Architect\n\
+             - current gate: ⑧ Execution\n\
+             - first missing gate: ⑨ Review\n\
+             - next action: finish execution\n",
+        );
+
+        let report = check(root.path()).expect("doctor report");
+
+        assert!(!report.has_errors());
+        assert_finding(
+            &report,
+            Severity::Warn,
+            "leaf_before_feedback",
+            Some(Location::Path(".leaf/02-leaves/early/00-status.md".into())),
+        );
     }
 
     #[test]

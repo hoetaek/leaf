@@ -60,7 +60,7 @@ const CANONICAL_SOURCES: [SourceSpec; 11] = [
         folders: &[],
         phase: "Architect",
         gate: "⑥ Critic",
-        required_through_current_gate: false,
+        required_through_current_gate: true,
     },
     SourceSpec {
         file: "03-Architect/07-tasks.md",
@@ -888,7 +888,7 @@ mod tests {
     }
 
     #[test]
-    fn review_build_does_not_require_lazy_critic_file_when_missing() {
+    fn review_build_requires_critic_file_through_tasks() {
         let root = assert_fs::TempDir::new().expect("temp repo");
         let slug = "demo";
         write_file(
@@ -911,7 +911,7 @@ mod tests {
         let document = build(&source(&root, slug)).expect("review document");
         let text = visible_text(&document);
 
-        assert!(!text.contains(".leaf/02-leaves/demo/03-Architect/06-critic.md"));
+        assert!(text.contains(".leaf/02-leaves/demo/03-Architect/06-critic.md"));
         assert!(text.contains(".leaf/02-leaves/demo/03-Architect/07-tasks.md"));
         assert!(text.contains("MISSING SOURCE"));
     }
