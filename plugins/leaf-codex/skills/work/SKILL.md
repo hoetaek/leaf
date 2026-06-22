@@ -56,10 +56,13 @@ Context. It carries the same sprout from ③ through ⑧, moves passed work to
   For ①/② returns use `../learn/references/gate-01-intent.md` and
   `../learn/references/gate-02-unknowns-context.md`; use `references/gates.md`
   for ③ onward.
-- **Polish before review.** Before review or approval, run
-  `leaf checkpoint <slug> --<gate>` on each gate file you are about to polish,
-  then invoke `polish` on the touched gate/status files that need a
-  simplicity pass.
+- **Polish at each phase boundary.** At every phase boundary (the end of Learn,
+  Example, Architect, Feedback, and before close-out), run `leaf checkpoint
+  <slug> --<gate>` on the gate files you are about to polish, then invoke
+  `polish` on the cumulative whole so far — all phases so far read as one
+  connected report, not just the latest file. A gate that takes a user review
+  inside a phase (e.g. ④ Wireframe) may additionally get a local polish just
+  before that review.
 - **Keep status current.** Update `00-status.md` whenever phase, gate, next
   action, approval need, return, or closure state changes. Keep its `## Overview`
   aligned with the gate files: when a gate or return changes the purpose, scope,
