@@ -1,4 +1,0 @@
-interface:
-  display_name: "LEAF Autopilot"
-  short_description: "Run LEAF after triple lock"
-  default_prompt: "Use $leaf:autopilot after the why / what / wireframe triple is human-reviewed, then carry the LEAF automatically through work gates with evidence, hard stops, and completion audit."

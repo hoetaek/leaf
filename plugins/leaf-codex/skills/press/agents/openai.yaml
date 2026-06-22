@@ -1,7 +1,0 @@
-interface:
-  display_name: "LEAF Press"
-  short_description: "Press a reference-worthy leaf into a citable digest"
-  default_prompt: "Use $leaf:press once press is the chosen close-out: write a citable pressed.md digest with OKF-compatible YAML frontmatter and a Press Abstract for a reference-worthy leaf. When real cross-leaf relations exist, write graph-exportable linked.md rows. The keep/press/fall decision and the fall/keep actions live in using-leaf."
-
-policy:
-  allow_implicit_invocation: true
