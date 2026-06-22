@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Shared SessionStart context builder for the leaf plugin.
-# Sourced by hooks/session-start (Claude Code / Cursor / SDK). Not executed
-# directly. Codex does not register this hook; LEAF skills load on demand there.
+# Sourced by hooks/session-start. Not executed directly. Since the single-folder
+# dual-manifest layout (0.4.3), Codex also discovers hooks.json and runs this
+# hook, so the using-leaf context is injected on Claude Code, Cursor, Codex, and
+# the SDK alike.
 
 # Escape a string for embedding inside a JSON string value.
 # Each ${s//old/new} is a single pass — fast and dependency-free.

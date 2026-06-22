@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SessionStart hook for the leaf plugin (Claude Code / Cursor / SDK).
+# SessionStart hook for the leaf plugin (Claude Code / Cursor / Codex / SDK).
 # Injects the using-leaf skill as context, plus a CLI install note if missing.
 # Never blocks the session (always exits 0).
 
