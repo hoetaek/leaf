@@ -1,7 +1,0 @@
-interface:
-  display_name: "Install LEAF CLI"
-  short_description: "Install or update the leaf CLI required for .leaf workspaces"
-  default_prompt: "Use $leaf:install to install or update the `leaf` CLI for the repo-local .leaf workspace, then verify with `leaf --version`."
-
-policy:
-  allow_implicit_invocation: true

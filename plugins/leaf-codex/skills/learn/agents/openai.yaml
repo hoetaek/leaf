@@ -1,7 +1,0 @@
-interface:
-  display_name: "LEAF Learn"
-  short_description: "Capture ideas and run the LEAF Learn phase on sprouts"
-  default_prompt: "Use $leaf:learn to capture this idea as a .leaf sprout, triage it (kill/defer/enrich/split), keep 00-status.md Overview aligned, and run Learn — lock ① Intent, then fan out the four scouts (Terrain/Method/Judgment/Context) to gather references and resolve ② Unknowns & Context, build a reading map, and quiz to confirm learning — then recommend whether to continue to ③ Example in the same sprout."
-
-policy:
-  allow_implicit_invocation: true

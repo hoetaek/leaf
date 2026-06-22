@@ -6,6 +6,31 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.11.0 - 2026-06-22
+
+- Added `leaf graph` — exports the pressed-leaf knowledge graph, with nodes for
+  each pressed leaf and edges derived from `linked.md` predicates (`cites`,
+  `refines`, `supersedes`, `depends_on`, `derived_from`, `related_to`).
+- Expanded `leaf doctor` to validate citable-knowledge structure for `leaf list`
+  and graph readiness: `pressed.md` must carry OKF-compatible YAML frontmatter,
+  `linked.md` must hold parseable `predicate -> target` graph edges, and both
+  belong only in `.leaf/02-leaves`.
+- Added a scaffold placeholder reflecting the polish phase-boundary model.
+- Aligned the LEAF lifecycle validation contract across `doctor` and `review`.
+
+## 0.4.0 - 2026-06-22
+
+- Added the `leaf:split` skill — a judgment framework for splitting one work
+  item into separate leaves. It works in three layers: (a) whether/when to
+  split, (b) which single dominant grain to cut along (an open cut-axis menu
+  with a reject gate, recursive for a load-bearing second axis), and (c) how the
+  resulting pieces order and link. The whether/when layer reuses `learn`'s Split
+  Check rather than inventing new criteria. This first increment carries the
+  judgment only; execution automation (parent fall, child new, link wiring) and
+  a machine-readable dependency-edge model are out of scope.
+- Wired `split` into the `using-leaf` router, added a `learn` Split Check
+  pointer, and mirrored the skill into the `leaf-codex` plugin.
+
 ## 0.3.1 - 2026-06-21
 
 - Removed the Codex SessionStart hook registration so `leaf:using-leaf` is no

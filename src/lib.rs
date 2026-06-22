@@ -5,6 +5,7 @@ mod doctor;
 mod doctor_output;
 mod fs_ext;
 mod git;
+mod graph;
 mod inventory;
 mod lifecycle;
 mod list_columns;

@@ -151,7 +151,10 @@ folders.
 not useful enough to keep as a reference. Pressed digests live inside the source
 leaf as `pressed.md`, not in a shared top-level pressed folder. When a pressed
 leaf cites or is cited by other leaves, cross-leaf citation metadata lives next
-to the digest as `linked.md`. `.leaf/PROFILE.md` is the repo-local acquired
+to the digest as `linked.md`. New pressed digests include OKF-compatible
+frontmatter so agents and tools can treat them as typed, citable knowledge
+concepts; the source gate files remain native LEAF workflow records.
+`.leaf/PROFILE.md` is the repo-local acquired
 profile: `leaf init` scaffolds it, completed leaves consolidate working-style
 traits into it at ⑩ Retrospect, and `soul` reads it at the start of LEAF
 work. A machine-global profile at `~/.config/leaf/profile.md` layers underneath
@@ -169,6 +172,7 @@ leaf new <slug>
 leaf fall <slug> --reason <reason>
 leaf list [--json]
 leaf tree [--plain] [--demo]
+leaf graph [--json]
 leaf review <slug>
 leaf profile
 leaf checkpoint <slug> --<gate>
@@ -226,6 +230,18 @@ workspace. In an interactive terminal, `leaf tree` uses the current terminal
 width up to 112 columns; below 32 columns it falls back to a compact summary
 instead of forcing broken tree art.
 
+`leaf graph` exports pressed leaves as a small knowledge graph. Each
+`.leaf/02-leaves/<slug>/pressed.md` becomes a node, using its frontmatter for
+metadata. Optional `linked.md` files next to pressed digests become directed
+edges when they contain rows such as:
+
+```markdown
+- `cites` -> `leaf:other-slug` - optional note
+```
+
+`--json` writes the machine-readable node/edge graph for local tools or graph
+databases.
+
 `leaf review <slug>` opens the same source-faithful review reader for one
 work item directly. In non-TTY output it writes the review document as
 plain text.
@@ -245,7 +261,10 @@ next to its original with a UTC `YYMMDD-HHMM` prefix, for example
 numbers such as `--3`; `--gate <gate>` is also accepted.
 
 `leaf doctor` checks whether `.leaf/` is ready for `leaf list` and reports old
-layout leftovers, missing status fields, and stage/status mismatches.
+layout leftovers, missing status fields, stage/status mismatches, `pressed.md`
+files outside `.leaf/02-leaves/`, and pressed digests that are missing the
+OKF-compatible frontmatter shape. If a pressed leaf has `linked.md`, doctor also
+checks that its relationship rows can feed `leaf graph`.
 
 ## Agent Skills
 
@@ -255,6 +274,8 @@ This repository ships Agent Skills bundled as the `leaf` plugin (see Quick Start
 |---|---|
 | [`using-leaf`](plugins/leaf/skills/using-leaf/SKILL.md) | Entry/router: the LEAF loop and which leaf skill to use; injected at session start where hooks are enabled, loaded on demand in Codex |
 | [`learn`](plugins/leaf/skills/learn/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
+| [`split`](plugins/leaf/skills/split/SKILL.md) | Deciding how to split one work item into separate leaves — whether to split, along which single grain, and how the pieces order and link |
+| [`autopilot`](plugins/leaf/skills/autopilot/SKILL.md) | Carrying a sprout automatically after the human-reviewed `why / what / wireframe` triple |
 | [`work`](plugins/leaf/skills/work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
 | [`polish`](plugins/leaf/skills/polish/SKILL.md) | Polishing LEAF documents into simple, complete current reports |
 | [`press`](plugins/leaf/skills/press/SKILL.md) | Pressing a reference-worthy leaf into a citable digest once press is the chosen close-out |
@@ -262,7 +283,7 @@ This repository ships Agent Skills bundled as the `leaf` plugin (see Quick Start
 | [`soul`](plugins/leaf/skills/soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
 
 Install the LEAF skills together as a family — they are not independent.
-`learn`, `work`, `polish`, and `press` read
+`learn`, `autopilot`, `work`, `polish`, and `press` read
 `soul` through the sibling path `../soul/SKILL.md`; `learn` and
 `work` also read the gate references under `work` through
 `../work/references/`. Installing the `leaf` plugin ships the whole family

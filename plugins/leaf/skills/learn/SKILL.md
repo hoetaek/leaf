@@ -78,7 +78,8 @@ Read only what the current move needs:
    changes what the user now understands or the scope of the curiosity, update the
    status overview in the same turn.
 7. **Quiz, then ask the Learn-rest question.** Before resting, invoke `polish`
-   for the touched Learn/status surface, show the gathered references, then quiz
+   on the Learn/status surface as one report — this is the Learn phase boundary
+   (the cumulative whole is just Learn here) — show the gathered references, then quiz
    the user on the core (see Parallel Scouts → Quiz). Learn need not "finish": if
    a thread still pulls, keep exploring. This is a resting point, not a gate to
    clear.
@@ -220,6 +221,11 @@ new direction, and before going deep on a topic.
 If split is clear and the user asked to capture the work, create or resume
 sibling sprouts. Otherwise recommend the split and name candidates. Do not learn
 a known mixed sprout as one topic unless the grouping reason is explicit.
+
+This table is the *signal* for whether parts diverge. When the work is to
+**decide how to split** — which single grain to cut along, how the pieces order
+and link — use the `split` skill, which reuses this Split Check for its
+"whether/when" layer.
 
 ## Status Labels
 

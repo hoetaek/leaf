@@ -81,6 +81,7 @@ presses them:
 
 ```text
 .leaf/02-leaves/<slug>/pressed.md                citable digest for future reference
+.leaf/02-leaves/<slug>/linked.md                 optional graph edges for pressed knowledge
 ```
 
 ## Status Dashboard

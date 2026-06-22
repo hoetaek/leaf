@@ -4,20 +4,20 @@
     "displayName": "LEAF"
   },
   "metadata": {
-    "version": "0.3.1"
+    "version": "0.4.4"
   },
   "plugins": [
     {
       "name": "leaf",
       "source": {
         "source": "local",
-        "path": "./plugins/leaf-codex"
+        "path": "./plugins/leaf"
       },
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
-      "version": "0.3.1",
+      "version": "0.4.4",
       "category": "Productivity"
     }
   ]
