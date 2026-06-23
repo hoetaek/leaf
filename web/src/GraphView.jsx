@@ -375,8 +375,8 @@ export default function GraphView() {
               <marker
                 id="leafGraphArrowActive"
                 viewBox="0 0 10 10"
-                markerWidth="11"
-                markerHeight="11"
+                markerWidth="9"
+                markerHeight="9"
                 refX="9"
                 refY="5"
                 orient="auto"
