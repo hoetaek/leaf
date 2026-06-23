@@ -7,10 +7,7 @@ test("constrainGraphNode keeps graph nodes inside the visible canvas", () => {
 
   constrainGraphNode(node, { width: 880, height: 520, padding: 40, radius: 16 });
 
-  assert.deepEqual(
-    { x: node.x, y: node.y, vx: node.vx, vy: node.vy },
-    { x: 56, y: 464, vx: 0, vy: 0 },
-  );
+  assert.deepEqual({ x: node.x, y: node.y, vx: node.vx, vy: node.vy }, { x: 56, y: 464, vx: 0, vy: 0 });
 });
 
 test("clampGraphPoint keeps dragged nodes inside the same bounds", () => {

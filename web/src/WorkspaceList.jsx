@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchJson } from "./api.js";
 import { leafHref, openLeaf } from "./routes.js";
 
@@ -32,7 +32,9 @@ export default function WorkspaceList() {
   const rowRefs = useRef([]);
 
   useEffect(() => {
-    fetchJson("/api/list").then(setData).catch((e) => setError(e.message));
+    fetchJson("/api/list")
+      .then(setData)
+      .catch((e) => setError(e.message));
   }, []);
 
   const rows = useMemo(() => {
@@ -49,22 +51,18 @@ export default function WorkspaceList() {
     });
   }, [data, stage, q]);
 
-  const openRow = (index = sel) => {
-    const it = rows[index];
-    if (it) openLeaf(it.slug);
-  };
-
-  useEffect(() => {
-    if (rows.length === 0) {
-      setSel(0);
-      return;
-    }
-    setSel((s) => Math.min(s, rows.length - 1));
-  }, [rows.length]);
+  const selectedIndex = rows.length ? Math.min(sel, rows.length - 1) : 0;
+  const openRow = useCallback(
+    (index = selectedIndex) => {
+      const it = rows[index];
+      if (it) openLeaf(it.slug);
+    },
+    [rows, selectedIndex],
+  );
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
-      const el = rowRefs.current[sel];
+      const el = rowRefs.current[selectedIndex];
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const topPad = 72;
@@ -76,7 +74,7 @@ export default function WorkspaceList() {
       }
     });
     return () => cancelAnimationFrame(id);
-  }, [sel, rows.length]);
+  }, [selectedIndex, rows.length]);
 
   // keyboard: j/k move, Enter open, / focus filter, h/l stage
   useEffect(() => {
@@ -93,7 +91,7 @@ export default function WorkspaceList() {
         filterRef.current?.focus();
       } else if (e.key === "j") {
         e.preventDefault();
-        setSel((s) => Math.min(rows.length - 1, s + 1));
+        setSel((s) => (rows.length ? Math.min(rows.length - 1, s + 1) : 0));
       } else if (e.key === "k") {
         e.preventDefault();
         setSel((s) => Math.max(0, s - 1));
@@ -114,22 +112,18 @@ export default function WorkspaceList() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [rows, sel, stage]);
+  }, [openRow, rows.length, stage]);
 
-  if (error)
-    return <p className="err">목록을 불러오지 못했습니다: {error}. `leaf serve`가 떠 있나요?</p>;
+  if (error) return <p className="err">목록을 불러오지 못했습니다: {error}. `leaf serve`가 떠 있나요?</p>;
   if (!data) return <p className="muted">불러오는 중…</p>;
 
-  const counts = Object.fromEntries(
-    Object.entries(data.stages).map(([k, v]) => [k, v.count]),
-  );
+  const counts = Object.fromEntries(Object.entries(data.stages).map(([k, v]) => [k, v.count]));
 
   return (
     <div className="ws">
       <h1 className="vtitle">Workspace</h1>
       <p className="vsub">
-        {counts.leaves || 0} leaves &middot; {counts.sprouts || 0} sprouts &middot;{" "}
-        {counts.fallen || 0} fallen
+        {counts.leaves || 0} leaves &middot; {counts.sprouts || 0} sprouts &middot; {counts.fallen || 0} fallen
       </p>
 
       <div className="tools">
@@ -173,7 +167,7 @@ export default function WorkspaceList() {
           <a
             key={it.slug}
             ref={(el) => (rowRefs.current[i] = el)}
-            className={`trow${i === sel ? " sel" : ""}`}
+            className={`trow${i === selectedIndex ? " sel" : ""}`}
             href={leafHref(it.slug)}
             onMouseEnter={() => setSel(i)}
           >
@@ -185,8 +179,7 @@ export default function WorkspaceList() {
               <div className="why">{it.status?.next_action || "—"}</div>
             </div>
             <div className="phase">
-              <b>{it.status?.current_phase || "—"}</b>{" "}
-              {it.status?.current_gate ? `› ${it.status.current_gate}` : ""}
+              <b>{it.status?.current_phase || "—"}</b> {it.status?.current_gate ? `› ${it.status.current_gate}` : ""}
             </div>
             <Progress status={it.status} />
             <div className={`status ${it.status?.parse_state || "ok"}`}>
@@ -201,7 +194,8 @@ export default function WorkspaceList() {
           <span className="kbd">j</span>
           <span className="kbd">k</span> 이동 &middot; <span className="kbd">Enter</span> 열기 &middot;{" "}
           <span className="kbd">d</span>
-          <span className="kbd">u</span> 페이지 &middot; <span className="kbd">/</span> 필터 &middot; <span className="kbd">h</span>
+          <span className="kbd">u</span> 페이지 &middot; <span className="kbd">/</span> 필터 &middot;{" "}
+          <span className="kbd">h</span>
           <span className="kbd">l</span> stage
         </span>
       </p>

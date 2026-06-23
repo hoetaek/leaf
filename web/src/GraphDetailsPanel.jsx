@@ -1,4 +1,3 @@
-import React from "react";
 import { leafHref } from "./routes.js";
 
 export default function GraphDetailsPanel({ selected, hiddenEdgeCount }) {
@@ -27,7 +26,9 @@ export default function GraphDetailsPanel({ selected, hiddenEdgeCount }) {
       ) : (
         <p className="muted">노드를 선택하세요.</p>
       )}
-      {hiddenEdgeCount ? <p className="gnote">현재 graph에 없는 fallen 타깃 edge {hiddenEdgeCount}개는 숨겼습니다.</p> : null}
+      {hiddenEdgeCount ? (
+        <p className="gnote">현재 graph에 없는 fallen 타깃 edge {hiddenEdgeCount}개는 숨겼습니다.</p>
+      ) : null}
     </aside>
   );
 }

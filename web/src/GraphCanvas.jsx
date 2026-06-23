@@ -1,4 +1,3 @@
-import React from "react";
 import { buildDirectedEdgeGeometry } from "./graphGeometry.js";
 import { graphNodeRadius } from "./graphPhysics.js";
 import { openLeaf } from "./routes.js";
@@ -28,7 +27,15 @@ function GraphMarkers() {
       <marker id="leafGraphArrow" viewBox="0 0 10 10" markerWidth="9" markerHeight="9" refX="9" refY="5" orient="auto">
         <path d="M0,0 L10,5 L0,10 z" />
       </marker>
-      <marker id="leafGraphArrowActive" viewBox="0 0 10 10" markerWidth="9" markerHeight="9" refX="9" refY="5" orient="auto">
+      <marker
+        id="leafGraphArrowActive"
+        viewBox="0 0 10 10"
+        markerWidth="9"
+        markerHeight="9"
+        refX="9"
+        refY="5"
+        orient="auto"
+      >
         <path d="M0,0 L10,5 L0,10 z" />
       </marker>
     </defs>
@@ -53,7 +60,12 @@ function GraphEdge({ link, layoutById, model, hoverId, linkCount }) {
     <g>
       <path className={edgeClass} d={edge.path} markerEnd={marker} />
       {showLabel ? (
-        <text className={`edge-label${hoverId && active ? " active" : ""}`} x={edge.label.x} y={edge.label.y} textAnchor="middle">
+        <text
+          className={`edge-label${hoverId && active ? " active" : ""}`}
+          x={edge.label.x}
+          y={edge.label.y}
+          textAnchor="middle"
+        >
           {shortText(link.predicate, 18)}
         </text>
       ) : null}
@@ -76,7 +88,9 @@ function GraphNode({
   onNodePointerCancel,
 }) {
   const radius = graphNodeRadius(node);
-  const classes = ["graph-node", active ? "" : "dim", selected ? "sel" : "", visited ? "visited" : ""].filter(Boolean).join(" ");
+  const classes = ["graph-node", active ? "" : "dim", selected ? "sel" : "", visited ? "visited" : ""]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <g

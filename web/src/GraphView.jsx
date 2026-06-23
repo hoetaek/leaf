@@ -1,11 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  forceCenter,
-  forceCollide,
-  forceLink,
-  forceManyBody,
-  forceSimulation,
-} from "d3-force";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation } from "d3-force";
 import { select } from "d3-selection";
 import { zoom, zoomIdentity } from "d3-zoom";
 import { fetchJson } from "./api.js";
@@ -41,10 +35,6 @@ function writeVisited(ids) {
   }
 }
 
-function endpointId(endpoint) {
-  return typeof endpoint === "string" ? endpoint : endpoint?.id;
-}
-
 function endpointDegree(endpoint) {
   return typeof endpoint === "string" ? 0 : endpoint?.degree || 0;
 }
@@ -72,15 +62,8 @@ export default function GraphView() {
 
   const model = useMemo(() => (data ? buildGraphModel(data) : null), [data]);
 
-  useEffect(() => {
-    if (!model) return;
-    setSelId((current) => {
-      if (current && model.nodeById.has(current)) return current;
-      return model.nodes[0]?.id || null;
-    });
-  }, [model]);
-
-  const selected = selId && model ? model.nodeById.get(selId) : null;
+  const effectiveSelId = selId && model?.nodeById.has(selId) ? selId : model?.nodes[0]?.id || null;
+  const selected = effectiveSelId && model ? model.nodeById.get(effectiveSelId) : null;
   const focusIds = useMemo(() => {
     if (!hoverId || !model) return null;
     return model.neighboursById.get(hoverId) || null;
@@ -123,10 +106,7 @@ export default function GraphView() {
   }, [model]);
 
   useEffect(() => {
-    if (!model) {
-      setLayout({ nodes: [], links: [] });
-      return;
-    }
+    if (!model) return;
 
     simulationRef.current?.stop();
 
@@ -143,9 +123,6 @@ export default function GraphView() {
     const links = model.links.map((link) => ({ ...link }));
 
     nodeRef.current = new Map(nodes.map((node) => [node.id, node]));
-    setLayout({ nodes, links });
-
-    if (!nodes.length) return;
 
     const constrainNodes = () => {
       for (const node of nodes) {
@@ -168,14 +145,26 @@ export default function GraphView() {
         frame = window.requestAnimationFrame(publish);
       }
     };
+    schedule();
+
+    if (!nodes.length) {
+      return () => {
+        if (frame !== null) window.cancelAnimationFrame(frame);
+      };
+    }
 
     const simulation = forceSimulation(nodes)
-      .force("charge", forceManyBody().strength((node) => -118 - (node.degree || 0) * 24))
+      .force(
+        "charge",
+        forceManyBody().strength((node) => -118 - (node.degree || 0) * 24),
+      )
       .force(
         "link",
         forceLink(links)
           .id((node) => node.id)
-          .distance((link) => 88 + Math.max(0, 6 - Math.min(endpointDegree(link.source) + endpointDegree(link.target), 6)) * 8)
+          .distance(
+            (link) => 88 + Math.max(0, 6 - Math.min(endpointDegree(link.source) + endpointDegree(link.target), 6)) * 8,
+          )
           .strength(0.46),
       )
       .force("center", forceCenter(W / 2, H / 2).strength(0.16))
@@ -209,9 +198,12 @@ export default function GraphView() {
     return [screenPoint.x, screenPoint.y];
   }, []);
 
-  const graphPoint = useCallback((event) => {
-    return transformRef.current.invert(svgPoint(event));
-  }, [svgPoint]);
+  const graphPoint = useCallback(
+    (event) => {
+      return transformRef.current.invert(svgPoint(event));
+    },
+    [svgPoint],
+  );
 
   const applyZoomTransform = useCallback((next) => {
     const nextTransform = zoomIdentity.translate(next.x, next.y).scale(next.k);

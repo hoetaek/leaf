@@ -173,8 +173,7 @@ export default function ReviewReader({ slug }) {
     return <p className="muted">불러오는 중…</p>;
   }
 
-  const jump = (i) =>
-    sectionRefs.current[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const jump = (i) => sectionRefs.current[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   return (
     <>
@@ -217,11 +216,7 @@ export default function ReviewReader({ slug }) {
             <i style={{ width: `${(progress * 100).toFixed(1)}%` }} />
           </div>
           {data.sources.map((s, i) => (
-            <section
-              key={i}
-              data-idx={i}
-              ref={(el) => (sectionRefs.current[i] = el)}
-            >
+            <section key={i} data-idx={i} ref={(el) => (sectionRefs.current[i] = el)}>
               <div className="phtag">{s.phase}</div>
               <div className="file">
                 {s.gate} &nbsp;&middot;&nbsp; {s.relative_path}
@@ -264,14 +259,13 @@ export default function ReviewReader({ slug }) {
         <div className="refoverlay" onClick={() => setShowRefs(false)}>
           <aside className="refdrawer" onClick={(e) => e.stopPropagation()}>
             <div className="refhead">
-              <b>References</b>{" "}
-              <span className="muted">({data.references?.length || 0})</span>
+              <b>References</b> <span className="muted">({data.references?.length || 0})</span>
               <span className="khint">
                 {refFocus === "list" ? (
                   <>
                     <span className="kbd">j</span>
-                    <span className="kbd">k</span> 이동 &middot; <span className="kbd">l</span> 선택
-                    &middot; <span className="kbd">h</span> 닫기
+                    <span className="kbd">k</span> 이동 &middot; <span className="kbd">l</span> 선택 &middot;{" "}
+                    <span className="kbd">h</span> 닫기
                   </>
                 ) : (
                   <>
@@ -304,10 +298,7 @@ export default function ReviewReader({ slug }) {
                     </li>
                   ))}
                 </ul>
-                <div
-                  ref={refReadRef}
-                  className={`refread md${refFocus === "content" ? " focus" : ""}`}
-                >
+                <div ref={refReadRef} className={`refread md${refFocus === "content" ? " focus" : ""}`}>
                   <div className="file">{data.references[refSel]?.relative_path}</div>
                   <Md>{data.references[refSel]?.markdown || ""}</Md>
                 </div>
