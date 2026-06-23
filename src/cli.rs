@@ -251,7 +251,7 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             let slug = crate::slug::validate(&slug)?;
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             let inventory = crate::inventory::load(&paths.root)?;
-            let source = review_source_for_slug(&inventory, &slug)?;
+            let source = crate::review::source_for_slug(&inventory, &slug)?;
             if json {
                 let document = crate::review::build_json(&source)?;
                 let stdout = std::io::stdout();
@@ -388,40 +388,6 @@ fn leaf_work_path_for_slug(
     match matches.as_slice() {
         [] => bail!("leaf work does not exist: {slug}"),
         [item] => Ok(item.path.clone()),
-        items => {
-            let repo_root = inventory
-                .leaf_root
-                .parent()
-                .context("inventory leaf root has no parent")?;
-            let locations = items
-                .iter()
-                .map(|item| repo_relative(repo_root, &item.path))
-                .collect::<Vec<_>>()
-                .join(", ");
-            bail!("leaf work slug is ambiguous: {slug} ({locations})");
-        }
-    }
-}
-
-pub(crate) fn review_source_for_slug(
-    inventory: &crate::inventory::Inventory,
-    slug: &str,
-) -> Result<crate::review::ReviewSource> {
-    let matches = inventory
-        .stages
-        .iter()
-        .flat_map(|stage| stage.items.iter())
-        .filter(|item| {
-            item.kind == crate::inventory::ItemKind::LeafWork && item.slug.as_str() == slug
-        })
-        .collect::<Vec<_>>();
-
-    match matches.as_slice() {
-        [] => bail!("leaf work does not exist: {slug}"),
-        [item] => item
-            .review
-            .clone()
-            .context("review is only available for leaf work rows"),
         items => {
             let repo_root = inventory
                 .leaf_root

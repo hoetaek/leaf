@@ -1,28 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { fetchJson } from "./api.js";
+import { leafHref, openLeaf } from "./routes.js";
 
-const GLYPH = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
-const GATE_INDEX = Object.fromEntries(GLYPH.map((g, i) => [g, i + 1]));
+const GATES = Array.from({ length: 10 }, (_, i) => i + 1);
+const STAGES = ["all", "sprouts", "leaves", "fallen"];
 
-// gate number from a "③ Criteria" style string -> 1..10 (0 if none)
-function gateNum(gate) {
-  if (!gate) return 0;
-  const g = gate.trim()[0];
-  return GATE_INDEX[g] || 0;
-}
-
-function Progress({ phase, gate }) {
-  const text = `${phase || ""} ${gate || ""}`;
-  // A finished leaf (completed / pressed / leaf-done) reads as 10/10 even though
-  // its gate string is no longer a ①–⑩ glyph.
-  const finished = /완료|pressed|leaf-done|done|complete/i.test(text);
-  const cur = finished ? 0 : gateNum(gate);
-  const done = finished ? 10 : Math.max(0, cur - 1);
-  const label = finished ? "10/10" : cur ? `${cur}/10` : "—/10";
+function Progress({ status }) {
+  const done = status?.progress_done || 0;
+  const cur = status?.progress_current || 0;
+  const label = status?.progress_label || "—/10";
   return (
     <span className="prog">
       <span className="segs">
-        {GLYPH.map((_, i) => {
-          const n = i + 1;
+        {GATES.map((n) => {
           const cls = n <= done ? "sg done" : n === cur ? "sg cur" : "sg";
           return <span key={n} className={cls} />;
         })}
@@ -42,10 +32,7 @@ export default function WorkspaceList() {
   const rowRefs = useRef([]);
 
   useEffect(() => {
-    fetch("/api/list")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then(setData)
-      .catch((e) => setError(e.message));
+    fetchJson("/api/list").then(setData).catch((e) => setError(e.message));
   }, []);
 
   const rows = useMemo(() => {
@@ -63,8 +50,8 @@ export default function WorkspaceList() {
   }, [data, stage, q]);
 
   const openRow = (index = sel) => {
-    const it = rows[Math.min(index, rows.length - 1)];
-    if (it) window.location.hash = `#/leaf/${encodeURIComponent(it.slug)}`;
+    const it = rows[index];
+    if (it) openLeaf(it.slug);
   };
 
   useEffect(() => {
@@ -92,7 +79,6 @@ export default function WorkspaceList() {
   }, [sel, rows.length]);
 
   // keyboard: j/k move, Enter open, / focus filter, h/l stage
-  const stages = ["all", "sprouts", "leaves", "fallen"];
   useEffect(() => {
     const onKey = (e) => {
       if (document.activeElement === filterRef.current) {
@@ -120,9 +106,9 @@ export default function WorkspaceList() {
           behavior: "smooth",
         });
       } else if (e.key === "h" || e.key === "l") {
-        const i = stages.indexOf(stage);
-        const next = e.key === "l" ? Math.min(stages.length - 1, i + 1) : Math.max(0, i - 1);
-        setStage(stages[next]);
+        const i = STAGES.indexOf(stage);
+        const next = e.key === "l" ? Math.min(STAGES.length - 1, i + 1) : Math.max(0, i - 1);
+        setStage(STAGES[next]);
         setSel(0);
       }
     };
@@ -167,7 +153,7 @@ export default function WorkspaceList() {
           />
         </div>
         <div className="stageseg">
-          {stages.map((s) => (
+          {STAGES.map((s) => (
             <button key={s} className={stage === s ? "on" : ""} onClick={() => setStage(s)}>
               {s}
               {s !== "all" && <span className="c"> {counts[s] || 0}</span>}
@@ -188,7 +174,7 @@ export default function WorkspaceList() {
             key={it.slug}
             ref={(el) => (rowRefs.current[i] = el)}
             className={`trow${i === sel ? " sel" : ""}`}
-            href={`#/leaf/${encodeURIComponent(it.slug)}`}
+            href={leafHref(it.slug)}
             onMouseEnter={() => setSel(i)}
           >
             <div className="c-leaf">
@@ -202,7 +188,7 @@ export default function WorkspaceList() {
               <b>{it.status?.current_phase || "—"}</b>{" "}
               {it.status?.current_gate ? `› ${it.status.current_gate}` : ""}
             </div>
-            <Progress phase={it.status?.current_phase} gate={it.status?.current_gate} />
+            <Progress status={it.status} />
             <div className={`status ${it.status?.parse_state || "ok"}`}>
               <span className="d" /> {it.status?.parse_state || "ok"}
             </div>

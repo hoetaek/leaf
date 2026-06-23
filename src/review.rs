@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::Serialize;
 use std::fs;
 use std::io::Write;
@@ -124,6 +124,40 @@ pub(crate) struct ReferenceFile {
 
 /// Folder, relative to a leaf root, that holds Learn reference material.
 pub(crate) const REFERENCES_RELATIVE_DIR: &str = "01-Learn/02-references";
+
+pub(crate) fn source_for_slug(
+    inventory: &crate::inventory::Inventory,
+    slug: &str,
+) -> Result<ReviewSource> {
+    let matches = inventory
+        .stages
+        .iter()
+        .flat_map(|stage| stage.items.iter())
+        .filter(|item| {
+            item.kind == crate::inventory::ItemKind::LeafWork && item.slug.as_str() == slug
+        })
+        .collect::<Vec<_>>();
+
+    match matches.as_slice() {
+        [] => bail!("leaf work does not exist: {slug}"),
+        [item] => item
+            .review
+            .clone()
+            .context("review is only available for leaf work rows"),
+        items => {
+            let repo_root = inventory
+                .leaf_root
+                .parent()
+                .context("inventory leaf root has no parent")?;
+            let locations = items
+                .iter()
+                .map(|item| repo_relative(repo_root, &item.path))
+                .collect::<Vec<_>>()
+                .join(", ");
+            bail!("leaf work slug is ambiguous: {slug} ({locations})");
+        }
+    }
+}
 
 impl ReviewDocument {
     #[allow(dead_code)]
@@ -662,7 +696,7 @@ fn markdown_files_in(folder_path: &Path, folder_relative_path: &str) -> Result<V
     Ok(files)
 }
 
-fn parse_gate_index(value: &str) -> Option<usize> {
+pub(crate) fn parse_gate_index(value: &str) -> Option<usize> {
     let first = value.chars().next()?;
     match first {
         '①' => Some(1),
@@ -737,6 +771,13 @@ fn preview_visible_text(line: &crate::preview::PreviewLine) -> String {
 
 fn preview_span_text(spans: &[crate::preview::PreviewSpan]) -> String {
     spans.iter().map(preview_span_text_one).collect()
+}
+
+fn repo_relative(repo_root: &Path, path: &Path) -> String {
+    path.strip_prefix(repo_root)
+        .unwrap_or(path)
+        .display()
+        .to_string()
 }
 
 fn preview_span_text_one(span: &crate::preview::PreviewSpan) -> &str {

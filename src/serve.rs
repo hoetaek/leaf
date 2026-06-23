@@ -57,44 +57,49 @@ async fn review_handler(
     State(state): State<AppState>,
     Path(slug): Path<String>,
 ) -> impl IntoResponse {
-    match build_review(&state.repo_root, &slug) {
+    let repo_root = state.repo_root.clone();
+    match blocking(move || build_review(&repo_root, &slug)).await {
         Ok(json) => (StatusCode::OK, Json(json)).into_response(),
-        Err(err) => (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({ "error": err.to_string() })),
-        )
-            .into_response(),
+        Err(err) => json_error(StatusCode::NOT_FOUND, &err.to_string()),
     }
 }
 
 fn build_review(repo_root: &StdPath, slug: &str) -> Result<crate::review::ReviewJson> {
     let slug = crate::slug::validate(slug)?;
     let inventory = crate::inventory::load(repo_root)?;
-    let source = crate::cli::review_source_for_slug(&inventory, &slug)?;
+    let source = crate::review::source_for_slug(&inventory, &slug)?;
     crate::review::build_json(&source)
 }
 
-/// Workspace list as JSON. Reuses `list_output::write_json` (the exact `leaf
-/// list --json` payload) by rendering to a buffer, so there is one source of
-/// truth for the shape.
+/// Workspace list as JSON. Reuses the exact `leaf list --json` projection, so
+/// CLI and web list payloads share one typed shape.
 async fn list_handler(State(state): State<AppState>) -> impl IntoResponse {
-    match crate::inventory::load(&state.repo_root) {
-        Ok(inventory) => {
-            let mut buf = Vec::new();
-            match crate::list_output::write_json(&mut buf, &inventory) {
-                Ok(()) => {
-                    (StatusCode::OK, [("content-type", "application/json")], buf).into_response()
-                }
-                Err(err) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string()),
-            }
-        }
+    let repo_root = state.repo_root.clone();
+    match blocking(move || {
+        let inventory = crate::inventory::load(&repo_root)?;
+        crate::list_output::JsonInventory::from_inventory(&inventory)
+    })
+    .await
+    {
+        Ok(output) => (StatusCode::OK, Json(output)).into_response(),
         Err(err) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string()),
     }
 }
 
+async fn blocking<T, F>(work: F) -> Result<T>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T> + Send + 'static,
+{
+    tokio::task::spawn_blocking(work)
+        .await
+        .context("join blocking task")?
+}
+
 /// Pressed knowledge graph as JSON (`leaf graph --json` payload).
 async fn graph_handler(State(state): State<AppState>) -> impl IntoResponse {
-    match crate::graph::load(&state.repo_root) {
+    let repo_root = state.repo_root.clone();
+    match blocking(move || crate::graph::load(&repo_root)).await {
         Ok(graph) => (StatusCode::OK, Json(graph)).into_response(),
         Err(err) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string()),
     }

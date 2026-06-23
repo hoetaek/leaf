@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { fetchJson } from "./api.js";
+import { leafHref, openLeaf } from "./routes.js";
 
 // Lightweight layout: place nodes on a circle (deterministic, no layout lib).
 // Good enough for the pressed corpus scale; a force/dagre layout is a later slice.
@@ -23,8 +25,7 @@ export default function GraphView() {
   const H = 460;
 
   useEffect(() => {
-    fetch("/api/graph")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+    fetchJson("/api/graph")
       .then((d) => {
         setData(d);
         setSel(d.nodes[0] || null);
@@ -86,7 +87,7 @@ export default function GraphView() {
                   transform={`translate(${p.x},${p.y})`}
                   className={`node${isSel ? " sel" : ""}`}
                   onClick={() => setSel(node)}
-                  onDoubleClick={() => (window.location.hash = `#/leaf/${node.slug}`)}
+                  onDoubleClick={() => openLeaf(node.slug)}
                   style={{ cursor: "pointer" }}
                 >
                   <circle r="7" fill="#b5862a" />
@@ -111,7 +112,7 @@ export default function GraphView() {
                   </span>
                 ))}
               </div>
-              <a className="btn" href={`#/leaf/${sel.slug}`}>
+              <a className="btn" href={leafHref(sel.slug)}>
                 본문 열기 → Leaf detail
               </a>
             </>
