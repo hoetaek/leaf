@@ -9,11 +9,11 @@ import {
 import { select } from "d3-selection";
 import { zoom, zoomIdentity } from "d3-zoom";
 import { fetchJson } from "./api.js";
-import { buildDirectedEdgeGeometry } from "./graphGeometry.js";
+import GraphCanvas from "./GraphCanvas.jsx";
+import GraphDetailsPanel from "./GraphDetailsPanel.jsx";
 import { buildGraphModel } from "./graphModel.js";
 import { clampGraphPoint, constrainGraphNode, forceGraphBounds, graphNodeRadius } from "./graphPhysics.js";
 import { nextWheelZoom } from "./graphZoom.js";
-import { leafHref, openLeaf } from "./routes.js";
 
 const W = 880;
 const H = 520;
@@ -47,16 +47,6 @@ function endpointId(endpoint) {
 
 function endpointDegree(endpoint) {
   return typeof endpoint === "string" ? 0 : endpoint?.degree || 0;
-}
-
-function shortText(value, max = 24) {
-  if (!value) return "";
-  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
-}
-
-function stopGraphPan(event) {
-  event.stopPropagation();
-  event.nativeEvent.stopImmediatePropagation();
 }
 
 export default function GraphView() {
@@ -336,20 +326,6 @@ export default function GraphView() {
     select(svgRef.current).call(zoomRef.current.transform, zoomIdentity);
   }, []);
 
-  function resolvedNode(endpoint) {
-    if (typeof endpoint !== "string") return endpoint;
-    return layoutById.get(endpoint) || model?.nodeById.get(endpoint);
-  }
-
-  function isNodeActive(node) {
-    return !focusIds || focusIds.has(node.id);
-  }
-
-  function isLinkActive(link) {
-    if (!hoverId) return true;
-    return endpointId(link.source) === hoverId || endpointId(link.target) === hoverId;
-  }
-
   if (error) return <p className="err">그래프를 불러오지 못했습니다: {error}</p>;
   if (!data) return <p className="muted">불러오는 중…</p>;
 
@@ -366,125 +342,26 @@ export default function GraphView() {
         </button>
       </div>
       <div className="gr">
-        <div className="canvas force">
-          <svg ref={svgRef} className="graph-svg" viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
-            <defs>
-              <marker id="leafGraphArrow" viewBox="0 0 10 10" markerWidth="9" markerHeight="9" refX="9" refY="5" orient="auto">
-                <path d="M0,0 L10,5 L0,10 z" />
-              </marker>
-              <marker
-                id="leafGraphArrowActive"
-                viewBox="0 0 10 10"
-                markerWidth="9"
-                markerHeight="9"
-                refX="9"
-                refY="5"
-                orient="auto"
-              >
-                <path d="M0,0 L10,5 L0,10 z" />
-              </marker>
-            </defs>
-            <rect className="graph-bg" width={W} height={H} />
-            {model.nodes.length ? (
-              <g className="graph-viewport" transform={transform.toString()}>
-                <g className="edges">
-                  {layout.links.map((link, index) => {
-                    const source = resolvedNode(link.source);
-                    const target = resolvedNode(link.target);
-                    if (!source || !target) return null;
-                    const active = isLinkActive(link);
-                    const edge = buildDirectedEdgeGeometry(source, target, {
-                      sourceRadius: graphNodeRadius(source),
-                      targetRadius: graphNodeRadius(target),
-                    });
-                    const showLabel = active && (hoverId || layout.links.length <= 26);
-                    const edgeClass = hoverId ? `edge${active ? " active" : " dim"}` : "edge";
-                    const marker = hoverId && active ? "url(#leafGraphArrowActive)" : "url(#leafGraphArrow)";
-
-                    return (
-                      <g key={`${endpointId(link.source)}-${endpointId(link.target)}-${link.predicate}-${index}`}>
-                        <path className={edgeClass} d={edge.path} markerEnd={marker} />
-                        {showLabel ? (
-                          <text className={`edge-label${hoverId && active ? " active" : ""}`} x={edge.label.x} y={edge.label.y} textAnchor="middle">
-                            {shortText(link.predicate, 18)}
-                          </text>
-                        ) : null}
-                      </g>
-                    );
-                  })}
-                </g>
-                <g className="nodes">
-                  {layout.nodes.map((node) => {
-                    const active = isNodeActive(node);
-                    const isSelected = selected?.id === node.id;
-                    const classes = [
-                      "graph-node",
-                      active ? "" : "dim",
-                      isSelected ? "sel" : "",
-                      visited.has(node.id) ? "visited" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ");
-                    const radius = graphNodeRadius(node);
-
-                    return (
-                      <g
-                        key={node.id}
-                        className={classes}
-                        transform={`translate(${node.x || W / 2},${node.y || H / 2})`}
-                        onMouseEnter={() => setHoverId(node.id)}
-                        onMouseLeave={() => setHoverId(null)}
-                        onMouseDownCapture={stopGraphPan}
-                        onTouchStartCapture={stopGraphPan}
-                        onPointerDown={(event) => beginDrag(event, node)}
-                        onPointerMove={moveDrag}
-                        onPointerUp={(event) => endDrag(event, node)}
-                        onPointerCancel={(event) => endDrag(event, node)}
-                        onDoubleClick={() => openLeaf(node.slug)}
-                      >
-                        <circle className="node-halo" r={radius + 5} />
-                        <circle className="node-dot" r={radius} />
-                        <text className="graph-label" y={radius + 16} textAnchor="middle">
-                          {shortText(node.title)}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </g>
-              </g>
-            ) : (
-              <text className="graph-empty" x={W / 2} y={H / 2} textAnchor="middle">
-                pressed leaf graph가 비어 있습니다
-              </text>
-            )}
-          </svg>
-        </div>
-        <aside className="gpanel">
-          {selected ? (
-            <>
-              <h3>{selected.title}</h3>
-              <div className="gh">{selected.id}</div>
-              <div className="gstats">
-                <span>degree {selected.degree}</span>
-                <span>tags {selected.tags.length}</span>
-              </div>
-              <p>{selected.description || "설명이 없습니다."}</p>
-              <div className="tags">
-                {selected.tags.map((t) => (
-                  <span key={t} className="tag">
-                    #{t}
-                  </span>
-                ))}
-              </div>
-              <a className="btn" href={leafHref(selected.slug)}>
-                본문 열기 → Leaf detail
-              </a>
-            </>
-          ) : (
-            <p className="muted">노드를 선택하세요.</p>
-          )}
-          {hiddenEdgeCount ? <p className="gnote">현재 graph에 없는 fallen 타깃 edge {hiddenEdgeCount}개는 숨겼습니다.</p> : null}
-        </aside>
+        <GraphCanvas
+          width={W}
+          height={H}
+          svgRef={svgRef}
+          model={model}
+          layout={layout}
+          layoutById={layoutById}
+          transform={transform}
+          hoverId={hoverId}
+          focusIds={focusIds}
+          selectedId={selected?.id || null}
+          visited={visited}
+          onNodeEnter={setHoverId}
+          onNodeLeave={() => setHoverId(null)}
+          onNodePointerDown={beginDrag}
+          onNodePointerMove={moveDrag}
+          onNodePointerUp={endDrag}
+          onNodePointerCancel={endDrag}
+        />
+        <GraphDetailsPanel selected={selected} hiddenEdgeCount={hiddenEdgeCount} />
       </div>
     </div>
   );
