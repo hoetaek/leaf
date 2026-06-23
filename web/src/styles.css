@@ -1,0 +1,207 @@
+:root {
+  --paper: #f6f4ef; --paper2: #fffefb; --card: #fffdf9;
+  --line: #e2ddd2; --line2: #ece7dc;
+  --ink: #16181d; --body: #3c4148; --mut: #6c7178; --dim: #84888f;
+  --sage: #2f6b4f; --sage-mid: #3f8f6a; --sage-soft: #e3efe8;
+  --r-sm: 8px; --r: 14px; --r-lg: 20px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: "Satoshi", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased; font-size: 14px;
+}
+h1, h2, h3, h4 { font-family: "Cabinet Grotesk", sans-serif; letter-spacing: -0.02em; }
+.shell { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+.muted { color: var(--mut); }
+.err { color: #9c5249; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 16px;
+  height: 56px; background: rgba(246, 244, 239, 0.9); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line); margin: 0 -24px 0; padding: 0 24px;
+}
+.brand { font-family: "Cabinet Grotesk"; font-weight: 800; font-size: 16px; }
+.brand .mk { color: var(--sage-mid); }
+.crumb { color: var(--mut); font-size: 13px; }
+
+.reader { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 18px; align-items: start; padding: 28px 0 80px; }
+.reader > * { min-width: 0; }
+.md { overflow-wrap: anywhere; }
+.md table { display: block; width: 100%; overflow-x: auto; }
+.rail {
+  position: sticky; top: 72px; max-height: calc(100vh - 90px); overflow: auto;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 16px;
+}
+.rail h4 {
+  margin: 0 0 11px; font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--mut);
+}
+.gnav { display: flex; flex-direction: column; gap: 1px; }
+.gnav a {
+  display: flex; justify-content: space-between; cursor: pointer; color: var(--body);
+  padding: 7px 10px; border-radius: var(--r-sm); font-size: 13px;
+}
+.gnav a:hover { background: var(--paper); }
+.gnav a.on { background: var(--sage-soft); color: var(--sage); font-weight: 600; }
+.gnav a span { font-family: ui-monospace; font-size: 11px; color: var(--sage); }
+.gnav a.empty span { color: var(--dim); }
+
+.report {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 30px 38px; min-height: 400px;
+}
+.rprog { position: sticky; top: 0; height: 3px; background: var(--line2); border-radius: 3px; margin-bottom: 18px; overflow: hidden; }
+.rprog i { display: block; height: 100%; background: var(--sage); }
+.report section { scroll-margin-top: 70px; }
+.report section + section { margin-top: 30px; border-top: 1px solid var(--line2); padding-top: 26px; }
+.phtag {
+  font-family: "Cabinet Grotesk"; font-weight: 700; font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--sage); margin-bottom: 8px;
+}
+.file {
+  font-family: ui-monospace; font-size: 12px; color: var(--body);
+  border-left: 2px solid var(--sage); padding-left: 10px; margin-bottom: 16px;
+}
+.md h1, .md h2 { font-size: 20px; margin: 22px 0 10px; }
+.md h1:first-child, .md h2:first-child { margin-top: 0; }
+.md h3 { font-size: 16px; margin: 18px 0 8px; }
+.md p, .md li { color: var(--body); font-size: 15px; line-height: 1.65; }
+.md code {
+  font-family: ui-monospace; font-size: 0.88em; background: var(--paper);
+  border: 1px solid var(--line2); border-radius: 5px; padding: 1px 5px;
+}
+.md pre {
+  background: var(--paper2); border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 14px 16px; overflow: auto;
+}
+.md pre code { background: none; border: none; padding: 0; }
+.md table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13.5px; }
+.md th, .md td { border: 1px solid var(--line2); padding: 6px 10px; text-align: left; }
+/* neutral quote (raw wording etc.) — left rule, muted, not a callout box */
+.md blockquote {
+  margin: 10px 0; padding: 2px 0 2px 14px; border-left: 3px solid var(--line);
+  color: var(--mut); font-style: italic;
+}
+.md blockquote p { color: var(--mut); margin: 4px 0; }
+/* nav tabs */
+.brand { text-decoration: none; color: var(--ink); }
+.tabs { display: flex; gap: 2px; background: var(--paper2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px; }
+.tabs a { text-decoration: none; color: var(--mut); font-weight: 500; font-size: 13px; padding: 6px 14px; border-radius: 6px; }
+.tabs a.on { background: var(--ink); color: #fff; }
+.crumb a { color: var(--sage); text-decoration: none; }
+
+/* view headings */
+.vtitle { font-size: clamp(1.8rem, 3.5vw, 2.6rem); font-weight: 800; margin: 26px 0 2px; }
+.vsub { color: var(--mut); font-size: 14px; margin: 0 0 22px; }
+.foot-note { color: var(--dim); font-size: 12px; margin-top: 12px; }
+
+/* toolbar */
+.tools { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.filter { flex: 1; max-width: 360px; display: flex; align-items: center; gap: 8px; background: var(--paper2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 12px; }
+.filter .hint { color: var(--dim); font-family: ui-monospace; }
+.filter input { border: none; background: none; outline: none; flex: 1; font: inherit; color: var(--ink); }
+.stageseg { display: flex; background: var(--paper2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px; }
+.stageseg button { border: none; background: none; color: var(--mut); font: 500 13px/1 "Satoshi"; padding: 7px 12px; border-radius: 6px; cursor: pointer; }
+.stageseg button.on { background: var(--ink); color: #fff; }
+.stageseg .c { opacity: 0.6; }
+
+/* table */
+.tbl { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.thead, .trow { display: grid; grid-template-columns: 2fr 1fr 1.2fr 0.6fr; align-items: start; column-gap: 16px; }
+/* min-width:0 lets each track keep its fr width and ellipsize, so long `why`
+   text can't widen the Leaf column and push Phase/Progress out of alignment. */
+.thead > *, .trow > * { min-width: 0; }
+/* top-align each cell so every column's first line shares one start line regardless of wrap */
+.trow .phase, .trow .prog, .trow .status { padding-top: 1px; }
+.thead { padding: 10px 18px; border-bottom: 1px solid var(--line); background: var(--paper2); }
+.thead span { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--mut); }
+.trow { padding: 11px 18px; border-bottom: 1px solid var(--line2); text-decoration: none; color: inherit; }
+.trow:last-child { border-bottom: none; }
+.trow.sel { background: var(--sage-soft); box-shadow: inset 3px 0 0 var(--sage); }
+.c-leaf .slug { font-family: "Cabinet Grotesk"; font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.c-leaf .why { color: var(--mut); font-size: 12px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 52ch; }
+/* stage marker: distinct hue + shape so sprout/leaf/fallen never blur.
+   sprout = amber shoot (circle) · leaf = green (square) · fallen = rust (hollow) */
+.tagdot { width: 10px; height: 10px; flex: none; background: var(--dim); border-radius: 50%; }
+.tagdot.sprouts { background: #e08a00; border-radius: 50%; }            /* amber circle */
+.tagdot.leaves { background: #1f8a4c; border-radius: 3px; }            /* green square */
+.tagdot.fallen { background: transparent; border: 2px solid #b0564a; border-radius: 50%; } /* rust hollow */
+.phase { font-size: 13px; color: var(--body); }
+.phase b { font-family: "Cabinet Grotesk"; color: var(--ink); }
+.prog { display: flex; align-items: center; gap: 10px; }
+.segs { display: flex; gap: 2px; }
+.sg { width: 14px; height: 7px; border-radius: 2px; background: #ddd7ca; }
+.sg.done { background: var(--sage); }
+.sg.cur { background: transparent; border: 1.5px solid var(--ink); }
+.pnum { font-family: ui-monospace; font-size: 12px; color: var(--mut); }
+.status { font-size: 13px; color: var(--sage); display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+.status .d { width: 7px; height: 7px; border-radius: 50%; background: var(--sage); }
+.status:not(.ok) { color: #9c5249; }
+.status:not(.ok) .d { background: #9c5249; }
+
+/* graph */
+.gr { display: grid; grid-template-columns: 1fr 290px; gap: 16px; }
+.canvas { background: radial-gradient(circle at 1px 1px, #e2ddd2 1px, transparent 0) 0 0/24px 24px, var(--paper2); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.edge-lbl { fill: var(--mut); font-size: 11px; font-family: "Satoshi"; }
+.node .node-t { font-family: "Cabinet Grotesk"; font-weight: 700; font-size: 12px; fill: var(--ink); }
+.node.sel circle { stroke: var(--sage); stroke-width: 3; }
+.gpanel { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; height: fit-content; }
+.gpanel h3 { font-size: 18px; margin: 0 0 4px; }
+.gpanel .gh { font-family: ui-monospace; font-size: 11px; color: var(--sage); margin-bottom: 12px; }
+.gpanel p { font-size: 13px; color: var(--body); line-height: 1.6; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.tag { font-size: 11px; color: var(--mut); background: var(--paper); border: 1px solid var(--line2); border-radius: 20px; padding: 2px 9px; }
+.gnote { color: var(--dim); font-size: 11px; margin-top: 12px; }
+.btn { display: inline-block; text-decoration: none; background: var(--sage); color: #fff; font-weight: 600; font-size: 13px; border-radius: var(--r-sm); padding: 9px 14px; margin-top: 8px; }
+
+/* key hint + references drawer */
+.khint { margin-left: 12px; color: var(--dim); font-size: 12px; }
+.kbd { display: inline-block; font-family: ui-monospace; font-size: 11px; color: var(--mut); background: var(--paper2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; margin: 0 1px; }
+.khint { color: var(--dim); font-size: 12px; }
+.foot-note .khint { margin-left: 10px; }
+.refoverlay { position: fixed; inset: 0; background: rgba(22, 24, 29, 0.28); z-index: 90; display: flex; justify-content: flex-end; }
+.refdrawer { width: min(820px, 95vw); height: 100%; background: var(--card); border-left: 1px solid var(--line); padding: 20px 22px; display: flex; flex-direction: column; box-shadow: -20px 0 50px -30px rgba(22,24,29,0.5); }
+.refhead { display: flex; align-items: center; gap: 8px; font-family: "Cabinet Grotesk"; font-size: 18px; margin-bottom: 14px; }
+.refclose { margin-left: auto; border: 1px solid var(--line); background: var(--paper2); border-radius: var(--r-sm); width: 30px; height: 30px; cursor: pointer; color: var(--body); }
+/* two-pane picker: nav list + reader (TUI ReferencePicker → ReferenceRead) */
+.refpicker { display: grid; grid-template-columns: 230px 1fr; gap: 16px; min-height: 0; flex: 1; }
+.reflist-nav { list-style: none; margin: 0; padding: 0; overflow: auto; border-right: 1px solid var(--line2); }
+.reflist-nav li { padding: 8px 10px; border-radius: var(--r-sm); cursor: pointer; font-size: 13px; color: var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reflist-nav li:hover { background: var(--paper); }
+.reflist-nav li.on { background: var(--sage-soft); color: var(--sage); font-weight: 600; }
+.reflist-nav.focus { box-shadow: inset 0 0 0 2px var(--sage-soft); border-radius: var(--r-sm); }
+.refread { overflow: auto; padding-right: 6px; border-radius: var(--r-sm); }
+.refread.focus { box-shadow: inset 0 0 0 2px var(--sage-soft); padding-left: 10px; }
+.refread .file { margin-bottom: 12px; }
+.refread h1, .refread h2 { font-size: 16px; }
+.refread p, .refread li { font-size: 13.5px; }
+
+/* mobile floating TOC (collapsed) — desktop hides it and uses the sticky rail */
+.toc-fab { display: none; }
+.toc-overlay { display: none; }
+
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+@media (max-width: 820px) {
+  .gr { grid-template-columns: 1fr; }
+  /* review reader: hide the stacked rail, surface a floating collapsed TOC */
+  .reader { grid-template-columns: 1fr; }
+  .dbody .rail, .reader > .rail { display: none; }
+  .toc-fab {
+    display: inline-flex; align-items: center; gap: 8px;
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 70;
+    background: var(--ink); color: #fff; border: none; border-radius: 24px;
+    padding: 11px 18px; font: 600 13px "Satoshi"; cursor: pointer;
+    box-shadow: 0 10px 30px -12px rgba(22, 24, 29, 0.55); max-width: 80vw;
+  }
+  .toc-fab-gate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .toc-overlay { display: block; position: fixed; inset: 0; background: rgba(22, 24, 29, 0.32); z-index: 75; }
+  .toc-sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; background: var(--card);
+    border-radius: 18px 18px 0 0; padding: 14px 18px calc(18px + env(safe-area-inset-bottom));
+    max-height: 72vh; overflow: auto; box-shadow: 0 -16px 40px -20px rgba(22, 24, 29, 0.5);
+  }
+  .toc-sheethead { display: flex; align-items: center; font-family: "Cabinet Grotesk"; font-size: 17px; margin-bottom: 10px; }
+  .toc-sheethead .refclose { margin-left: auto; }
+  .toc-sheet .gnav a { padding: 11px 10px; }
+}
