@@ -42,6 +42,7 @@ edit, or a direct lookup — then just answer.
 | `work` | Carry a sprout from ③ Example through a shipped ⑧ Artifact, then ⑨/⑩ |
 | `polish` | Make the cumulative document read as one connected report at each phase boundary |
 | `press` | Press a reference-worthy leaf into a citable digest |
+| `tend` | Sweep the pressed knowledge graph and reconcile drift with current code (banner/supersede) |
 | `profile` | Read/update the machine-global and repo-local LEAF profiles |
 
 Process skills first (decide *how*), then domain skills.

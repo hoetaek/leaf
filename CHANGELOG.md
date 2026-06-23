@@ -6,6 +6,17 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.6.0 - 2026-06-23
+
+- Added the `leaf:tend` skill — keeps the pressed knowledge graph true to current
+  code. It sweeps pressed nodes via `leaf graph`, verifies each `pressed.md`
+  claim independently against the repo, and proposes 🟢 keep / 🟡 correction-banner
+  / 🔴 supersede per leaf. The frozen pressed body is never rewritten: surface
+  drift gets an append-only correction banner, a reversed core decision is handed
+  off to `leaf fall --reason superseded` + a new superseding leaf. Irreversible
+  actions require user confirmation. Registered in `using-leaf`; distinct from
+  `polish` (prose), `press` (first pressing), and `review` (human handoff).
+
 ## 0.12.0 - 2026-06-23
 
 - Added `leaf next <slug>` — crosses a phase boundary as a real machine event.
