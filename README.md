@@ -300,6 +300,8 @@ The crate is not published to crates.io.
 ## Development
 
 ```bash
+npm --prefix web ci
+npm --prefix web run build
 cargo fmt --all --check
 cargo check --locked --all-targets --all-features
 cargo clippy --all-targets --all-features -- -D warnings

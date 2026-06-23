@@ -87,6 +87,6 @@ lto = "thin"
 
 # `embed-web` bundles the built `web/dist` SPA into the binary so `leaf serve`
 # runs standalone. Off by default (default build serves `web/dist` from disk);
-# enable for release: `cargo build --features embed-web` after `npm run build`.
+# release builds enable this through dist-workspace.toml after the Vite build.
 [features]
 embed-web = ["dep:rust-embed"]

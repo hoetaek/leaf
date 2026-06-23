@@ -9,6 +9,12 @@ cargo-dist-version = "0.31.0"
 ci = "github"
 # Keep the generated release workflow hand-editable for branch-policy gates.
 allow-dirty = ["ci"]
+# Release binaries must include the built web UI so package-manager installs can
+# run `leaf serve` standalone.
+features = ["embed-web"]
+# This is consumed if cargo-dist CI is regenerated. The checked-in release.yml is
+# hand-edited, so keep its explicit web build steps in sync with this file.
+github-build-setup = "../build-setup.yml"
 # The installers to generate for each app
 installers = ["shell", "powershell", "homebrew"]
 # Target platforms to build apps for (Rust target-triple syntax)
