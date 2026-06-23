@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use serde::Serialize;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -187,6 +188,141 @@ pub(crate) fn build(source: &ReviewSource) -> Result<ReviewDocument> {
             root_relative_path,
         } => build_leaf_work(root_path.clone(), root_relative_path.clone()),
     }
+}
+
+/// Machine-readable form of a leaf's review: the canonical 11 gate sources in
+/// order, each carrying its raw markdown. Consumed by `leaf review --json` and
+/// the `leaf serve` web reader. Unlike `build`, this does not parse markdown
+/// into TUI spans — the raw file text is handed to the client to render — so
+/// the `.leaf` files stay the single source of truth.
+#[derive(Debug, Serialize)]
+pub(crate) struct ReviewJson {
+    pub(crate) slug: String,
+    pub(crate) title: String,
+    pub(crate) root: String,
+    pub(crate) sources: Vec<SourceJson>,
+    pub(crate) references: Vec<ReferenceJson>,
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct ReferenceJson {
+    pub(crate) relative_path: String,
+    pub(crate) markdown: String,
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct SourceJson {
+    pub(crate) phase: String,
+    pub(crate) gate: String,
+    pub(crate) relative_path: String,
+    pub(crate) present: bool,
+    pub(crate) markdown: String,
+}
+
+/// Build the JSON review by walking `CANONICAL_SOURCES` (the same 11-source
+/// contract `build` uses) and reading each file's raw text. Missing sources are
+/// emitted with `present: false` so the array is always 11 long. Folder-form
+/// gates (e.g. `02-Example/04-wireframe/`) concatenate their markdown files in
+/// filename order, matching `append_source`.
+pub(crate) fn build_json(source: &ReviewSource) -> Result<ReviewJson> {
+    let ReviewSource::LeafWork {
+        root_path,
+        root_relative_path,
+    } = source;
+    let title = root_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("leaf")
+        .to_string();
+
+    let mut sources = Vec::with_capacity(CANONICAL_SOURCES.len());
+    for spec in CANONICAL_SOURCES.iter() {
+        let file_path = root_path.join(spec.file);
+        let entry = match fs::read_to_string(&file_path) {
+            Ok(content) => SourceJson {
+                phase: spec.phase.to_string(),
+                gate: spec.gate.to_string(),
+                relative_path: format!("{root_relative_path}/{}", spec.file),
+                present: true,
+                markdown: content,
+            },
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+                read_folder_source(root_path, root_relative_path, spec)?
+            }
+            Err(err) => {
+                return Err(err).context(format!("failed to read {}", file_path.display()));
+            }
+        };
+        sources.push(entry);
+    }
+
+    let references = reference_files(source)?
+        .into_iter()
+        .map(|reference| {
+            let markdown = fs::read_to_string(&reference.path).unwrap_or_default();
+            ReferenceJson {
+                relative_path: reference.relative_path,
+                markdown,
+            }
+        })
+        .collect();
+
+    Ok(ReviewJson {
+        slug: title.clone(),
+        title,
+        root: root_relative_path.clone(),
+        sources,
+        references,
+    })
+}
+
+/// Resolve a folder-form gate (or report it absent). Concatenates the folder's
+/// markdown files in filename order.
+fn read_folder_source(
+    root_path: &Path,
+    root_relative_path: &str,
+    spec: &SourceSpec,
+) -> Result<SourceJson> {
+    for folder in spec.folders {
+        let folder_path = root_path.join(folder);
+        if !folder_path.is_dir() {
+            continue;
+        }
+        let files = markdown_files_in(&folder_path, folder)?;
+        if files.is_empty() {
+            continue;
+        }
+        let mut markdown = String::new();
+        for file in &files {
+            let content = fs::read_to_string(&file.path)
+                .with_context(|| format!("failed to read {}", file.path.display()))?;
+            if !markdown.is_empty() {
+                markdown.push_str("\n\n");
+            }
+            markdown.push_str(&content);
+        }
+        return Ok(SourceJson {
+            phase: spec.phase.to_string(),
+            gate: spec.gate.to_string(),
+            relative_path: format!("{root_relative_path}/{folder}/"),
+            present: true,
+            markdown,
+        });
+    }
+    Ok(SourceJson {
+        phase: spec.phase.to_string(),
+        gate: spec.gate.to_string(),
+        relative_path: format!("{root_relative_path}/{}", spec.file),
+        present: false,
+        markdown: String::new(),
+    })
+}
+
+/// Write a `ReviewJson` as pretty JSON, mirroring `graph::write_json`.
+pub(crate) fn write_json<W: Write>(writer: &mut W, document: &ReviewJson) -> Result<()> {
+    serde_json::to_writer_pretty(&mut *writer, document).context("serialize review json")?;
+    writeln!(writer).context("write leaf review json")?;
+    Ok(())
 }
 
 pub(crate) fn write_text<W: Write>(writer: &mut W, document: &ReviewDocument) -> Result<()> {

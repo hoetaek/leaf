@@ -56,6 +56,9 @@ enum Commands {
     Review {
         /// Leaf-work slug to review.
         slug: String,
+        /// Write machine-readable JSON (the 11 gate sources with raw markdown).
+        #[arg(long)]
+        json: bool,
     },
     /// Print the effective profile (global profile layered with repo-local PROFILE.md).
     Profile,
@@ -71,6 +74,12 @@ enum Commands {
         /// Write machine-readable JSON.
         #[arg(long)]
         json: bool,
+    },
+    /// Serve a read-only local web UI over the .leaf workspace.
+    Serve {
+        /// Port to bind on 127.0.0.1.
+        #[arg(long, default_value_t = 4173)]
+        port: u16,
     },
     /// Update leaf to the latest stable release.
     Update,
@@ -238,12 +247,18 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             stdout.flush().context("flush leaf graph output")?;
             Ok(ExitCode::SUCCESS)
         }
-        Commands::Review { slug } => {
+        Commands::Review { slug, json } => {
             let slug = crate::slug::validate(&slug)?;
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             let inventory = crate::inventory::load(&paths.root)?;
             let source = review_source_for_slug(&inventory, &slug)?;
-            if std::io::stdin().is_terminal() && std::io::stdout().is_terminal() {
+            if json {
+                let document = crate::review::build_json(&source)?;
+                let stdout = std::io::stdout();
+                let mut stdout = stdout.lock();
+                crate::review::write_json(&mut stdout, &document)?;
+                stdout.flush().context("flush leaf review json")?;
+            } else if std::io::stdin().is_terminal() && std::io::stdout().is_terminal() {
                 crate::tui::run_review(&inventory, source)?;
             } else {
                 let document = crate::review::build(&source)?;
@@ -300,6 +315,10 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             } else {
                 Ok(ExitCode::SUCCESS)
             }
+        }
+        Commands::Serve { port } => {
+            crate::serve::run(port)?;
+            Ok(ExitCode::SUCCESS)
         }
         Commands::Update => crate::update::run(),
     }
@@ -384,7 +403,7 @@ fn leaf_work_path_for_slug(
     }
 }
 
-fn review_source_for_slug(
+pub(crate) fn review_source_for_slug(
     inventory: &crate::inventory::Inventory,
     slug: &str,
 ) -> Result<crate::review::ReviewSource> {
