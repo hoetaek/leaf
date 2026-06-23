@@ -177,24 +177,33 @@ h1, h2, h3, h4 { font-family: "Cabinet Grotesk", sans-serif; letter-spacing: -0.
 .refread h1, .refread h2 { font-size: 16px; }
 .refread p, .refread li { font-size: 13.5px; }
 
-/* mobile floating TOC (collapsed) — desktop hides it and uses the sticky rail */
-.toc-fab { display: none; }
+/* mobile TOC bar (collapsed) — desktop hides it and uses the sticky rail */
+.toc-bar { display: none; }
 .toc-overlay { display: none; }
 
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 @media (max-width: 820px) {
   .gr { grid-template-columns: 1fr; }
-  /* review reader: hide the stacked rail, surface a floating collapsed TOC */
+  /* review reader: hide the stacked rail, surface a compact sticky TOC */
   .reader { grid-template-columns: 1fr; }
   .dbody .rail, .reader > .rail { display: none; }
-  .toc-fab {
-    display: inline-flex; align-items: center; gap: 8px;
-    position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 70;
-    background: var(--ink); color: #fff; border: none; border-radius: 24px;
-    padding: 11px 18px; font: 600 13px "Satoshi"; cursor: pointer;
-    box-shadow: 0 10px 30px -12px rgba(22, 24, 29, 0.55); max-width: 80vw;
+  .toc-bar {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px;
+    position: sticky; top: 56px; z-index: 45; width: calc(100% + 48px); margin: 0 -24px 2px;
+    border: none; border-bottom: 1px solid var(--line); background: rgba(255, 253, 249, 0.96);
+    color: var(--ink); padding: 10px 24px 11px; font: 600 13px "Satoshi"; cursor: pointer;
+    box-shadow: 0 8px 24px -22px rgba(22, 24, 29, 0.45);
+    backdrop-filter: blur(8px);
   }
-  .toc-fab-gate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .toc-bar-gate {
+    min-width: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .toc-bar-action {
+    color: var(--sage); font-weight: 700;
+  }
+  .toc-bar i {
+    position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--sage);
+  }
   .toc-overlay { display: block; position: fixed; inset: 0; background: rgba(22, 24, 29, 0.32); z-index: 75; }
   .toc-sheet {
     position: fixed; left: 0; right: 0; bottom: 0; background: var(--card);

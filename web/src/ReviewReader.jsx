@@ -156,6 +156,11 @@ export default function ReviewReader({ slug = "leaf-tend-pressed-docs" }) {
           {data.references?.length || 0}) &middot; <span className="kbd">q</span> 목록
         </span>
       </p>
+      <button className="toc-bar" onClick={() => setShowToc(true)}>
+        <span className="toc-bar-gate">{data.sources[active]?.gate || "목차"}</span>
+        <span className="toc-bar-action">목차</span>
+        <i style={{ width: `${(progress * 100).toFixed(1)}%` }} />
+      </button>
       <div className="reader">
         <aside className="rail">
           <h4>Gates &mdash; read all</h4>
@@ -199,10 +204,7 @@ export default function ReviewReader({ slug = "leaf-tend-pressed-docs" }) {
         </article>
       </div>
 
-      {/* mobile: collapsed floating TOC (desktop uses the sticky rail) */}
-      <button className="toc-fab" onClick={() => setShowToc(true)}>
-        ☰ <span className="toc-fab-gate">{data.sources[active]?.gate || "목차"}</span>
-      </button>
+      {/* mobile: collapsed TOC (desktop uses the sticky rail) */}
       {showToc && (
         <div className="toc-overlay" onClick={() => setShowToc(false)}>
           <div className="toc-sheet" onClick={(e) => e.stopPropagation()}>
