@@ -15,7 +15,7 @@ export default function ReviewReader({ slug = "leaf-tend-pressed-docs" }) {
   const [showRefs, setShowRefs] = useState(false);
   const [refSel, setRefSel] = useState(0);
   const [refFocus, setRefFocus] = useState("list"); // "list" | "content"
-  const [showToc, setShowToc] = useState(false); // mobile floating table-of-contents
+  const [showToc, setShowToc] = useState(false); // mobile table-of-contents
   const sectionRefs = useRef([]);
   const reportRef = useRef(null);
 

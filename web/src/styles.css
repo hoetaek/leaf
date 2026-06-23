@@ -183,15 +183,56 @@ h1, h2, h3, h4 { font-family: "Cabinet Grotesk", sans-serif; letter-spacing: -0.
 
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 @media (max-width: 820px) {
+  .shell { padding: 0 16px; }
+  .topbar { margin: 0 -16px; padding: 0 16px; gap: 12px; }
+  .tabs { margin-left: auto; }
+  .tabs a { padding: 6px 12px; }
+  .vtitle { font-size: 2rem; margin-top: 22px; }
+  .vsub { margin-bottom: 18px; }
+  .tools { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .filter { max-width: none; width: 100%; padding: 11px 14px; }
+  .stageseg {
+    width: 100%; overflow-x: auto; scrollbar-width: none;
+  }
+  .stageseg::-webkit-scrollbar { display: none; }
+  .stageseg button { flex: 1 0 auto; padding: 9px 13px; }
+  .tbl {
+    display: grid; gap: 10px; border: 0; border-radius: 0; background: transparent; overflow: visible;
+  }
+  .thead { display: none; }
+  .trow {
+    position: relative; display: grid; grid-template-columns: 1fr; gap: 9px;
+    padding: 15px 16px 14px; border: 1px solid var(--line); border-radius: var(--r);
+    background: var(--card); box-shadow: 0 8px 24px -24px rgba(22, 24, 29, 0.45);
+  }
+  .trow.sel { box-shadow: inset 3px 0 0 var(--sage), 0 8px 24px -24px rgba(22, 24, 29, 0.45); }
+  .trow .c-leaf { padding-right: 74px; }
+  .c-leaf .slug { font-size: 18px; line-height: 1.2; align-items: flex-start; }
+  .c-leaf .why { max-width: none; margin-top: 5px; font-size: 13px; }
+  .tagdot { margin-top: 5px; }
+  .trow .phase {
+    display: block; padding-top: 0; color: var(--mut); font-size: 13px;
+  }
+  .trow .phase b { margin-right: 3px; }
+  .trow .prog {
+    padding-top: 0; width: 100%; gap: 9px;
+  }
+  .trow .prog .segs { flex: 1; min-width: 0; }
+  .trow .prog .sg { flex: 1; width: auto; min-width: 0; }
+  .trow .status {
+    position: absolute; top: 16px; right: 16px; padding-top: 0;
+    justify-content: flex-end; font-size: 12px; max-width: 70px;
+  }
+  .foot-note .khint { display: none; }
   .gr { grid-template-columns: 1fr; }
   /* review reader: hide the stacked rail, surface a compact sticky TOC */
   .reader { grid-template-columns: 1fr; }
   .dbody .rail, .reader > .rail { display: none; }
   .toc-bar {
     display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px;
-    position: sticky; top: 56px; z-index: 45; width: calc(100% + 48px); margin: 0 -24px 2px;
+    position: sticky; top: 56px; z-index: 45; width: calc(100% + 32px); margin: 0 -16px 2px;
     border: none; border-bottom: 1px solid var(--line); background: rgba(255, 253, 249, 0.96);
-    color: var(--ink); padding: 10px 24px 11px; font: 600 13px "Satoshi"; cursor: pointer;
+    color: var(--ink); padding: 10px 16px 11px; font: 600 13px "Satoshi"; cursor: pointer;
     box-shadow: 0 8px 24px -22px rgba(22, 24, 29, 0.45);
     backdrop-filter: blur(8px);
   }

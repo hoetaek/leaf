@@ -39,6 +39,7 @@ export default function WorkspaceList() {
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(0);
   const filterRef = useRef(null);
+  const rowRefs = useRef([]);
 
   useEffect(() => {
     fetch("/api/list")
@@ -61,6 +62,35 @@ export default function WorkspaceList() {
     });
   }, [data, stage, q]);
 
+  const openRow = (index = sel) => {
+    const it = rows[Math.min(index, rows.length - 1)];
+    if (it) window.location.hash = `#/leaf/${encodeURIComponent(it.slug)}`;
+  };
+
+  useEffect(() => {
+    if (rows.length === 0) {
+      setSel(0);
+      return;
+    }
+    setSel((s) => Math.min(s, rows.length - 1));
+  }, [rows.length]);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      const el = rowRefs.current[sel];
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const topPad = 72;
+      const bottomPad = 24;
+      if (rect.top < topPad) {
+        window.scrollBy({ top: rect.top - topPad, behavior: "smooth" });
+      } else if (rect.bottom > window.innerHeight - bottomPad) {
+        window.scrollBy({ top: rect.bottom - window.innerHeight + bottomPad, behavior: "smooth" });
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [sel, rows.length]);
+
   // keyboard: j/k move, Enter open, / focus filter, h/l stage
   const stages = ["all", "sprouts", "leaves", "fallen"];
   useEffect(() => {
@@ -82,8 +112,13 @@ export default function WorkspaceList() {
         e.preventDefault();
         setSel((s) => Math.max(0, s - 1));
       } else if (e.key === "Enter") {
-        const it = rows[sel];
-        if (it) window.location.hash = `#/leaf/${encodeURIComponent(it.slug)}`;
+        openRow();
+      } else if (e.key === "d" || e.key === "u") {
+        e.preventDefault();
+        window.scrollBy({
+          top: (e.key === "d" ? 1 : -1) * window.innerHeight * 0.85,
+          behavior: "smooth",
+        });
       } else if (e.key === "h" || e.key === "l") {
         const i = stages.indexOf(stage);
         const next = e.key === "l" ? Math.min(stages.length - 1, i + 1) : Math.max(0, i - 1);
@@ -117,9 +152,16 @@ export default function WorkspaceList() {
           <input
             ref={filterRef}
             value={q}
+            enterKeyHint="go"
             onChange={(e) => {
               setQ(e.target.value);
               setSel(0);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                openRow();
+              }
             }}
             placeholder="filter by slug, action"
           />
@@ -144,6 +186,7 @@ export default function WorkspaceList() {
         {rows.map((it, i) => (
           <a
             key={it.slug}
+            ref={(el) => (rowRefs.current[i] = el)}
             className={`trow${i === sel ? " sel" : ""}`}
             href={`#/leaf/${encodeURIComponent(it.slug)}`}
             onMouseEnter={() => setSel(i)}
@@ -171,7 +214,8 @@ export default function WorkspaceList() {
         <span className="khint">
           <span className="kbd">j</span>
           <span className="kbd">k</span> 이동 &middot; <span className="kbd">Enter</span> 열기 &middot;{" "}
-          <span className="kbd">/</span> 필터 &middot; <span className="kbd">h</span>
+          <span className="kbd">d</span>
+          <span className="kbd">u</span> 페이지 &middot; <span className="kbd">/</span> 필터 &middot; <span className="kbd">h</span>
           <span className="kbd">l</span> stage
         </span>
       </p>
