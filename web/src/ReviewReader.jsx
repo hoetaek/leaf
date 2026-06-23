@@ -1,13 +1,32 @@
 import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { fetchJson } from "./api.js";
 
-// react-markdown needs remark-gfm for GFM tables / strikethrough / task lists.
-function Md({ children }) {
-  return <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>;
+const MARKDOWN_PLUGINS = [remarkGfm];
+
+const Md = React.memo(function Md({ children }) {
+  return <ReactMarkdown remarkPlugins={MARKDOWN_PLUGINS}>{children}</ReactMarkdown>;
+});
+
+function GateNav({ sources, active, onSelect }) {
+  return (
+    <nav className="gnav">
+      {sources.map((source, index) => (
+        <a
+          key={index}
+          className={index === active ? "on" : source.present ? "" : "empty"}
+          onClick={() => onSelect(index)}
+        >
+          {source.gate}
+          <span>{source.present ? "✓" : "·"}</span>
+        </a>
+      ))}
+    </nav>
+  );
 }
 
-export default function ReviewReader({ slug = "leaf-tend-pressed-docs" }) {
+export default function ReviewReader({ slug }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [active, setActive] = useState(0);
@@ -18,6 +37,8 @@ export default function ReviewReader({ slug = "leaf-tend-pressed-docs" }) {
   const [showToc, setShowToc] = useState(false); // mobile table-of-contents
   const sectionRefs = useRef([]);
   const reportRef = useRef(null);
+  const refReadRef = useRef(null);
+  const progressFrame = useRef(null);
 
   // References picker behaves like a LazyVim two-pane explorer:
   //  drawer + list focus  : j/k move the reference list · l selects (focus → content)
@@ -27,7 +48,7 @@ export default function ReviewReader({ slug = "leaf-tend-pressed-docs" }) {
   useEffect(() => {
     const n = data?.references?.length || 0;
     const inContent = showRefs && refFocus === "content";
-    const pane = () => (inContent ? document.querySelector(".refread") : null);
+    const pane = () => (inContent ? refReadRef.current : null);
     const scroll = (dy) => (pane() || window).scrollBy({ top: dy, behavior: "smooth" });
     const page = (frac) => {
       const el = pane();
@@ -93,9 +114,9 @@ export default function ReviewReader({ slug = "leaf-tend-pressed-docs" }) {
   }, [showRefs, refFocus, data]);
 
   useEffect(() => {
+    if (!slug) return;
     let alive = true;
-    fetch(`/api/review/${slug}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+    fetchJson(`/api/review/${slug}`)
       .then((d) => alive && setData(d))
       .catch((e) => alive && setError(e.message));
     return () => {
@@ -124,17 +145,27 @@ export default function ReviewReader({ slug = "leaf-tend-pressed-docs" }) {
   // reading progress
   useEffect(() => {
     const onScroll = () => {
-      const rep = reportRef.current;
-      if (!rep) return;
-      const r = rep.getBoundingClientRect();
-      const total = r.height - window.innerHeight;
-      setProgress(Math.min(1, Math.max(0, -r.top / (total || 1))));
+      if (progressFrame.current) return;
+      progressFrame.current = requestAnimationFrame(() => {
+        progressFrame.current = null;
+        const rep = reportRef.current;
+        if (!rep) return;
+        const r = rep.getBoundingClientRect();
+        const total = r.height - window.innerHeight;
+        setProgress(Math.min(1, Math.max(0, -r.top / (total || 1))));
+      });
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (progressFrame.current) cancelAnimationFrame(progressFrame.current);
+    };
   }, [data]);
 
+  if (!slug) {
+    return <p className="err">리뷰 slug가 없습니다.</p>;
+  }
   if (error) {
     return <p className="err">리뷰를 불러오지 못했습니다: {error}. `leaf serve`가 떠 있나요?</p>;
   }
@@ -156,26 +187,29 @@ export default function ReviewReader({ slug = "leaf-tend-pressed-docs" }) {
           {data.references?.length || 0}) &middot; <span className="kbd">q</span> 목록
         </span>
       </p>
-      <button className="toc-bar" onClick={() => setShowToc(true)}>
-        <span className="toc-bar-gate">{data.sources[active]?.gate || "목차"}</span>
-        <span className="toc-bar-action">목차</span>
-        <i style={{ width: `${(progress * 100).toFixed(1)}%` }} />
-      </button>
+      <div className="mobile-reader-actions">
+        <button className="toc-bar" onClick={() => setShowToc(true)}>
+          <span className="toc-bar-gate">{data.sources[active]?.gate || "목차"}</span>
+          <span className="toc-bar-action">목차</span>
+          <i style={{ width: `${(progress * 100).toFixed(1)}%` }} />
+        </button>
+        {(data.references?.length || 0) > 0 && (
+          <button
+            className="refs-bar"
+            onClick={() => {
+              setShowRefs(true);
+              setRefSel(0);
+              setRefFocus("content");
+            }}
+          >
+            Refs <span>{data.references.length}</span>
+          </button>
+        )}
+      </div>
       <div className="reader">
         <aside className="rail">
           <h4>Gates &mdash; read all</h4>
-          <nav className="gnav">
-            {data.sources.map((s, i) => (
-              <a
-                key={i}
-                className={i === active ? "on" : s.present ? "" : "empty"}
-                onClick={() => jump(i)}
-              >
-                {gateLabel(s.gate)}
-                <span>{s.present ? "✓" : "·"}</span>
-              </a>
-            ))}
-          </nav>
+          <GateNav sources={data.sources} active={active} onSelect={jump} />
         </aside>
 
         <article className="report" ref={reportRef}>
@@ -214,21 +248,14 @@ export default function ReviewReader({ slug = "leaf-tend-pressed-docs" }) {
                 ✕
               </button>
             </div>
-            <nav className="gnav">
-              {data.sources.map((s, i) => (
-                <a
-                  key={i}
-                  className={i === active ? "on" : s.present ? "" : "empty"}
-                  onClick={() => {
-                    jump(i);
-                    setShowToc(false);
-                  }}
-                >
-                  {s.gate}
-                  <span>{s.present ? "✓" : "·"}</span>
-                </a>
-              ))}
-            </nav>
+            <GateNav
+              sources={data.sources}
+              active={active}
+              onSelect={(index) => {
+                jump(index);
+                setShowToc(false);
+              }}
+            />
           </div>
         </div>
       )}
@@ -277,7 +304,10 @@ export default function ReviewReader({ slug = "leaf-tend-pressed-docs" }) {
                     </li>
                   ))}
                 </ul>
-                <div className={`refread md${refFocus === "content" ? " focus" : ""}`}>
+                <div
+                  ref={refReadRef}
+                  className={`refread md${refFocus === "content" ? " focus" : ""}`}
+                >
                   <div className="file">{data.references[refSel]?.relative_path}</div>
                   <Md>{data.references[refSel]?.markdown || ""}</Md>
                 </div>
@@ -288,9 +318,4 @@ export default function ReviewReader({ slug = "leaf-tend-pressed-docs" }) {
       )}
     </>
   );
-}
-
-// "① Intent" -> shows as-is; keep the gate string from the server.
-function gateLabel(gate) {
-  return gate;
 }
