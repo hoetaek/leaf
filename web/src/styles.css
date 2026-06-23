@@ -157,17 +157,20 @@ h1, h2, h3, h4 { font-family: "Cabinet Grotesk", sans-serif; letter-spacing: -0.
 .graph-svg { display: block; width: 100%; height: min(62vh, 520px); min-height: 390px; touch-action: none; cursor: grab; }
 .graph-svg:active { cursor: grabbing; }
 .graph-bg { fill: transparent; }
-#leafGraphArrow path { fill: #a8a38f; }
+#leafGraphArrow path { fill: #9d9786; }
+#leafGraphArrowActive path { fill: var(--sage); }
 .graph-viewport { transform-origin: 0 0; }
 .edge {
-  stroke: #bcb4a4; stroke-width: 1.45; stroke-opacity: 0.68; fill: none;
+  stroke: #a9a18f; stroke-width: 1.55; stroke-opacity: 0.72; fill: none;
   transition: stroke-opacity 120ms ease, stroke-width 120ms ease;
 }
-.edge.dim { stroke-opacity: 0.12; }
+.edge.active { stroke: var(--sage); stroke-width: 2.35; stroke-opacity: 0.94; }
+.edge.dim { stroke-opacity: 0.1; }
 .edge-label {
   fill: var(--mut); font-size: 11px; font-weight: 650; font-family: "Satoshi";
   paint-order: stroke; stroke: var(--paper2); stroke-width: 4px; stroke-linejoin: round; pointer-events: none;
 }
+.edge-label.active { fill: var(--sage); }
 .graph-node { cursor: pointer; color: #b5862a; transition: opacity 120ms ease; }
 .graph-node:active { cursor: grabbing; }
 .graph-node.dim { opacity: 0.25; }

@@ -9,6 +9,7 @@ import {
 import { select } from "d3-selection";
 import { zoom, zoomIdentity } from "d3-zoom";
 import { fetchJson } from "./api.js";
+import { buildDirectedEdgeGeometry } from "./graphGeometry.js";
 import { buildGraphModel } from "./graphModel.js";
 import { clampGraphPoint, constrainGraphNode, forceGraphBounds, graphNodeRadius } from "./graphPhysics.js";
 import { nextWheelZoom } from "./graphZoom.js";
@@ -368,8 +369,19 @@ export default function GraphView() {
         <div className="canvas force">
           <svg ref={svgRef} className="graph-svg" viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
             <defs>
-              <marker id="leafGraphArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-                <path d="M0,0 L8,4 L0,8 z" />
+              <marker id="leafGraphArrow" viewBox="0 0 10 10" markerWidth="9" markerHeight="9" refX="9" refY="5" orient="auto">
+                <path d="M0,0 L10,5 L0,10 z" />
+              </marker>
+              <marker
+                id="leafGraphArrowActive"
+                viewBox="0 0 10 10"
+                markerWidth="11"
+                markerHeight="11"
+                refX="9"
+                refY="5"
+                orient="auto"
+              >
+                <path d="M0,0 L10,5 L0,10 z" />
               </marker>
             </defs>
             <rect className="graph-bg" width={W} height={H} />
@@ -381,22 +393,19 @@ export default function GraphView() {
                     const target = resolvedNode(link.target);
                     if (!source || !target) return null;
                     const active = isLinkActive(link);
-                    const mx = (source.x + target.x) / 2;
-                    const my = (source.y + target.y) / 2;
+                    const edge = buildDirectedEdgeGeometry(source, target, {
+                      sourceRadius: graphNodeRadius(source),
+                      targetRadius: graphNodeRadius(target),
+                    });
                     const showLabel = active && (hoverId || layout.links.length <= 26);
+                    const edgeClass = hoverId ? `edge${active ? " active" : " dim"}` : "edge";
+                    const marker = hoverId && active ? "url(#leafGraphArrowActive)" : "url(#leafGraphArrow)";
 
                     return (
                       <g key={`${endpointId(link.source)}-${endpointId(link.target)}-${link.predicate}-${index}`}>
-                        <line
-                          className={`edge${active ? "" : " dim"}`}
-                          x1={source.x}
-                          y1={source.y}
-                          x2={target.x}
-                          y2={target.y}
-                          markerEnd="url(#leafGraphArrow)"
-                        />
+                        <path className={edgeClass} d={edge.path} markerEnd={marker} />
                         {showLabel ? (
-                          <text className="edge-label" x={mx} y={my - 7} textAnchor="middle">
+                          <text className={`edge-label${hoverId && active ? " active" : ""}`} x={edge.label.x} y={edge.label.y} textAnchor="middle">
                             {shortText(link.predicate, 18)}
                           </text>
                         ) : null}
