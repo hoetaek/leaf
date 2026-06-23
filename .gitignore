@@ -1,4 +1,6 @@
 /target
 /.worktrees
 /.local
+/dist
+/node_modules
 *.local.json
