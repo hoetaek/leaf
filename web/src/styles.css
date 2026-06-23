@@ -141,14 +141,56 @@ h1, h2, h3, h4 { font-family: "Cabinet Grotesk", sans-serif; letter-spacing: -0.
 .status:not(.ok) .d { background: #9c5249; }
 
 /* graph */
-.gr { display: grid; grid-template-columns: 1fr 290px; gap: 16px; }
-.canvas { background: radial-gradient(circle at 1px 1px, #e2ddd2 1px, transparent 0) 0 0/24px 24px, var(--paper2); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
-.edge-lbl { fill: var(--mut); font-size: 11px; font-family: "Satoshi"; }
-.node .node-t { font-family: "Cabinet Grotesk"; font-weight: 700; font-size: 12px; fill: var(--ink); }
-.node.sel circle { stroke: var(--sage); stroke-width: 3; }
-.gpanel { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; height: fit-content; }
+.graph-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+.graph-toolbar .vsub { margin: 0; }
+.graph-reset {
+  border: 1px solid var(--line); background: var(--card); color: var(--body);
+  border-radius: var(--r-sm); padding: 8px 12px; font: 700 12px/1 "Satoshi"; cursor: pointer;
+}
+.graph-reset:hover { border-color: #c8bfad; color: var(--ink); }
+.gr { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.canvas {
+  background: radial-gradient(circle at 1px 1px, #e2ddd2 1px, transparent 0) 0 0/24px 24px, var(--paper2);
+  border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden;
+}
+.canvas.force { position: relative; min-width: 0; }
+.graph-svg { display: block; width: 100%; height: min(62vh, 520px); min-height: 390px; touch-action: none; }
+.graph-bg { fill: transparent; }
+#leafGraphArrow path { fill: #a8a38f; }
+.graph-viewport { transform-origin: 0 0; }
+.edge {
+  stroke: #bcb4a4; stroke-width: 1.45; stroke-opacity: 0.68; fill: none;
+  transition: stroke-opacity 120ms ease, stroke-width 120ms ease;
+}
+.edge.dim { stroke-opacity: 0.12; }
+.edge-label {
+  fill: var(--mut); font-size: 11px; font-weight: 650; font-family: "Satoshi";
+  paint-order: stroke; stroke: var(--paper2); stroke-width: 4px; stroke-linejoin: round; pointer-events: none;
+}
+.graph-node { cursor: grab; color: #b5862a; transition: opacity 120ms ease; }
+.graph-node:active { cursor: grabbing; }
+.graph-node.dim { opacity: 0.25; }
+.graph-node .node-halo { fill: rgba(47, 107, 79, 0); transition: fill 120ms ease; }
+.graph-node .node-dot {
+  fill: #b5862a; stroke: var(--paper2); stroke-width: 2.5;
+  filter: drop-shadow(0 2px 4px rgba(22, 24, 29, 0.16));
+}
+.graph-node.visited .node-dot { fill: #365a99; }
+.graph-node.sel .node-halo { fill: rgba(47, 107, 79, 0.16); }
+.graph-node.sel .node-dot { fill: var(--sage); stroke: #f8fbf7; stroke-width: 3; }
+.graph-label {
+  font-family: "Cabinet Grotesk"; font-weight: 800; font-size: 12px; fill: var(--ink);
+  paint-order: stroke; stroke: var(--paper2); stroke-width: 4px; stroke-linejoin: round; pointer-events: none;
+}
+.graph-empty { fill: var(--mut); font: 700 14px "Satoshi"; }
+.gpanel { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; height: fit-content; min-width: 0; }
 .gpanel h3 { font-size: 18px; margin: 0 0 4px; }
 .gpanel .gh { font-family: ui-monospace; font-size: 11px; color: var(--sage); margin-bottom: 12px; }
+.gstats { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.gstats span {
+  font-size: 11px; color: var(--body); background: var(--paper); border: 1px solid var(--line2);
+  border-radius: 999px; padding: 3px 8px;
+}
 .gpanel p { font-size: 13px; color: var(--body); line-height: 1.6; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
 .tag { font-size: 11px; color: var(--mut); background: var(--paper); border: 1px solid var(--line2); border-radius: 20px; padding: 2px 9px; }
@@ -227,7 +269,10 @@ h1, h2, h3, h4 { font-family: "Cabinet Grotesk", sans-serif; letter-spacing: -0.
   }
   .foot-note .khint { display: none; }
   .crumb .khint { display: none; }
+  .graph-toolbar { display: block; margin-bottom: 14px; }
+  .graph-reset { margin-top: 10px; }
   .gr { grid-template-columns: 1fr; }
+  .graph-svg { height: 390px; min-height: 390px; }
   /* review reader: hide the stacked rail, surface a compact sticky TOC */
   .reader { grid-template-columns: 1fr; }
   .dbody .rail, .reader > .rail { display: none; }

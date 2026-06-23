@@ -1,39 +1,353 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  forceCenter,
+  forceCollide,
+  forceLink,
+  forceManyBody,
+  forceSimulation,
+} from "d3-force";
+import { select } from "d3-selection";
+import { zoom, zoomIdentity } from "d3-zoom";
 import { fetchJson } from "./api.js";
+import { buildGraphModel } from "./graphModel.js";
+import { clampGraphPoint, constrainGraphNode, forceGraphBounds, graphNodeRadius } from "./graphPhysics.js";
+import { nextWheelZoom } from "./graphZoom.js";
 import { leafHref, openLeaf } from "./routes.js";
 
-// Lightweight layout: place nodes on a circle (deterministic, no layout lib).
-// Good enough for the pressed corpus scale; a force/dagre layout is a later slice.
-function layout(nodes, w, h) {
-  const cx = w / 2;
-  const cy = h / 2;
-  const r = Math.min(w, h) * 0.34;
-  const pos = {};
-  const n = nodes.length || 1;
-  nodes.forEach((node, i) => {
-    const a = (i / n) * Math.PI * 2 - Math.PI / 2;
-    pos[node.id] = { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
-  });
-  return pos;
+const W = 880;
+const H = 520;
+const GRAPH_BOUNDS_PADDING = 36;
+const MIN_ZOOM = 0.45;
+const MAX_ZOOM = 3.4;
+const VISITED_KEY = "leaf-graph-visited";
+
+function readVisited() {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(VISITED_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeVisited(ids) {
+  try {
+    window.localStorage.setItem(VISITED_KEY, JSON.stringify([...ids]));
+  } catch {
+    // localStorage can be unavailable in private or restricted contexts.
+  }
+}
+
+function endpointId(endpoint) {
+  return typeof endpoint === "string" ? endpoint : endpoint?.id;
+}
+
+function endpointDegree(endpoint) {
+  return typeof endpoint === "string" ? 0 : endpoint?.degree || 0;
+}
+
+function shortText(value, max = 24) {
+  if (!value) return "";
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
+
+function stopGraphPan(event) {
+  event.stopPropagation();
+  event.nativeEvent.stopImmediatePropagation();
 }
 
 export default function GraphView() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
-  const [sel, setSel] = useState(null);
-  const W = 760;
-  const H = 460;
+  const [selId, setSelId] = useState(null);
+  const [hoverId, setHoverId] = useState(null);
+  const [layout, setLayout] = useState({ nodes: [], links: [] });
+  const [transform, setTransform] = useState(zoomIdentity);
+  const [visited, setVisited] = useState(readVisited);
+  const svgRef = useRef(null);
+  const simulationRef = useRef(null);
+  const zoomRef = useRef(null);
+  const transformRef = useRef(zoomIdentity);
+  const nodeRef = useRef(new Map());
+  const dragRef = useRef(null);
 
   useEffect(() => {
     fetchJson("/api/graph")
-      .then((d) => {
-        setData(d);
-        setSel(d.nodes[0] || null);
-      })
+      .then((d) => setData(d))
       .catch((e) => setError(e.message));
   }, []);
 
-  const pos = useMemo(() => (data ? layout(data.nodes, W, H) : {}), [data]);
+  const model = useMemo(() => (data ? buildGraphModel(data) : null), [data]);
+
+  useEffect(() => {
+    if (!model) return;
+    setSelId((current) => {
+      if (current && model.nodeById.has(current)) return current;
+      return model.nodes[0]?.id || null;
+    });
+  }, [model]);
+
+  const selected = selId && model ? model.nodeById.get(selId) : null;
+  const focusIds = useMemo(() => {
+    if (!hoverId || !model) return null;
+    return model.neighboursById.get(hoverId) || null;
+  }, [hoverId, model]);
+  const visibleEdgeCount = model?.links.length || 0;
+  const hiddenEdgeCount = data && model ? Math.max(0, data.edges.length - model.links.length) : 0;
+
+  const selectNode = useCallback((node) => {
+    if (!node?.id) return;
+    setSelId(node.id);
+    setVisited((current) => {
+      if (current.has(node.id)) return current;
+      const next = new Set(current);
+      next.add(node.id);
+      writeVisited(next);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!model || !svgRef.current) return;
+
+    const svg = select(svgRef.current);
+    const zoomer = zoom()
+      .scaleExtent([MIN_ZOOM, MAX_ZOOM])
+      .on("zoom", (event) => {
+        transformRef.current = event.transform;
+        setTransform(event.transform);
+      });
+
+    zoomRef.current = zoomer;
+    svg.call(zoomer);
+    svg.on("wheel.zoom", null);
+    svg.on("dblclick.zoom", null);
+
+    return () => {
+      svg.on(".zoom", null);
+      zoomRef.current = null;
+    };
+  }, [model]);
+
+  useEffect(() => {
+    if (!model) {
+      setLayout({ nodes: [], links: [] });
+      return;
+    }
+
+    simulationRef.current?.stop();
+
+    const ring = Math.min(W, H) * 0.28;
+    const count = Math.max(model.nodes.length, 1);
+    const nodes = model.nodes.map((node, index) => {
+      const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
+      return {
+        ...node,
+        x: W / 2 + Math.cos(angle) * ring,
+        y: H / 2 + Math.sin(angle) * ring,
+      };
+    });
+    const links = model.links.map((link) => ({ ...link }));
+
+    nodeRef.current = new Map(nodes.map((node) => [node.id, node]));
+    setLayout({ nodes, links });
+
+    if (!nodes.length) return;
+
+    const constrainNodes = () => {
+      for (const node of nodes) {
+        constrainGraphNode(node, {
+          width: W,
+          height: H,
+          padding: GRAPH_BOUNDS_PADDING,
+          radius: graphNodeRadius(node),
+        });
+      }
+    };
+    let frame = null;
+    const publish = () => {
+      frame = null;
+      setLayout({ nodes: [...nodes], links: [...links] });
+    };
+    const schedule = () => {
+      constrainNodes();
+      if (frame === null) {
+        frame = window.requestAnimationFrame(publish);
+      }
+    };
+
+    const simulation = forceSimulation(nodes)
+      .force("charge", forceManyBody().strength((node) => -118 - (node.degree || 0) * 24))
+      .force(
+        "link",
+        forceLink(links)
+          .id((node) => node.id)
+          .distance((link) => 88 + Math.max(0, 6 - Math.min(endpointDegree(link.source) + endpointDegree(link.target), 6)) * 8)
+          .strength(0.46),
+      )
+      .force("center", forceCenter(W / 2, H / 2).strength(0.16))
+      .force("collide", forceCollide((node) => graphNodeRadius(node) + 18).iterations(2))
+      .force("bounds", forceGraphBounds(W, H, { padding: GRAPH_BOUNDS_PADDING, radius: graphNodeRadius }))
+      .alpha(1)
+      .alphaDecay(0.035)
+      .on("tick", schedule);
+
+    simulationRef.current = simulation;
+
+    return () => {
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      simulation.stop();
+      if (simulationRef.current === simulation) simulationRef.current = null;
+    };
+  }, [model]);
+
+  const layoutById = useMemo(() => new Map(layout.nodes.map((node) => [node.id, node])), [layout.nodes]);
+
+  const svgPoint = useCallback((event) => {
+    const svg = svgRef.current;
+    if (!svg) return [0, 0];
+
+    const point = svg.createSVGPoint();
+    point.x = event.clientX;
+    point.y = event.clientY;
+    const matrix = svg.getScreenCTM();
+    if (!matrix) return [0, 0];
+    const screenPoint = point.matrixTransform(matrix.inverse());
+    return [screenPoint.x, screenPoint.y];
+  }, []);
+
+  const graphPoint = useCallback((event) => {
+    return transformRef.current.invert(svgPoint(event));
+  }, [svgPoint]);
+
+  const applyZoomTransform = useCallback((next) => {
+    const nextTransform = zoomIdentity.translate(next.x, next.y).scale(next.k);
+    if (svgRef.current && zoomRef.current) {
+      select(svgRef.current).call(zoomRef.current.transform, nextTransform);
+    } else {
+      transformRef.current = nextTransform;
+      setTransform(nextTransform);
+    }
+  }, []);
+
+  const handleWheel = useCallback(
+    (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const [x, y] = svgPoint(event);
+      const current = transformRef.current;
+      const next = nextWheelZoom(
+        { x: current.x, y: current.y, k: current.k },
+        { x, y },
+        {
+          deltaY: event.deltaY,
+          deltaMode: event.deltaMode,
+          ctrlKey: event.ctrlKey,
+          minScale: MIN_ZOOM,
+          maxScale: MAX_ZOOM,
+        },
+      );
+
+      if (next.changed) {
+        applyZoomTransform(next);
+      }
+    },
+    [applyZoomTransform, svgPoint],
+  );
+
+  useEffect(() => {
+    if (!model || !svgRef.current) return;
+
+    const svg = svgRef.current;
+    svg.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      svg.removeEventListener("wheel", handleWheel);
+    };
+  }, [handleWheel, model]);
+
+  const beginDrag = useCallback(
+    (event, node) => {
+      if (event.button !== 0) return;
+      event.stopPropagation();
+      const active = nodeRef.current.get(node.id);
+      if (!active) return;
+
+      const [x, y] = graphPoint(event);
+      active.fx = active.x;
+      active.fy = active.y;
+      dragRef.current = { id: node.id, pointerId: event.pointerId, x, y, moved: false };
+      event.currentTarget.setPointerCapture(event.pointerId);
+      simulationRef.current?.alphaTarget(0.28).restart();
+    },
+    [graphPoint],
+  );
+
+  const moveDrag = useCallback(
+    (event) => {
+      const drag = dragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+
+      event.preventDefault();
+      const active = nodeRef.current.get(drag.id);
+      if (!active) return;
+
+      const [x, y] = graphPoint(event);
+      const bounded = clampGraphPoint(x, y, {
+        width: W,
+        height: H,
+        padding: GRAPH_BOUNDS_PADDING,
+        radius: graphNodeRadius(active),
+      });
+      if (Math.hypot(bounded.x - drag.x, bounded.y - drag.y) > 3) drag.moved = true;
+      active.fx = bounded.x;
+      active.fy = bounded.y;
+    },
+    [graphPoint],
+  );
+
+  const endDrag = useCallback(
+    (event, node) => {
+      const drag = dragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+
+      event.stopPropagation();
+      dragRef.current = null;
+      event.currentTarget.releasePointerCapture(event.pointerId);
+
+      const active = nodeRef.current.get(node.id);
+      if (active) {
+        active.fx = null;
+        active.fy = null;
+      }
+      simulationRef.current?.alphaTarget(0);
+
+      if (!drag.moved) {
+        selectNode(node);
+      }
+    },
+    [selectNode],
+  );
+
+  const resetView = useCallback(() => {
+    if (!svgRef.current || !zoomRef.current) return;
+    select(svgRef.current).call(zoomRef.current.transform, zoomIdentity);
+  }, []);
+
+  function resolvedNode(endpoint) {
+    if (typeof endpoint !== "string") return endpoint;
+    return layoutById.get(endpoint) || model?.nodeById.get(endpoint);
+  }
+
+  function isNodeActive(node) {
+    return !focusIds || focusIds.has(node.id);
+  }
+
+  function isLinkActive(link) {
+    if (!hoverId) return true;
+    return endpointId(link.source) === hoverId || endpointId(link.target) === hoverId;
+  }
 
   if (error) return <p className="err">그래프를 불러오지 못했습니다: {error}</p>;
   if (!data) return <p className="muted">불러오는 중…</p>;
@@ -41,85 +355,126 @@ export default function GraphView() {
   return (
     <div className="graph">
       <h1 className="vtitle">Knowledge graph</h1>
-      <p className="vsub">
-        Pressed 디지트와 관계 &middot; nodes {data.nodes.length} · edges {data.edges.length}
-      </p>
+      <div className="graph-toolbar">
+        <p className="vsub">
+          Pressed 디지트와 관계 &middot; nodes {model.nodes.length} · links {visibleEdgeCount}
+          {hiddenEdgeCount ? ` · hidden ${hiddenEdgeCount}` : ""}
+        </p>
+        <button type="button" className="graph-reset" onClick={resetView} title="Reset view">
+          Reset
+        </button>
+      </div>
       <div className="gr">
-        <div className="canvas">
-          <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
+        <div className="canvas force">
+          <svg ref={svgRef} className="graph-svg" viewBox={`0 0 ${W} ${H}`} width="100%" height={H}>
             <defs>
-              <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
-                <path d="M0,0 L8,4 L0,8 z" fill="#a8aab0" />
+              <marker id="leafGraphArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 z" />
               </marker>
             </defs>
-            {data.edges.map((e, i) => {
-              const a = pos[e.source];
-              const b = pos[e.target];
-              if (!a || !b) {
-                // dangling target (e.g. superseded → fallen leaf left the graph)
-                return null;
-              }
-              const mx = (a.x + b.x) / 2;
-              const my = (a.y + b.y) / 2;
-              return (
-                <g key={i}>
-                  <line
-                    x1={a.x}
-                    y1={a.y}
-                    x2={b.x}
-                    y2={b.y}
-                    stroke="#cfc9bc"
-                    strokeWidth="1.6"
-                    markerEnd="url(#ar)"
-                  />
-                  <text className="edge-lbl" x={mx} y={my - 6} textAnchor="middle">
-                    {e.predicate}
-                  </text>
+            <rect className="graph-bg" width={W} height={H} />
+            {model.nodes.length ? (
+              <g className="graph-viewport" transform={transform.toString()}>
+                <g className="edges">
+                  {layout.links.map((link, index) => {
+                    const source = resolvedNode(link.source);
+                    const target = resolvedNode(link.target);
+                    if (!source || !target) return null;
+                    const active = isLinkActive(link);
+                    const mx = (source.x + target.x) / 2;
+                    const my = (source.y + target.y) / 2;
+                    const showLabel = active && (hoverId || layout.links.length <= 26);
+
+                    return (
+                      <g key={`${endpointId(link.source)}-${endpointId(link.target)}-${link.predicate}-${index}`}>
+                        <line
+                          className={`edge${active ? "" : " dim"}`}
+                          x1={source.x}
+                          y1={source.y}
+                          x2={target.x}
+                          y2={target.y}
+                          markerEnd="url(#leafGraphArrow)"
+                        />
+                        {showLabel ? (
+                          <text className="edge-label" x={mx} y={my - 7} textAnchor="middle">
+                            {shortText(link.predicate, 18)}
+                          </text>
+                        ) : null}
+                      </g>
+                    );
+                  })}
                 </g>
-              );
-            })}
-            {data.nodes.map((node) => {
-              const p = pos[node.id];
-              const isSel = sel && sel.id === node.id;
-              return (
-                <g
-                  key={node.id}
-                  transform={`translate(${p.x},${p.y})`}
-                  className={`node${isSel ? " sel" : ""}`}
-                  onClick={() => setSel(node)}
-                  onDoubleClick={() => openLeaf(node.slug)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <circle r="7" fill="#b5862a" />
-                  <text className="node-t" y="24" textAnchor="middle">
-                    {node.title.length > 22 ? node.title.slice(0, 21) + "…" : node.title}
-                  </text>
+                <g className="nodes">
+                  {layout.nodes.map((node) => {
+                    const active = isNodeActive(node);
+                    const isSelected = selected?.id === node.id;
+                    const classes = [
+                      "graph-node",
+                      active ? "" : "dim",
+                      isSelected ? "sel" : "",
+                      visited.has(node.id) ? "visited" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ");
+                    const radius = graphNodeRadius(node);
+
+                    return (
+                      <g
+                        key={node.id}
+                        className={classes}
+                        transform={`translate(${node.x || W / 2},${node.y || H / 2})`}
+                        onMouseEnter={() => setHoverId(node.id)}
+                        onMouseLeave={() => setHoverId(null)}
+                        onMouseDownCapture={stopGraphPan}
+                        onTouchStartCapture={stopGraphPan}
+                        onPointerDown={(event) => beginDrag(event, node)}
+                        onPointerMove={moveDrag}
+                        onPointerUp={(event) => endDrag(event, node)}
+                        onPointerCancel={(event) => endDrag(event, node)}
+                        onDoubleClick={() => openLeaf(node.slug)}
+                      >
+                        <circle className="node-halo" r={radius + 5} />
+                        <circle className="node-dot" r={radius} />
+                        <text className="graph-label" y={radius + 16} textAnchor="middle">
+                          {shortText(node.title)}
+                        </text>
+                      </g>
+                    );
+                  })}
                 </g>
-              );
-            })}
+              </g>
+            ) : (
+              <text className="graph-empty" x={W / 2} y={H / 2} textAnchor="middle">
+                pressed leaf graph가 비어 있습니다
+              </text>
+            )}
           </svg>
         </div>
         <aside className="gpanel">
-          {sel ? (
+          {selected ? (
             <>
-              <h3>{sel.title}</h3>
-              <div className="gh">{sel.id}</div>
-              <p>{sel.description}</p>
+              <h3>{selected.title}</h3>
+              <div className="gh">{selected.id}</div>
+              <div className="gstats">
+                <span>degree {selected.degree}</span>
+                <span>tags {selected.tags.length}</span>
+              </div>
+              <p>{selected.description || "설명이 없습니다."}</p>
               <div className="tags">
-                {(sel.tags || []).map((t) => (
+                {selected.tags.map((t) => (
                   <span key={t} className="tag">
                     #{t}
                   </span>
                 ))}
               </div>
-              <a className="btn" href={leafHref(sel.slug)}>
+              <a className="btn" href={leafHref(selected.slug)}>
                 본문 열기 → Leaf detail
               </a>
             </>
           ) : (
             <p className="muted">노드를 선택하세요.</p>
           )}
-          <p className="gnote">노드 더블클릭 → 리뷰 리더. 단글링(fallen) 타깃 엣지는 숨김(03-fallen 추적).</p>
+          {hiddenEdgeCount ? <p className="gnote">현재 graph에 없는 fallen 타깃 edge {hiddenEdgeCount}개는 숨겼습니다.</p> : null}
         </aside>
       </div>
     </div>
