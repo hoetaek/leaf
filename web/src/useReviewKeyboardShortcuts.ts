@@ -41,6 +41,7 @@ export function useReviewKeyboardShortcuts({
     };
     const onKey = (event: KeyboardEvent) => {
       if (isTextEntryElement(document.activeElement)) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
 
       switch (event.key) {
         case "q":

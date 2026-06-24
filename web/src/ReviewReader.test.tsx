@@ -106,6 +106,16 @@ test("opens the mobile table of contents and follows reader keyboard shortcuts",
   expect(window.location.hash).toBe("#/");
 });
 
+test("does not treat browser refresh shortcuts as reference drawer shortcuts", async () => {
+  render(<ReviewReader slug="web-graph-structure-refactor" />);
+  await screen.findByText("그래프 구조를 분리한다.");
+
+  fireEvent.keyDown(window, { key: "r", metaKey: true });
+  fireEvent.keyDown(window, { key: "r", ctrlKey: true });
+
+  expect(screen.queryByText("References")).not.toBeInTheDocument();
+});
+
 test("renders a selected reference as a full page", async () => {
   render(<ReviewReader slug="web-graph-structure-refactor" referencePath="01-Learn/02-references/b.md" />);
 
