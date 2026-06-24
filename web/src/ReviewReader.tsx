@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   GateNav,
   MarkdownContent,
@@ -7,7 +7,7 @@ import {
   ReferencesDrawer,
   TocOverlay,
 } from "./ReviewReaderParts";
-import { progressWidth, reviewResourcePath, REVIEW_REF_FOCUS } from "./reviewReaderModel";
+import { nextReferenceIndex, progressWidth, reviewResourcePath, REVIEW_REF_FOCUS } from "./reviewReaderModel";
 import { openReference } from "./routes";
 import { useActiveReviewSection } from "./useActiveReviewSection";
 import { useJsonResource } from "./useJsonResource";
@@ -30,16 +30,38 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
   const refReadRef = useRef<HTMLDivElement | null>(null);
   const { active, sectionRefs, jump } = useActiveReviewSection(data);
   const progress = useReadingProgress(data, reportRef);
-  const references = data?.references || [];
+  const references = useMemo(() => data?.references || [], [data?.references]);
   const selectedReference = references[refSel];
+  const fullPageReferenceIndex = referencePath
+    ? references.findIndex((reference) => reference.relative_path === referencePath)
+    : -1;
   const openSelectedReference = useCallback(() => {
     if (!data || !selectedReference) return;
     openReference(data.slug, selectedReference.relative_path);
   }, [data, selectedReference]);
+  const openFullPageReferenceByStep = useCallback(
+    (step: number) => {
+      if (!data || fullPageReferenceIndex < 0) return;
+
+      const nextIndex = nextReferenceIndex(fullPageReferenceIndex, step, references.length);
+      if (nextIndex === fullPageReferenceIndex) return;
+
+      const nextReference = references[nextIndex];
+      if (nextReference) openReference(data.slug, nextReference.relative_path);
+    },
+    [data, fullPageReferenceIndex, references],
+  );
+  const openPreviousFullPageReference = useCallback(
+    () => openFullPageReferenceByStep(-1),
+    [openFullPageReferenceByStep],
+  );
+  const openNextFullPageReference = useCallback(() => openFullPageReferenceByStep(1), [openFullPageReferenceByStep]);
 
   useReviewKeyboardShortcuts({
     data,
+    onNextReference: referencePath ? openNextFullPageReference : undefined,
     onOpenReferenceFullPage: openSelectedReference,
+    onPreviousReference: referencePath ? openPreviousFullPageReference : undefined,
     refFocus,
     refReadRef,
     setRefFocus,

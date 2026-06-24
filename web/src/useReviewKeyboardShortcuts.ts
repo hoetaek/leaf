@@ -5,7 +5,9 @@ import type { ReviewRefFocus, ReviewResponse } from "./types";
 
 interface ReviewKeyboardShortcutOptions {
   data: ReviewResponse | null;
+  onNextReference?: () => void;
   onOpenReferenceFullPage?: () => void;
+  onPreviousReference?: () => void;
   refFocus: ReviewRefFocus;
   refReadRef: RefObject<HTMLDivElement>;
   setRefFocus: Dispatch<SetStateAction<ReviewRefFocus>>;
@@ -16,7 +18,9 @@ interface ReviewKeyboardShortcutOptions {
 
 export function useReviewKeyboardShortcuts({
   data,
+  onNextReference,
   onOpenReferenceFullPage,
+  onPreviousReference,
   refFocus,
   refReadRef,
   setRefFocus,
@@ -54,6 +58,9 @@ export function useReviewKeyboardShortcuts({
           if (showRefs && refFocus === REVIEW_REF_FOCUS.LIST && count > 0) {
             event.preventDefault();
             setRefFocus(REVIEW_REF_FOCUS.CONTENT);
+          } else if (onNextReference) {
+            event.preventDefault();
+            onNextReference();
           }
           break;
         case "h":
@@ -62,6 +69,9 @@ export function useReviewKeyboardShortcuts({
             event.preventDefault();
             if (refFocus === REVIEW_REF_FOCUS.CONTENT) setRefFocus(REVIEW_REF_FOCUS.LIST);
             else setShowRefs(false);
+          } else if (onPreviousReference) {
+            event.preventDefault();
+            onPreviousReference();
           }
           break;
         case "j":
@@ -103,5 +113,16 @@ export function useReviewKeyboardShortcuts({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [data, onOpenReferenceFullPage, refFocus, refReadRef, setRefFocus, setRefSel, setShowRefs, showRefs]);
+  }, [
+    data,
+    onNextReference,
+    onOpenReferenceFullPage,
+    onPreviousReference,
+    refFocus,
+    refReadRef,
+    setRefFocus,
+    setRefSel,
+    setShowRefs,
+    showRefs,
+  ]);
 }

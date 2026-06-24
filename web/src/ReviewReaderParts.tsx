@@ -199,6 +199,11 @@ export function ReferenceFullPage({
       <p className="crumb">
         <a href={leafHref(slug)}>← review로 돌아가기</a> &nbsp;·&nbsp; reference &middot;{" "}
         <b>{referencePath.split("/").pop()}</b>
+        <span className="khint">
+          <span className="kbd">j</span>
+          <span className="kbd">k</span> 스크롤 &middot; <span className="kbd">h</span>
+          <span className="kbd">l</span> reference
+        </span>
       </p>
       <article className="report reference-full">
         <div className="file">{referencePath}</div>

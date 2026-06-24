@@ -118,6 +118,38 @@ test("renders a selected reference as a full page", async () => {
   );
 });
 
+test("keeps j and k as vertical scroll keys on full page references", async () => {
+  window.location.hash = "#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fa.md";
+  render(<ReviewReader slug="web-graph-structure-refactor" referencePath="01-Learn/02-references/a.md" />);
+
+  expect(await screen.findByRole("heading", { name: "Alpha" })).toBeInTheDocument();
+
+  fireEvent.keyDown(window, { key: "j" });
+  expect(window.scrollBy).toHaveBeenCalledWith({ top: 90, behavior: "smooth" });
+  expect(window.location.hash).toBe("#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fa.md");
+
+  fireEvent.keyDown(window, { key: "k" });
+  expect(window.scrollBy).toHaveBeenLastCalledWith({ top: -90, behavior: "smooth" });
+  expect(window.location.hash).toBe("#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fa.md");
+});
+
+test("moves between full page references with h and l", async () => {
+  const { rerender } = render(
+    <ReviewReader slug="web-graph-structure-refactor" referencePath="01-Learn/02-references/a.md" />,
+  );
+
+  expect(await screen.findByRole("heading", { name: "Alpha" })).toBeInTheDocument();
+
+  fireEvent.keyDown(window, { key: "l" });
+  expect(window.location.hash).toBe("#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fb.md");
+
+  rerender(<ReviewReader slug="web-graph-structure-refactor" referencePath="01-Learn/02-references/b.md" />);
+  expect(await screen.findByRole("heading", { name: "Beta" })).toBeInTheDocument();
+
+  fireEvent.keyDown(window, { key: "h" });
+  expect(window.location.hash).toBe("#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fa.md");
+});
+
 test("renders reader validation and API error states", async () => {
   const { rerender } = render(<ReviewReader slug="" />);
   expect(screen.getByText("리뷰 slug가 없습니다.")).toBeInTheDocument();
