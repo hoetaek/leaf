@@ -349,11 +349,21 @@ fn user_agent() -> String {
 /// An https-only agent. `https_only` makes any http hop (including a redirect
 /// downgrade) an error — the actual MITM boundary for self-update [S6].
 fn agent() -> ureq::Agent {
-    ureq::Agent::config_builder()
+    let builder = ureq::Agent::config_builder()
         .https_only(true)
-        .user_agent(user_agent())
-        .build()
-        .into()
+        .user_agent(user_agent());
+
+    // ureq's default TLS provider is Rustls, but the Windows build compiles only
+    // the native-tls feature (see Cargo.toml) — so the provider must be selected
+    // explicitly there, or ureq panics at the first https request.
+    #[cfg(windows)]
+    let builder = builder.tls_config(
+        ureq::tls::TlsConfig::builder()
+            .provider(ureq::tls::TlsProvider::NativeTls)
+            .build(),
+    );
+
+    builder.build().into()
 }
 
 /// GET a URL and return the response body as bytes (follows https redirects).

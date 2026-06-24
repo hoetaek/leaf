@@ -6,6 +6,20 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.13.1 - 2026-06-24
+
+- Fixed `leaf review --json` and the web review API hiding broken reference
+  files as empty markdown; reference read failures now surface the failing path.
+- Fixed `leaf serve --port 0` printing `127.0.0.1:0` instead of the actual
+  ephemeral port assigned by the OS.
+- Fixed `leaf update` panicking on Windows (`uri scheme is https, provider is
+  Rustls but feature is not enabled: rustls`). The Windows build compiles ureq
+  with only the `native-tls` feature, but ureq still defaults its TLS provider to
+  Rustls, so the first https request aborted. The self-update agent now selects
+  `TlsProvider::NativeTls` explicitly on Windows. (Windows users on 0.12.0 /
+  0.13.0 must reinstall once via the installer, since their `leaf update` cannot
+  reach the network.)
+
 ## 0.6.0 - 2026-06-23
 
 - Added the `leaf:tend` skill — keeps the pressed knowledge graph true to current
