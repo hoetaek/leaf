@@ -1,167 +1,31 @@
-import React, { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { fetchJson } from "./api.js";
-
-const MARKDOWN_PLUGINS = [remarkGfm];
-
-const Md = React.memo(function Md({ children }) {
-  return <ReactMarkdown remarkPlugins={MARKDOWN_PLUGINS}>{children}</ReactMarkdown>;
-});
-
-function GateNav({ sources, active, onSelect }) {
-  return (
-    <nav className="gnav">
-      {sources.map((source, index) => (
-        <a
-          key={index}
-          className={index === active ? "on" : source.present ? "" : "empty"}
-          onClick={() => onSelect(index)}
-        >
-          {source.gate}
-          <span>{source.present ? "✓" : "·"}</span>
-        </a>
-      ))}
-    </nav>
-  );
-}
+import { useRef, useState } from "react";
+import { GateNav, MarkdownContent, MobileReaderActions, ReferencesDrawer, TocOverlay } from "./ReviewReaderParts.jsx";
+import { progressWidth, reviewResourcePath, REVIEW_REF_FOCUS } from "./reviewReaderModel.js";
+import { useActiveReviewSection } from "./useActiveReviewSection.js";
+import { useJsonResource } from "./useJsonResource.js";
+import { useReadingProgress } from "./useReadingProgress.js";
+import { useReviewKeyboardShortcuts } from "./useReviewKeyboardShortcuts.js";
 
 export default function ReviewReader({ slug }) {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
-  const [active, setActive] = useState(0);
-  const [progress, setProgress] = useState(0);
+  const { data, error } = useJsonResource(reviewResourcePath(slug));
   const [showRefs, setShowRefs] = useState(false);
   const [refSel, setRefSel] = useState(0);
-  const [refFocus, setRefFocus] = useState("list"); // "list" | "content"
-  const [showToc, setShowToc] = useState(false); // mobile table-of-contents
-  const sectionRefs = useRef([]);
+  const [refFocus, setRefFocus] = useState(REVIEW_REF_FOCUS.LIST);
+  const [showToc, setShowToc] = useState(false);
   const reportRef = useRef(null);
   const refReadRef = useRef(null);
-  const progressFrame = useRef(null);
+  const { active, sectionRefs, jump } = useActiveReviewSection(data);
+  const progress = useReadingProgress(data, reportRef);
 
-  // References picker behaves like a LazyVim two-pane explorer:
-  //  drawer + list focus  : j/k move the reference list · l selects (focus → content)
-  //  drawer + content focus: j/k line-scroll · d/u page-scroll · h back to the list
-  //  q / Esc -> close drawer (if open) else back to workspace
-  //  drawer CLOSED        : j/k line-scroll · d/u page-scroll the whole review
-  useEffect(() => {
-    const n = data?.references?.length || 0;
-    const inContent = showRefs && refFocus === "content";
-    const pane = () => (inContent ? refReadRef.current : null);
-    const scroll = (dy) => (pane() || window).scrollBy({ top: dy, behavior: "smooth" });
-    const page = (frac) => {
-      const el = pane();
-      scroll(frac * (el ? el.clientHeight : window.innerHeight));
-    };
-    const onKey = (e) => {
-      const tag = document.activeElement?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-      switch (e.key) {
-        case "q":
-        case "Escape":
-          if (showRefs) setShowRefs(false);
-          else window.location.hash = "#/";
-          break;
-        case "r":
-        case "R":
-          e.preventDefault();
-          setShowRefs((s) => !s);
-          setRefSel(0);
-          setRefFocus("list");
-          break;
-        case "l":
-        case "ArrowRight":
-          if (showRefs && refFocus === "list" && n > 0) {
-            e.preventDefault();
-            setRefFocus("content");
-          }
-          break;
-        case "h":
-        case "ArrowLeft":
-          if (showRefs) {
-            e.preventDefault();
-            if (refFocus === "content") setRefFocus("list");
-            else setShowRefs(false);
-          }
-          break;
-        case "j":
-        case "ArrowDown":
-          e.preventDefault();
-          if (showRefs && refFocus === "list") setRefSel((s) => Math.min(n - 1, s + 1));
-          else scroll(90);
-          break;
-        case "k":
-        case "ArrowUp":
-          e.preventDefault();
-          if (showRefs && refFocus === "list") setRefSel((s) => Math.max(0, s - 1));
-          else scroll(-90);
-          break;
-        case "d":
-          e.preventDefault();
-          page(0.85);
-          break;
-        case "u":
-          e.preventDefault();
-          page(-0.85);
-          break;
-        default:
-          break;
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [showRefs, refFocus, data]);
-
-  useEffect(() => {
-    if (!slug) return;
-    let alive = true;
-    fetchJson(`/api/review/${slug}`)
-      .then((d) => alive && setData(d))
-      .catch((e) => alive && setError(e.message));
-    return () => {
-      alive = false;
-    };
-  }, [slug]);
-
-  // scrollspy: highlight the gate whose section is in view
-  useEffect(() => {
-    if (!data) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            const i = Number(e.target.dataset.idx);
-            if (!Number.isNaN(i)) setActive(i);
-          }
-        });
-      },
-      { rootMargin: "-64px 0px -70% 0px", threshold: 0 },
-    );
-    sectionRefs.current.forEach((s) => s && io.observe(s));
-    return () => io.disconnect();
-  }, [data]);
-
-  // reading progress
-  useEffect(() => {
-    const onScroll = () => {
-      if (progressFrame.current) return;
-      progressFrame.current = requestAnimationFrame(() => {
-        progressFrame.current = null;
-        const rep = reportRef.current;
-        if (!rep) return;
-        const r = rep.getBoundingClientRect();
-        const total = r.height - window.innerHeight;
-        setProgress(Math.min(1, Math.max(0, -r.top / (total || 1))));
-      });
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (progressFrame.current) cancelAnimationFrame(progressFrame.current);
-    };
-  }, [data]);
+  useReviewKeyboardShortcuts({
+    data,
+    refFocus,
+    refReadRef,
+    setRefFocus,
+    setRefSel,
+    setShowRefs,
+    showRefs,
+  });
 
   if (!slug) {
     return <p className="err">리뷰 slug가 없습니다.</p>;
@@ -173,7 +37,16 @@ export default function ReviewReader({ slug }) {
     return <p className="muted">불러오는 중…</p>;
   }
 
-  const jump = (i) => sectionRefs.current[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const references = data.references || [];
+  const openReferences = () => {
+    setShowRefs(true);
+    setRefSel(0);
+    setRefFocus(REVIEW_REF_FOCUS.CONTENT);
+  };
+  const selectReference = (index) => {
+    setRefSel(index);
+    setRefFocus(REVIEW_REF_FOCUS.CONTENT);
+  };
 
   return (
     <>
@@ -186,25 +59,13 @@ export default function ReviewReader({ slug }) {
           {data.references?.length || 0}) &middot; <span className="kbd">q</span> 목록
         </span>
       </p>
-      <div className="mobile-reader-actions">
-        <button className="toc-bar" onClick={() => setShowToc(true)}>
-          <span className="toc-bar-gate">{data.sources[active]?.gate || "목차"}</span>
-          <span className="toc-bar-action">목차</span>
-          <i style={{ width: `${(progress * 100).toFixed(1)}%` }} />
-        </button>
-        {(data.references?.length || 0) > 0 && (
-          <button
-            className="refs-bar"
-            onClick={() => {
-              setShowRefs(true);
-              setRefSel(0);
-              setRefFocus("content");
-            }}
-          >
-            Refs <span>{data.references.length}</span>
-          </button>
-        )}
-      </div>
+      <MobileReaderActions
+        activeGate={data.sources[active]?.gate}
+        progress={progress}
+        references={references}
+        onOpenToc={() => setShowToc(true)}
+        onOpenReferences={openReferences}
+      />
       <div className="reader">
         <aside className="rail">
           <h4>Gates &mdash; read all</h4>
@@ -213,7 +74,7 @@ export default function ReviewReader({ slug }) {
 
         <article className="report" ref={reportRef}>
           <div className="rprog">
-            <i style={{ width: `${(progress * 100).toFixed(1)}%` }} />
+            <i style={{ width: progressWidth(progress) }} />
           </div>
           {data.sources.map((s, i) => (
             <section key={i} data-idx={i} ref={(el) => (sectionRefs.current[i] = el)}>
@@ -223,7 +84,7 @@ export default function ReviewReader({ slug }) {
               </div>
               {s.present ? (
                 <div className="md">
-                  <Md>{s.markdown}</Md>
+                  <MarkdownContent>{s.markdown}</MarkdownContent>
                 </div>
               ) : (
                 <p className="muted">(이 게이트 문서는 아직 없음)</p>
@@ -235,77 +96,18 @@ export default function ReviewReader({ slug }) {
 
       {/* mobile: collapsed TOC (desktop uses the sticky rail) */}
       {showToc && (
-        <div className="toc-overlay" onClick={() => setShowToc(false)}>
-          <div className="toc-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="toc-sheethead">
-              <b>Gates</b>
-              <button className="refclose" onClick={() => setShowToc(false)}>
-                ✕
-              </button>
-            </div>
-            <GateNav
-              sources={data.sources}
-              active={active}
-              onSelect={(index) => {
-                jump(index);
-                setShowToc(false);
-              }}
-            />
-          </div>
-        </div>
+        <TocOverlay sources={data.sources} active={active} onSelect={jump} onClose={() => setShowToc(false)} />
       )}
 
       {showRefs && (
-        <div className="refoverlay" onClick={() => setShowRefs(false)}>
-          <aside className="refdrawer" onClick={(e) => e.stopPropagation()}>
-            <div className="refhead">
-              <b>References</b> <span className="muted">({data.references?.length || 0})</span>
-              <span className="khint">
-                {refFocus === "list" ? (
-                  <>
-                    <span className="kbd">j</span>
-                    <span className="kbd">k</span> 이동 &middot; <span className="kbd">l</span> 선택 &middot;{" "}
-                    <span className="kbd">h</span> 닫기
-                  </>
-                ) : (
-                  <>
-                    <span className="kbd">j</span>
-                    <span className="kbd">k</span>
-                    <span className="kbd">d</span>
-                    <span className="kbd">u</span> 스크롤 &middot; <span className="kbd">h</span> 목록
-                  </>
-                )}
-              </span>
-              <button className="refclose" onClick={() => setShowRefs(false)}>
-                ✕
-              </button>
-            </div>
-            {(data.references?.length || 0) === 0 ? (
-              <p className="muted">이 leaf에는 레퍼런스가 없습니다.</p>
-            ) : (
-              <div className="refpicker">
-                <ul className={`reflist-nav${refFocus === "list" ? " focus" : ""}`}>
-                  {data.references.map((r, i) => (
-                    <li
-                      key={i}
-                      className={i === refSel ? "on" : ""}
-                      onClick={() => {
-                        setRefSel(i);
-                        setRefFocus("content");
-                      }}
-                    >
-                      {r.relative_path.split("/").pop()}
-                    </li>
-                  ))}
-                </ul>
-                <div ref={refReadRef} className={`refread md${refFocus === "content" ? " focus" : ""}`}>
-                  <div className="file">{data.references[refSel]?.relative_path}</div>
-                  <Md>{data.references[refSel]?.markdown || ""}</Md>
-                </div>
-              </div>
-            )}
-          </aside>
-        </div>
+        <ReferencesDrawer
+          references={references}
+          refFocus={refFocus}
+          selectedIndex={refSel}
+          readRef={refReadRef}
+          onClose={() => setShowRefs(false)}
+          onSelectReference={selectReference}
+        />
       )}
     </>
   );

@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fetchJson } from "./api.js";
 import { leafHref, openLeaf } from "./routes.js";
-
-const GATES = Array.from({ length: 10 }, (_, i) => i + 1);
-const STAGES = ["all", "sprouts", "leaves", "fallen"];
+import { useJsonResource } from "./useJsonResource.js";
+import {
+  clampWorkspaceSelection,
+  filterWorkspaceRows,
+  WORKSPACE_GATES,
+  workspaceCounts,
+  WORKSPACE_STAGES,
+} from "./workspaceModel.js";
 
 function Progress({ status }) {
   const done = status?.progress_done || 0;
@@ -12,7 +16,7 @@ function Progress({ status }) {
   return (
     <span className="prog">
       <span className="segs">
-        {GATES.map((n) => {
+        {WORKSPACE_GATES.map((n) => {
           const cls = n <= done ? "sg done" : n === cur ? "sg cur" : "sg";
           return <span key={n} className={cls} />;
         })}
@@ -23,35 +27,16 @@ function Progress({ status }) {
 }
 
 export default function WorkspaceList() {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
+  const { data, error } = useJsonResource("/api/list");
   const [stage, setStage] = useState("all");
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(0);
   const filterRef = useRef(null);
   const rowRefs = useRef([]);
 
-  useEffect(() => {
-    fetchJson("/api/list")
-      .then(setData)
-      .catch((e) => setError(e.message));
-  }, []);
+  const rows = useMemo(() => filterWorkspaceRows(data, { stage, query: q }), [data, stage, q]);
 
-  const rows = useMemo(() => {
-    if (!data) return [];
-    const all = [];
-    for (const [key, st] of Object.entries(data.stages)) {
-      for (const it of st.items) all.push({ ...it, _stage: key });
-    }
-    const query = q.trim().toLowerCase();
-    return all.filter((it) => {
-      const okStage = stage === "all" || it._stage === stage;
-      const hay = `${it.slug} ${it.status?.next_action || ""}`.toLowerCase();
-      return okStage && (!query || hay.includes(query));
-    });
-  }, [data, stage, q]);
-
-  const selectedIndex = rows.length ? Math.min(sel, rows.length - 1) : 0;
+  const selectedIndex = clampWorkspaceSelection(sel, rows.length);
   const openRow = useCallback(
     (index = selectedIndex) => {
       const it = rows[index];
@@ -104,9 +89,9 @@ export default function WorkspaceList() {
           behavior: "smooth",
         });
       } else if (e.key === "h" || e.key === "l") {
-        const i = STAGES.indexOf(stage);
-        const next = e.key === "l" ? Math.min(STAGES.length - 1, i + 1) : Math.max(0, i - 1);
-        setStage(STAGES[next]);
+        const i = WORKSPACE_STAGES.indexOf(stage);
+        const next = e.key === "l" ? Math.min(WORKSPACE_STAGES.length - 1, i + 1) : Math.max(0, i - 1);
+        setStage(WORKSPACE_STAGES[next]);
         setSel(0);
       }
     };
@@ -117,7 +102,7 @@ export default function WorkspaceList() {
   if (error) return <p className="err">목록을 불러오지 못했습니다: {error}. `leaf serve`가 떠 있나요?</p>;
   if (!data) return <p className="muted">불러오는 중…</p>;
 
-  const counts = Object.fromEntries(Object.entries(data.stages).map(([k, v]) => [k, v.count]));
+  const counts = workspaceCounts(data);
 
   return (
     <div className="ws">
@@ -147,7 +132,7 @@ export default function WorkspaceList() {
           />
         </div>
         <div className="stageseg">
-          {STAGES.map((s) => (
+          {WORKSPACE_STAGES.map((s) => (
             <button key={s} className={stage === s ? "on" : ""} onClick={() => setStage(s)}>
               {s}
               {s !== "all" && <span className="c"> {counts[s] || 0}</span>}

@@ -29,13 +29,12 @@ export default defineConfig([
     },
   },
   {
+    files: ["src/**/*.{js,jsx}"],
+    extends: [reactHooks.configs.flat.recommended],
+  },
+  {
     files: ["src/**/*.jsx"],
-    extends: [
-      react.configs.flat.recommended,
-      react.configs.flat["jsx-runtime"],
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
+    extends: [react.configs.flat.recommended, react.configs.flat["jsx-runtime"], reactRefresh.configs.vite],
     settings: {
       react: {
         version: "detect",
