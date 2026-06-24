@@ -23,6 +23,16 @@ the point; the learning is.
   own.
 - Older compatibility folders may exist as storage data only.
 
+## Research Tool Check
+
+Before triage or local truth, check whether the current runtime exposes the
+`insane-search`/`insane-search-codex` and
+`insane-research`/`insane-research-codex` plugins or tools. Use `tool_search`
+when available; otherwise inspect the visible tools, skills, apps, and plugin
+cache. Record the result as checked context, then continue normally. These tools
+are accelerators, not blockers: if they are unavailable, use built-in search,
+fetch, browser, and explicit limitation notes.
+
 ## First Read
 
 Inspect local truth before asking:
