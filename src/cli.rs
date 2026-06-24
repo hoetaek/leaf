@@ -77,9 +77,12 @@ enum Commands {
     },
     /// Serve a read-only local web UI over the .leaf workspace.
     Serve {
-        /// Port to bind on 127.0.0.1.
+        /// Preferred port to bind on 127.0.0.1.
         #[arg(long, default_value_t = 4173)]
         port: u16,
+        /// Fail instead of trying the next port when the preferred port is busy.
+        #[arg(long)]
+        strict_port: bool,
     },
     /// Update leaf to the latest stable release.
     Update,
@@ -316,8 +319,13 @@ fn execute(cli: Cli) -> Result<ExitCode> {
                 Ok(ExitCode::SUCCESS)
             }
         }
-        Commands::Serve { port } => {
-            crate::serve::run(port)?;
+        Commands::Serve { port, strict_port } => {
+            let fallback = if strict_port {
+                crate::serve::PortFallback::Strict
+            } else {
+                crate::serve::PortFallback::Auto
+            };
+            crate::serve::run(port, fallback)?;
             Ok(ExitCode::SUCCESS)
         }
         Commands::Update => crate::update::run(),
