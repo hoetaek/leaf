@@ -293,13 +293,14 @@ pub(crate) fn build_json(source: &ReviewSource) -> Result<ReviewJson> {
     let references = reference_files(source)?
         .into_iter()
         .map(|reference| {
-            let markdown = fs::read_to_string(&reference.path).unwrap_or_default();
-            ReferenceJson {
+            let markdown = fs::read_to_string(&reference.path)
+                .with_context(|| format!("failed to read {}", reference.path.display()))?;
+            Ok(ReferenceJson {
                 relative_path: reference.relative_path,
                 markdown,
-            }
+            })
         })
-        .collect();
+        .collect::<Result<Vec<_>>>()?;
 
     Ok(ReviewJson {
         slug: title.clone(),
@@ -1239,6 +1240,32 @@ mod tests {
         let references = reference_files(&source(&root, slug)).expect("references");
 
         assert!(references.is_empty());
+    }
+
+    #[test]
+    fn review_json_reports_reference_read_failures() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "demo";
+        write_file(
+            &root,
+            slug,
+            "00-status.md",
+            "# Leaf Status\n\n- current gate: ① Intent\n",
+        );
+        write_file(&root, slug, "01-Learn/01-intent.md", "# Intent\n");
+        create_dir(&root, slug, "01-Learn/02-references");
+        fs::write(
+            root.path()
+                .join(".leaf/02-leaves/demo/01-Learn/02-references/broken.md"),
+            [0xff],
+        )
+        .expect("write invalid reference");
+
+        let error = build_json(&source(&root, slug)).expect_err("reference read should fail");
+        let error_text = format!("{error:#}");
+
+        assert!(error_text.contains("failed to read"));
+        assert!(error_text.contains("broken.md"));
     }
 
     #[test]

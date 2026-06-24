@@ -77,9 +77,12 @@ async fn bind_preferred_listener(
     let preferred_addr = localhost(preferred_port);
     match tokio::net::TcpListener::bind(preferred_addr).await {
         Ok(listener) => {
+            let addr = listener
+                .local_addr()
+                .context("read bound listener address")?;
             return Ok(BoundListener {
                 listener,
-                addr: preferred_addr,
+                addr,
                 preferred_port_was_busy: false,
             });
         }
@@ -94,6 +97,9 @@ async fn bind_preferred_listener(
         let addr = localhost(port);
         match tokio::net::TcpListener::bind(addr).await {
             Ok(listener) => {
+                let addr = listener
+                    .local_addr()
+                    .context("read bound listener address")?;
                 return Ok(BoundListener {
                     listener,
                     addr,
@@ -324,6 +330,16 @@ mod tests {
                 .to_string()
                 .contains("is the port already in use?")
         );
+    }
+
+    #[tokio::test]
+    async fn bind_preferred_listener_reports_assigned_ephemeral_port() {
+        let bound = bind_preferred_listener(0, PortFallback::Auto)
+            .await
+            .expect("ephemeral bind");
+
+        assert_ne!(bound.addr.port(), 0);
+        assert_eq!(bound.addr, bound.listener.local_addr().expect("local addr"));
     }
 
     #[cfg(not(feature = "embed-web"))]
