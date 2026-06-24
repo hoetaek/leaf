@@ -4,7 +4,11 @@ type VisitedStorage = Pick<Storage, "getItem" | "setItem">;
 
 function browserStorage(): VisitedStorage | null {
   if (typeof window === "undefined") return null;
-  return window.localStorage;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
 }
 
 export function readVisitedLeaves(storage: VisitedStorage | null = browserStorage()): Set<string> {

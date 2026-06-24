@@ -6,9 +6,11 @@ export function useJsonResource<T>(path: string | null) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let alive = true;
+    setData(null);
+    setError(null);
     if (!path) return undefined;
 
-    let alive = true;
     fetchJson<T>(path)
       .then((nextData) => {
         if (!alive) return;

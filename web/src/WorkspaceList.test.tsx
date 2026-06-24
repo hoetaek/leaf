@@ -166,6 +166,21 @@ test("supports keyboard selection, stage switching, and opening the selected row
     expect(screen.getByRole("link", { name: /react-lint-format-baseline/ })).toHaveClass("sel");
   });
 
+  fireEvent.keyDown(window, { key: "G" });
+  await waitFor(() => {
+    expect(screen.getByRole("link", { name: /old-web-ui/ })).toHaveClass("sel");
+  });
+
+  fireEvent.keyDown(window, { key: "g" });
+  await waitFor(() => {
+    expect(screen.getByRole("link", { name: /web-graph-structure-refactor/ })).toHaveClass("sel");
+  });
+
+  fireEvent.keyDown(window, { key: "j" });
+  await waitFor(() => {
+    expect(screen.getByRole("link", { name: /react-lint-format-baseline/ })).toHaveClass("sel");
+  });
+
   fireEvent.keyDown(window, { key: "Enter" });
   expect(window.location.hash).toBe("#/leaf/react-lint-format-baseline");
 
@@ -180,6 +195,23 @@ test("supports keyboard selection, stage switching, and opening the selected row
   expect(screen.getByPlaceholderText("filter by slug, action")).toHaveFocus();
   fireEvent.keyDown(screen.getByPlaceholderText("filter by slug, action"), { key: "Escape" });
   expect(screen.getByPlaceholderText("filter by slug, action")).not.toHaveFocus();
+});
+
+test("resets selection when changing stages by mouse", async () => {
+  render(<WorkspaceList />);
+  await screen.findByRole("link", { name: /web-graph-structure-refactor/ });
+
+  fireEvent.keyDown(window, { key: "G" });
+  await waitFor(() => {
+    expect(screen.getByRole("link", { name: /old-web-ui/ })).toHaveClass("sel");
+  });
+
+  fireEvent.click(screen.getByRole("button", { name: /leaves/ }));
+
+  await waitFor(() => {
+    expect(screen.getByRole("link", { name: /react-lint-format-baseline/ })).toHaveClass("sel");
+  });
+  expect(screen.getByRole("link", { name: /typescript-migration-plan/ })).not.toHaveClass("sel");
 });
 
 test("renders an API error message when the workspace request fails", async () => {

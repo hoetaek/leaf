@@ -80,7 +80,7 @@ export default function WorkspaceList() {
     return () => cancelAnimationFrame(id);
   }, [selectedIndex, rows.length]);
 
-  // keyboard: j/k move, Enter open, / focus filter, h/l stage, p preview
+  // keyboard: j/k move, g/G edges, Enter open, / focus filter, h/l stage, p preview
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (document.activeElement === filterRef.current) {
@@ -99,6 +99,12 @@ export default function WorkspaceList() {
       } else if (e.key === "k") {
         e.preventDefault();
         setSel((s) => Math.max(0, s - 1));
+      } else if (e.key === "g") {
+        e.preventDefault();
+        setSel(0);
+      } else if (e.key === "G") {
+        e.preventDefault();
+        setSel(rows.length ? rows.length - 1 : 0);
       } else if (e.key === "Enter") {
         openRow();
       } else if (e.key === "p") {
@@ -157,7 +163,14 @@ export default function WorkspaceList() {
         </div>
         <div className="stageseg">
           {WORKSPACE_STAGES.map((s) => (
-            <button key={s} className={stage === s ? "on" : ""} onClick={() => setStage(s)}>
+            <button
+              key={s}
+              className={stage === s ? "on" : ""}
+              onClick={() => {
+                setStage(s);
+                setSel(0);
+              }}
+            >
               {s}
               {s !== "all" && <span className="c"> {counts[s] || 0}</span>}
             </button>
@@ -216,7 +229,9 @@ export default function WorkspaceList() {
         {rows.length} shown
         <span className="khint">
           <span className="kbd">j</span>
-          <span className="kbd">k</span> 이동 &middot; <span className="kbd">Enter</span> 열기 &middot;{" "}
+          <span className="kbd">k</span>
+          <span className="kbd">g</span>
+          <span className="kbd">G</span> 이동 &middot; <span className="kbd">Enter</span> 열기 &middot;{" "}
           <span className="kbd">d</span>
           <span className="kbd">u</span> 페이지 &middot; <span className="kbd">/</span> 필터 &middot;{" "}
           <span className="kbd">p</span> preview &middot; <span className="kbd">h</span>

@@ -107,7 +107,9 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
         <a href="#/">← workspace</a> &nbsp;·&nbsp; review &middot; <b>{data.slug}</b>
         <span className="khint">
           <span className="kbd">j</span>
-          <span className="kbd">k</span> 줄 &middot; <span className="kbd">d</span>
+          <span className="kbd">k</span>
+          <span className="kbd">g</span>
+          <span className="kbd">G</span> 줄 &middot; <span className="kbd">d</span>
           <span className="kbd">u</span> 페이지 &middot; <span className="kbd">R</span> references (
           {data.references?.length || 0}) &middot; <span className="kbd">q</span> 목록
         </span>

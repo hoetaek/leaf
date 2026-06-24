@@ -43,7 +43,16 @@ beforeEach(() => {
   vi.stubGlobal("fetch", mockJsonFetch({ "/api/review/web-graph-structure-refactor": reviewData }));
   vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
   vi.spyOn(window, "scrollBy").mockImplementation(() => undefined);
+  vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
+  Object.defineProperty(document.documentElement, "scrollHeight", {
+    configurable: true,
+    value: 2000,
+  });
   Object.defineProperty(HTMLElement.prototype, "scrollBy", {
+    configurable: true,
+    value: vi.fn(),
+  });
+  Object.defineProperty(HTMLElement.prototype, "scrollTo", {
     configurable: true,
     value: vi.fn(),
   });
@@ -89,6 +98,12 @@ test("opens the mobile table of contents and follows reader keyboard shortcuts",
   expect(screen.getByText("References")).toBeInTheDocument();
   expect(screen.getByText(/이동/)).toBeInTheDocument();
 
+  fireEvent.keyDown(window, { key: "G" });
+  expect(screen.getByText("두 번째 레퍼런스")).toBeInTheDocument();
+
+  fireEvent.keyDown(window, { key: "g" });
+  expect(screen.getByText("첫 번째 레퍼런스")).toBeInTheDocument();
+
   fireEvent.keyDown(window, { key: "l" });
   expect(screen.getByText(/스크롤/)).toBeInTheDocument();
 
@@ -128,7 +143,7 @@ test("renders a selected reference as a full page", async () => {
   );
 });
 
-test("keeps j and k as vertical scroll keys on full page references", async () => {
+test("keeps j, k, g, and G as vertical scroll keys on full page references", async () => {
   window.location.hash = "#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fa.md";
   render(<ReviewReader slug="web-graph-structure-refactor" referencePath="01-Learn/02-references/a.md" />);
 
@@ -141,6 +156,12 @@ test("keeps j and k as vertical scroll keys on full page references", async () =
   fireEvent.keyDown(window, { key: "k" });
   expect(window.scrollBy).toHaveBeenLastCalledWith({ top: -90, behavior: "smooth" });
   expect(window.location.hash).toBe("#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fa.md");
+
+  fireEvent.keyDown(window, { key: "g" });
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: "smooth" });
+
+  fireEvent.keyDown(window, { key: "G" });
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 2000, behavior: "smooth" });
 });
 
 test("moves between full page references with h and l", async () => {

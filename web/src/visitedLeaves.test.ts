@@ -35,3 +35,20 @@ test("writeVisitedLeaves stores visited ids as JSON", () => {
 
   assert.equal(storage.value(), '["leaf-a","leaf-b"]');
 });
+
+test("falls back when browser localStorage access is denied", () => {
+  const descriptor = Object.getOwnPropertyDescriptor(window, "localStorage");
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    get() {
+      throw new Error("denied");
+    },
+  });
+
+  try {
+    assert.deepEqual([...readVisitedLeaves()], []);
+    assert.doesNotThrow(() => writeVisitedLeaves(new Set(["leaf-a"])));
+  } finally {
+    if (descriptor) Object.defineProperty(window, "localStorage", descriptor);
+  }
+});

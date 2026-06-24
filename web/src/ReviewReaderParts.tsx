@@ -129,13 +129,17 @@ export function ReferencesDrawer({
             {refFocus === REVIEW_REF_FOCUS.LIST ? (
               <>
                 <span className="kbd">j</span>
-                <span className="kbd">k</span> 이동 &middot; <span className="kbd">l</span> 선택 &middot;{" "}
+                <span className="kbd">k</span>
+                <span className="kbd">g</span>
+                <span className="kbd">G</span> 이동 &middot; <span className="kbd">l</span> 선택 &middot;{" "}
                 <span className="kbd">f</span> 전체 &middot; <span className="kbd">h</span> 닫기
               </>
             ) : (
               <>
                 <span className="kbd">j</span>
                 <span className="kbd">k</span>
+                <span className="kbd">g</span>
+                <span className="kbd">G</span>
                 <span className="kbd">d</span>
                 <span className="kbd">u</span> 스크롤 &middot; <span className="kbd">f</span> 전체 &middot;{" "}
                 <span className="kbd">h</span> 목록
@@ -201,7 +205,9 @@ export function ReferenceFullPage({
         <b>{referencePath.split("/").pop()}</b>
         <span className="khint">
           <span className="kbd">j</span>
-          <span className="kbd">k</span> 스크롤 &middot; <span className="kbd">h</span>
+          <span className="kbd">k</span>
+          <span className="kbd">g</span>
+          <span className="kbd">G</span> 스크롤 &middot; <span className="kbd">h</span>
           <span className="kbd">l</span> reference &middot; <span className="kbd">q</span> review
         </span>
       </p>

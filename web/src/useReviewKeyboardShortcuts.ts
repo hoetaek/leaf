@@ -35,6 +35,14 @@ export function useReviewKeyboardShortcuts({
     const inContent = showRefs && refFocus === REVIEW_REF_FOCUS.CONTENT;
     const pane = () => (inContent ? refReadRef.current : null);
     const scroll = (dy: number) => (pane() || window).scrollBy({ top: dy, behavior: "smooth" });
+    const scrollEdge = (bottom: boolean) => {
+      const element = pane();
+      if (element) {
+        element.scrollTo({ top: bottom ? element.scrollHeight : 0, behavior: "smooth" });
+      } else {
+        window.scrollTo({ top: bottom ? document.documentElement.scrollHeight : 0, behavior: "smooth" });
+      }
+    };
     const page = (frac: number) => {
       const element = pane();
       scroll(frac * (element ? element.clientHeight : window.innerHeight));
@@ -94,6 +102,22 @@ export function useReviewKeyboardShortcuts({
             setRefSel((current) => nextReferenceIndex(current, -1, count));
           } else {
             scroll(-90);
+          }
+          break;
+        case "g":
+          event.preventDefault();
+          if (showRefs && refFocus === REVIEW_REF_FOCUS.LIST) {
+            setRefSel(0);
+          } else {
+            scrollEdge(false);
+          }
+          break;
+        case "G":
+          event.preventDefault();
+          if (showRefs && refFocus === REVIEW_REF_FOCUS.LIST) {
+            setRefSel(count ? count - 1 : 0);
+          } else {
+            scrollEdge(true);
           }
           break;
         case "d":
