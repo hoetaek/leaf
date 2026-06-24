@@ -24,11 +24,19 @@ function stopGraphPan(event) {
 function GraphMarkers() {
   return (
     <defs>
-      <marker id="leafGraphArrow" viewBox="0 0 10 10" markerWidth="9" markerHeight="9" refX="9" refY="5" orient="auto">
+      <marker
+        id="leaf-graph-arrow"
+        viewBox="0 0 10 10"
+        markerWidth="9"
+        markerHeight="9"
+        refX="9"
+        refY="5"
+        orient="auto"
+      >
         <path d="M0,0 L10,5 L0,10 z" />
       </marker>
       <marker
-        id="leafGraphArrowActive"
+        id="leaf-graph-arrow-active"
         viewBox="0 0 10 10"
         markerWidth="9"
         markerHeight="9"
@@ -54,7 +62,7 @@ function GraphEdge({ link, layoutById, model, hoverId, linkCount }) {
   });
   const showLabel = active && (hoverId || linkCount <= 26);
   const edgeClass = hoverId ? `edge${active ? " active" : " dim"}` : "edge";
-  const marker = hoverId && active ? "url(#leafGraphArrowActive)" : "url(#leafGraphArrow)";
+  const marker = hoverId && active ? "url(#leaf-graph-arrow-active)" : "url(#leaf-graph-arrow)";
 
   return (
     <g>
