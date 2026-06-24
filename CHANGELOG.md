@@ -8,6 +8,10 @@ minor version instead of moving to `x.0.0`.
 
 ## 0.13.1 - 2026-06-24
 
+- Fixed `leaf review --json` and the web review API hiding broken reference
+  files as empty markdown; reference read failures now surface the failing path.
+- Fixed `leaf serve --port 0` printing `127.0.0.1:0` instead of the actual
+  ephemeral port assigned by the OS.
 - Fixed `leaf update` panicking on Windows (`uri scheme is https, provider is
   Rustls but feature is not enabled: rustls`). The Windows build compiles ureq
   with only the `native-tls` feature, but ureq still defaults its TLS provider to
