@@ -103,6 +103,12 @@ read a diagram to discover the facts.
 Search the web actively for convention and external items when the domain can
 shift over time. Save what you find under `01-Learn/02-references/`, one file per
 topic, and summarize the useful answer back in `02-unknowns.md`.
+When the research depends on source quality, statistics, current facts, disputed
+claims, or blocked public sources, use `research-quality.md`: rate decisive
+sources, record citation details, mark unsupported claims `unresolved`, and note
+the access path used to read each blocked source. When exposed, use
+`insane-research` for deep research and `insane-search` for blocked public-source
+access; their absence is not a blocker.
 
 Ask or infer:
 

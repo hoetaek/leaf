@@ -44,6 +44,7 @@ Read only what the current move needs:
 | `../soul/SKILL.md` | always: conduct, language, report shape, fact/guess separation, review handoff |
 | `references/gate-01-intent.md` | ① Intent pass/fail contract before locking intent |
 | `references/gate-02-unknowns-context.md` | ② Unknowns & Context contract before the Learn-rest check |
+| `references/research-quality.md` | deep external research, source-quality grading, citation-backed synthesis, or blocked public-source access |
 | `../work/references/gate-authoring.md` | drafting, grilling, or revising durable Learn artifacts |
 | `../work/references/clarity-ledger.md` | choosing the weakest row to aim the next Learn question |
 | `../work/references/experiment-log.md` | a ② unknown needs an independent probe |
@@ -151,6 +152,16 @@ Rules for the fan-out:
   conventions, prior art, comparable cases, and recent domain changes when the
   domain can shift over time, saving each find under `01-Learn/02-references/`.
   The full contract is in `references/gate-02-unknowns-context.md`.
+- **Default to high-quality research when external facts can change the
+  judgment.** For broad external research, disputed claims, statistics,
+  law/policy/medical/financial facts, or source-heavy synthesis, read
+  `references/research-quality.md` and apply its source-rating, verification,
+  citation, and access-path rules. If the current runtime exposes
+  `insane-research`/`insane-research-codex`, use it as a reference-producing
+  scout for deep research. If a public source is blocked and
+  `insane-search`/`insane-search-codex` is exposed, use it as an access fallback.
+  Both are optional accelerators; Learn must continue with built-in search,
+  fetch, browser, and explicit limitation notes when they are unavailable.
 - **Scale honestly.** Skip a scout with nothing to find and name the skip and its
   reason; do not pad references for appearance.
 
