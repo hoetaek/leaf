@@ -6,22 +6,6 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
-## 0.13.0 - 2026-06-24
-
-- Added the `leaf serve` web UI: a read-only local browser for a repo's `.leaf`
-  workspace, with routes for the workspace list, review reader payloads, and the
-  pressed knowledge graph.
-- Release binaries now embed the built `web/dist` UI so package-manager installs
-  can run `leaf serve` standalone without Node, npm, or a leaf source checkout.
-- `leaf serve` now treats `4173` as a preferred port. If it is busy, the server
-  falls back to the next available localhost port and prints the actual URL;
-  `--strict-port` preserves exact-port failure behavior for scripts.
-- The web UI top bar now shows the served workspace folder name, so simultaneous
-  `leaf serve` browser tabs can be distinguished.
-- Non-embedded contributor builds now serve web assets from the leaf checkout's
-  `web/dist`, not from the project being viewed, and the missing-asset notice
-  points developers at the leaf source checkout instead of the served project.
-
 ## 0.6.0 - 2026-06-23
 
 - Added the `leaf:tend` skill — keeps the pressed knowledge graph true to current
