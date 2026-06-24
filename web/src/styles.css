@@ -15,6 +15,11 @@
   --r: 14px;
   --r-lg: 20px;
   --shell-pad: 24px;
+  --type-ui: 15px;
+  --type-reader: 16px;
+  --type-reader-compact: 15px;
+  --line-ui: 1.45;
+  --line-reader: 1.65;
 }
 
 * {
@@ -27,7 +32,8 @@ body {
   color: var(--ink);
   font-family: Satoshi, ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  font-size: 14px;
+  font-size: var(--type-ui);
+  line-height: var(--line-ui);
 }
 
 h1,
@@ -35,7 +41,7 @@ h2,
 h3,
 h4 {
   font-family: "Cabinet Grotesk", sans-serif;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .shell {
@@ -173,6 +179,8 @@ h4 {
   border-radius: var(--r);
   padding: 30px 38px;
   min-height: 400px;
+  width: 100%;
+  max-width: 900px;
 }
 
 .reference-full {
@@ -227,7 +235,8 @@ h4 {
 
 .md h1,
 .md h2 {
-  font-size: 20px;
+  font-size: 22px;
+  line-height: 1.25;
   margin: 22px 0 10px;
 }
 
@@ -237,15 +246,16 @@ h4 {
 }
 
 .md h3 {
-  font-size: 16px;
+  font-size: 17px;
+  line-height: 1.3;
   margin: 18px 0 8px;
 }
 
 .md p,
 .md li {
   color: var(--body);
-  font-size: 15px;
-  line-height: 1.65;
+  font-size: var(--type-reader);
+  line-height: var(--line-reader);
 }
 
 .md code {
@@ -277,7 +287,7 @@ h4 {
   width: 100%;
   overflow-x: auto;
   margin: 12px 0;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .md th,
@@ -337,7 +347,7 @@ h4 {
 }
 
 .vtitle {
-  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  font-size: 2.4rem;
   font-weight: 800;
   margin: 26px 0 2px;
 }
@@ -985,12 +995,14 @@ h4 {
 
 .refdrawer .refread h1,
 .refdrawer .refread h2 {
-  font-size: 16px;
+  font-size: 18px;
+  line-height: 1.3;
 }
 
 .refdrawer .refread p,
 .refdrawer .refread li {
-  font-size: 13.5px;
+  font-size: var(--type-reader-compact);
+  line-height: var(--line-reader);
 }
 
 /* mobile reader actions — desktop hides them and uses the sticky rail / key hints */
