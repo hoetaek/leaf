@@ -93,6 +93,10 @@ When producing a reviewable artifact, open or render it yourself before handing
 it back. For HTML, use a browser and capture the relevant states when possible.
 Pair each artifact or state with the one thing the user should verify. If a tool
 is unavailable, say so and give the exact path plus the check.
+When the user is actively reviewing a LEAF item in the web UI, hand it off
+through a live page idempotently: reuse an existing `leaf serve` when reachable,
+start it only if needed, and open or focus the target URL only if it is not
+already open. Do not spawn duplicate servers or duplicate tabs.
 
 ## Before you finish
 

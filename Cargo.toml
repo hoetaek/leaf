@@ -1,6 +1,6 @@
 [package]
 name = "leaf"
-version = "0.12.0"
+version = "0.13.0"
 edition = "2024"
 rust-version = "1.88"
 publish = false
@@ -28,11 +28,13 @@ include = [
 [dependencies]
 anyhow = "1"
 arboard = { version = "3.6.1", default-features = false }
+axum = "0.8.9"
 clap = { version = "4", features = ["derive"] }
 crossterm = "0.29"
 lzma-rs = "0.3"
 pulldown-cmark = "0.13"
 ratatui = "0.30.1"
+rust-embed = { version = "8.11.0", optional = true }
 self-replace = "1"
 semver = "1"
 serde = { version = "1", features = ["derive"] }
@@ -45,8 +47,10 @@ tempfile = "3"
 # `From` impls with E0119 under fresh resolution (e.g. `cargo install`
 # without --locked). Remove once a fixed time release ships or 0.3.48 is
 # yanked.
-time = { version = ">=0.3.47, <0.3.48", default-features = false }
+time = { version = ">=0.3.47, <0.3.50", default-features = false }
+tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "net"] }
 toml = "1.1.2"
+tower-http = { version = "0.7.0", features = ["fs"] }
 two-face = { version = "0.5", default-features = false, features = ["syntect-default-onig"] }
 unicode-width = "0.2"
 url = "2"
@@ -80,3 +84,10 @@ targets = [
 [profile.dist]
 inherits = "release"
 lto = "thin"
+
+# `embed-web` bundles the built `web/dist` SPA into the binary so `leaf serve`
+# runs standalone. Off by default for contributor builds, which serve the leaf
+# checkout's `web/dist` from disk; release builds enable this through
+# dist-workspace.toml after the Vite build.
+[features]
+embed-web = ["dep:rust-embed"]

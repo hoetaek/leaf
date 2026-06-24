@@ -1,0 +1,7 @@
+interface:
+  display_name: "LEAF Tend"
+  short_description: "Keep pressed leaf docs true to current code"
+  default_prompt: "Use $leaf:tend to sweep the pressed knowledge graph (leaf graph) and reconcile drift against current code: verify each pressed.md claim in the repo, then propose 🟢keep / 🟡correction-banner / 🔴supersede per leaf. Never rewrite the frozen pressed body; never fall without user confirmation. Not for prose polish (polish), first-time pressing (press), or human review handoff (review)."
+
+policy:
+  allow_implicit_invocation: true

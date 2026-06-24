@@ -1,6 +1,7 @@
 use crate::inventory::PreviewSource;
 use anyhow::Result;
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
+use serde::Serialize;
 use std::fs;
 use std::ops::Range;
 use std::path::Path;
@@ -15,6 +16,44 @@ const DIGEST_SUMMARY_LINES: usize = 8;
 pub(crate) struct Preview {
     pub(crate) title: String,
     pub(crate) lines: Vec<PreviewLine>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct PreviewJson {
+    pub(crate) title: String,
+    pub(crate) lines: Vec<PreviewLineJson>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub(crate) enum PreviewLineJson {
+    Heading {
+        level: u8,
+        text: String,
+    },
+    SourceBoundary {
+        phase: String,
+        gate: String,
+        source: String,
+    },
+    Checkbox {
+        marker: String,
+        checked: bool,
+        text: String,
+    },
+    ListItem {
+        marker: String,
+        text: String,
+    },
+    Code {
+        text: String,
+    },
+    Table {
+        text: String,
+    },
+    Text {
+        text: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -221,6 +260,114 @@ pub(crate) fn build_from_source(slug: &str, source: &PreviewSource) -> Result<Pr
             })
         }
         PreviewSource::PressedDigest { digest_path } => Ok(build_pressed_digest(slug, digest_path)),
+    }
+}
+
+pub(crate) fn build_json_from_source(slug: &str, source: &PreviewSource) -> Result<PreviewJson> {
+    build_from_source(slug, source).map(PreviewJson::from)
+}
+
+impl From<Preview> for PreviewJson {
+    fn from(preview: Preview) -> Self {
+        PreviewJson {
+            title: preview.title,
+            lines: preview.lines.iter().map(PreviewLineJson::from).collect(),
+        }
+    }
+}
+
+impl From<&PreviewLine> for PreviewLineJson {
+    fn from(line: &PreviewLine) -> Self {
+        match line {
+            PreviewLine::Heading { level, text } => PreviewLineJson::Heading {
+                level: *level,
+                text: text.clone(),
+            },
+            PreviewLine::SourceBoundary {
+                phase,
+                gate,
+                source,
+            } => PreviewLineJson::SourceBoundary {
+                phase: phase.clone(),
+                gate: gate.clone(),
+                source: source.clone(),
+            },
+            PreviewLine::Checkbox {
+                marker,
+                checked,
+                text,
+            } => PreviewLineJson::Checkbox {
+                marker: marker.clone(),
+                checked: *checked,
+                text: text.clone(),
+            },
+            PreviewLine::ListItem { marker, spans } => PreviewLineJson::ListItem {
+                marker: marker.clone(),
+                text: preview_span_text(spans),
+            },
+            PreviewLine::Code(text) => PreviewLineJson::Code { text: text.clone() },
+            PreviewLine::CodeSpans(_) => PreviewLineJson::Code {
+                text: preview_line_text(line),
+            },
+            PreviewLine::TableHeader { .. }
+            | PreviewLine::TableDivider { .. }
+            | PreviewLine::TableRow { .. } => PreviewLineJson::Table {
+                text: preview_line_text(line),
+            },
+            PreviewLine::BlockQuote { .. } | PreviewLine::Plain(_) | PreviewLine::Styled(_) => {
+                PreviewLineJson::Text {
+                    text: preview_line_text(line),
+                }
+            }
+        }
+    }
+}
+
+pub(crate) fn preview_line_text(line: &PreviewLine) -> String {
+    match line {
+        PreviewLine::BlockQuote { prefix, line, .. } => {
+            format!("{prefix}{}", preview_line_text(line))
+        }
+        PreviewLine::Heading { text, .. } | PreviewLine::Code(text) | PreviewLine::Plain(text) => {
+            text.clone()
+        }
+        PreviewLine::CodeSpans(spans) | PreviewLine::Styled(spans) => preview_span_text(spans),
+        PreviewLine::TableHeader { .. }
+        | PreviewLine::TableDivider { .. }
+        | PreviewLine::TableRow { .. } => table_line_text(line).expect("table line text"),
+        PreviewLine::Checkbox {
+            marker,
+            checked,
+            text,
+        } => {
+            let checkbox = if *checked { "[x]" } else { "[ ]" };
+            format!("{marker} {checkbox} {text}")
+        }
+        PreviewLine::ListItem { marker, spans } => {
+            format!("{marker} {}", preview_span_text(spans))
+        }
+        PreviewLine::SourceBoundary {
+            phase,
+            gate,
+            source,
+        } => {
+            format!("{phase} / {gate} {source}")
+        }
+    }
+}
+
+fn preview_span_text(spans: &[PreviewSpan]) -> String {
+    spans.iter().map(preview_span_text_one).collect()
+}
+
+fn preview_span_text_one(span: &PreviewSpan) -> &str {
+    match span {
+        PreviewSpan::Plain(text)
+        | PreviewSpan::Bold(text)
+        | PreviewSpan::StyledText { text, .. }
+        | PreviewSpan::Code(text)
+        | PreviewSpan::Link { text, .. }
+        | PreviewSpan::Syntax { text, .. } => text,
     }
 }
 
@@ -3753,6 +3900,51 @@ Intro with **bold**, `code`, and [docs](https://example.com/docs).
             intent_boundary < criteria_boundary,
             "Learn gate should render before Example gate: {text:?}"
         );
+    }
+
+    #[test]
+    fn preview_json_preserves_web_friendly_line_kinds() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        root.child(".leaf/02-leaves/preview/00-status.md")
+            .write_str("# Leaf Status\n\n- current phase: Example\n- next action: 다음 행동\n")
+            .expect("status");
+        root.child(".leaf/02-leaves/preview/01-Learn/01-intent.md")
+            .write_str("# Intent\n\n- [x] 확인된 항목\n")
+            .expect("intent");
+
+        let inventory = inventory::load(root.path()).expect("inventory");
+        let item = inventory.stages[1]
+            .items
+            .iter()
+            .find(|item| item.stage_dir == StageDir::Leaves && item.slug == "preview")
+            .expect("item");
+
+        let preview = build_json_from_source(&item.slug, &item.preview).expect("preview json");
+
+        assert_eq!(preview.title, "preview");
+        assert!(matches!(
+            preview.lines.first(),
+            Some(PreviewLineJson::Heading {
+                text,
+                level: 1
+            }) if text == "Leaf Status"
+        ));
+        assert!(preview.lines.iter().any(|line| matches!(
+            line,
+            PreviewLineJson::SourceBoundary {
+                phase,
+                gate,
+                source
+            } if phase == "Learn" && gate == "① Intent" && source == "01-Learn/01-intent.md"
+        )));
+        assert!(preview.lines.iter().any(|line| matches!(
+            line,
+            PreviewLineJson::Checkbox {
+                checked: true,
+                text,
+                ..
+            } if text == "확인된 항목"
+        )));
     }
 
     #[test]

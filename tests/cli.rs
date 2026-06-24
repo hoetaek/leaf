@@ -171,6 +171,56 @@ fn graph_json_exports_pressed_leaf_nodes_and_link_edges() {
 }
 
 #[test]
+fn review_json_emits_eleven_sources_with_raw_markdown() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+    write_status(
+        &repo,
+        ".leaf/02-leaves/webui/00-status.md",
+        "- stage: leaf\n\
+         - current phase: Feedback\n\
+         - current gate: ⑩ Retrospect\n\
+         - first missing gate: ⑩ Retrospect\n\
+         - next action: review\n",
+    );
+    repo.child(".leaf/02-leaves/webui/01-Learn/01-intent.md")
+        .write_str("# Intent\n\nUNIQUE_INTENT_MARKER body.\n")
+        .expect("intent file");
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["review", "webui", "--json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("valid json");
+
+    assert_eq!(json["slug"], "webui");
+    let sources = json["sources"].as_array().expect("sources array");
+    assert_eq!(sources.len(), 11, "always 11 canonical sources");
+    assert_eq!(sources[1]["gate"], "① Intent");
+    assert_eq!(sources[1]["present"], true);
+    assert!(
+        sources[1]["markdown"]
+            .as_str()
+            .unwrap()
+            .contains("UNIQUE_INTENT_MARKER"),
+        "raw markdown is passed through"
+    );
+    // A gate with no file is still listed, marked absent with empty markdown.
+    assert_eq!(sources[5]["gate"], "⑤ Design");
+    assert_eq!(sources[5]["present"], false);
+    assert_eq!(sources[5]["markdown"], "");
+}
+
+#[test]
 fn version_flag_prints_package_version() {
     leaf_command()
         .arg("--version")
