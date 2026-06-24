@@ -135,10 +135,7 @@ export default function TreeView() {
   return (
     <div className="tree">
       <h1 className="vtitle">Tree</h1>
-      <p className="vsub">
-        {model.counts.leaves || 0} leaves &middot; {model.counts.sprouts || 0} sprouts &middot;{" "}
-        {model.counts.fallen || 0} fallen &middot; {formatCount(model.pressedCount)} pressed
-      </p>
+      <p className="vsub">leaf 생애주기 한눈에</p>
 
       <section className="tree-hero" aria-labelledby="tree-overview-title">
         <div>

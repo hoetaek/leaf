@@ -47,7 +47,8 @@ test("renders the lifecycle dashboard, growth snapshot, and stage links", async 
 
   expect(screen.getByText("불러오는 중…")).toBeInTheDocument();
   expect(await screen.findByRole("heading", { name: "Tree" })).toBeInTheDocument();
-  expect(screen.getByText("1 leaves · 1 sprouts · 0 fallen · 2 pressed")).toBeInTheDocument();
+  expect(screen.getByText("leaf 생애주기 한눈에")).toBeInTheDocument();
+  expect(screen.queryByText(/\d+ leaves · \d+ sprouts · \d+ fallen/)).toBeNull();
   expect(screen.getByLabelText(/Tree snapshot/)).toBeInTheDocument();
   expect(screen.getAllByText("Leaves")).toHaveLength(2);
   expect(screen.getByText("Pressed")).toBeInTheDocument();
@@ -73,7 +74,7 @@ test("renders lifecycle data even when graph counts fail", async () => {
   render(<TreeView />);
 
   expect(await screen.findByRole("heading", { name: "Tree" })).toBeInTheDocument();
-  expect(screen.getByText("1 leaves · 1 sprouts · 0 fallen · — pressed")).toBeInTheDocument();
+  expect(screen.getByText("leaf 생애주기 한눈에")).toBeInTheDocument();
   expect(screen.getAllByText("unavailable")).toHaveLength(2);
 });
 
