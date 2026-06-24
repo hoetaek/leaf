@@ -49,7 +49,7 @@ pub(crate) fn run(port: u16, fallback: PortFallback) -> Result<()> {
 }
 
 async fn serve(repo_root: PathBuf, port: u16, fallback: PortFallback) -> Result<()> {
-    let web_dist = repo_root.join("web").join("dist");
+    let web_dist = web_dist_dir(&repo_root);
     let state = AppState { repo_root };
 
     let app = Router::new()
@@ -167,9 +167,27 @@ fn json_error(code: StatusCode, message: &str) -> axum::response::Response {
     (code, Json(serde_json::json!({ "error": message }))).into_response()
 }
 
+#[cfg(not(feature = "embed-web"))]
+fn web_dist_dir(_served_repo_root: &StdPath) -> PathBuf {
+    leaf_web_dir().join("dist")
+}
+
+#[cfg(feature = "embed-web")]
+fn web_dist_dir(_served_repo_root: &StdPath) -> PathBuf {
+    PathBuf::new()
+}
+
+/// Non-embedded builds are for leaf contributors: serve the web UI from the
+/// leaf checkout that built this binary, not from the project being viewed.
+/// Installed release binaries should use `embed-web` instead.
+#[cfg(not(feature = "embed-web"))]
+fn leaf_web_dir() -> PathBuf {
+    StdPath::new(env!("CARGO_MANIFEST_DIR")).join("web")
+}
+
 /// Attach the SPA static layer. With `embed-web`, assets are baked into the
-/// binary (standalone `leaf serve`); otherwise they are served from `web/dist`
-/// on disk, with a dev notice when it has not been built yet.
+/// binary (standalone `leaf serve`); otherwise they are served from the leaf
+/// source checkout's `web/dist`, with a dev notice when it has not been built.
 #[cfg(not(feature = "embed-web"))]
 fn attach_static(app: Router<AppState>, web_dist: &StdPath) -> Router<AppState> {
     if web_dist.is_dir() {
@@ -223,10 +241,28 @@ async fn dev_notice() -> impl IntoResponse {
     (
         StatusCode::OK,
         [("content-type", "text/html; charset=utf-8")],
-        "<h1>leaf serve</h1><p><code>web/dist</code> not built. Run \
-         <code>cd web &amp;&amp; npm install &amp;&amp; npm run build</code>, or use the \
-         Vite dev server which proxies <code>/api</code> here.</p>",
+        dev_notice_html(),
     )
+}
+
+#[cfg(not(feature = "embed-web"))]
+fn dev_notice_html() -> String {
+    let leaf_web_dir = html_escape(&leaf_web_dir().display().to_string());
+    format!(
+        "<h1>leaf serve</h1>\
+         <p>This developer leaf binary was built without embedded web UI, and the leaf source checkout has no <code>web/dist</code>.</p>\
+         <p>Build the leaf web UI from the leaf source checkout, not the project you are serving:</p>\
+         <pre><code>cd {leaf_web_dir} &amp;&amp; npm ci &amp;&amp; npm run build</code></pre>\
+         <p>For UI development, run <code>npm run dev</code> from that same <code>web</code> directory and open the Vite URL.</p>\
+         <p>Installed release binaries should be built with embedded web UI, so they do not need this source checkout.</p>"
+    )
+}
+
+#[cfg(not(feature = "embed-web"))]
+fn html_escape(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 #[cfg(test)]
@@ -261,5 +297,31 @@ mod tests {
                 .to_string()
                 .contains("is the port already in use?")
         );
+    }
+
+    #[cfg(not(feature = "embed-web"))]
+    #[test]
+    fn web_dist_dir_uses_leaf_checkout_not_served_repo() {
+        let served_repo = tempfile::tempdir().expect("served repo tempdir");
+
+        let web_dist = web_dist_dir(served_repo.path());
+
+        assert_eq!(
+            web_dist,
+            StdPath::new(env!("CARGO_MANIFEST_DIR"))
+                .join("web")
+                .join("dist")
+        );
+    }
+
+    #[cfg(not(feature = "embed-web"))]
+    #[test]
+    fn dev_notice_points_to_leaf_checkout_not_served_project() {
+        let html = dev_notice_html();
+
+        assert!(html.contains("leaf source checkout"));
+        assert!(html.contains("not the project you are serving"));
+        assert!(html.contains("release"));
+        assert!(html.contains("embedded web UI"));
     }
 }
