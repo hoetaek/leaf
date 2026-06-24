@@ -665,9 +665,41 @@ h4 {
 }
 
 .wprev-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 14px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line2);
+}
+
+.wprev-open {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  color: var(--mut);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  line-height: 1;
+}
+
+.wprev-open:hover {
+  color: var(--ink);
+  border-color: var(--sage);
+}
+
+.wprev-open-arrow {
+  font-size: 15px;
+}
+
+.wprev-open-key {
+  font-family: ui-monospace;
+  font-size: 10px;
+  opacity: 0.7;
 }
 
 .wprev-head h3 {

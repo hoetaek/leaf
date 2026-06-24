@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { leafHref } from "./routes";
 import { cachedWorkspacePreview, loadWorkspacePreview } from "./workspacePreviewCache";
 import type { WorkspacePreviewLine, WorkspacePreviewResponse, WorkspaceRow } from "./types";
 
@@ -99,6 +100,22 @@ export default function WorkspacePreview({ row }: { row?: WorkspaceRow }) {
           <h3>{title}</h3>
           {path && <p>{path}</p>}
         </div>
+        {slug && (
+          <a
+            className="wprev-open"
+            href={leafHref(slug)}
+            aria-keyshortcuts="Enter"
+            aria-label="detail 열기"
+            title="detail 열기"
+          >
+            <span aria-hidden="true" className="wprev-open-arrow">
+              &#8599;
+            </span>
+            <span aria-hidden="true" className="wprev-open-key">
+              Enter
+            </span>
+          </a>
+        )}
       </div>
 
       {state.status === "idle" && <p className="muted">선택된 leaf가 없습니다.</p>}
