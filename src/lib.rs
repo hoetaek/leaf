@@ -15,6 +15,7 @@ mod preview;
 mod profile;
 mod review;
 mod scaffold;
+mod serve;
 mod slug;
 mod storage;
 mod syntax;

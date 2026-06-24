@@ -56,6 +56,9 @@ enum Commands {
     Review {
         /// Leaf-work slug to review.
         slug: String,
+        /// Write machine-readable JSON (the 11 gate sources with raw markdown).
+        #[arg(long)]
+        json: bool,
     },
     /// Print the effective profile (global profile layered with repo-local PROFILE.md).
     Profile,
@@ -71,6 +74,15 @@ enum Commands {
         /// Write machine-readable JSON.
         #[arg(long)]
         json: bool,
+    },
+    /// Serve a read-only local web UI over the .leaf workspace.
+    Serve {
+        /// Preferred port to bind on 127.0.0.1.
+        #[arg(long, default_value_t = 4173)]
+        port: u16,
+        /// Fail instead of trying the next port when the preferred port is busy.
+        #[arg(long)]
+        strict_port: bool,
     },
     /// Update leaf to the latest stable release.
     Update,
@@ -238,12 +250,18 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             stdout.flush().context("flush leaf graph output")?;
             Ok(ExitCode::SUCCESS)
         }
-        Commands::Review { slug } => {
+        Commands::Review { slug, json } => {
             let slug = crate::slug::validate(&slug)?;
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
             let inventory = crate::inventory::load(&paths.root)?;
-            let source = review_source_for_slug(&inventory, &slug)?;
-            if std::io::stdin().is_terminal() && std::io::stdout().is_terminal() {
+            let source = crate::review::source_for_slug(&inventory, &slug)?;
+            if json {
+                let document = crate::review::build_json(&source)?;
+                let stdout = std::io::stdout();
+                let mut stdout = stdout.lock();
+                crate::review::write_json(&mut stdout, &document)?;
+                stdout.flush().context("flush leaf review json")?;
+            } else if std::io::stdin().is_terminal() && std::io::stdout().is_terminal() {
                 crate::tui::run_review(&inventory, source)?;
             } else {
                 let document = crate::review::build(&source)?;
@@ -300,6 +318,15 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             } else {
                 Ok(ExitCode::SUCCESS)
             }
+        }
+        Commands::Serve { port, strict_port } => {
+            let fallback = if strict_port {
+                crate::serve::PortFallback::Strict
+            } else {
+                crate::serve::PortFallback::Auto
+            };
+            crate::serve::run(port, fallback)?;
+            Ok(ExitCode::SUCCESS)
         }
         Commands::Update => crate::update::run(),
     }
@@ -369,40 +396,6 @@ fn leaf_work_path_for_slug(
     match matches.as_slice() {
         [] => bail!("leaf work does not exist: {slug}"),
         [item] => Ok(item.path.clone()),
-        items => {
-            let repo_root = inventory
-                .leaf_root
-                .parent()
-                .context("inventory leaf root has no parent")?;
-            let locations = items
-                .iter()
-                .map(|item| repo_relative(repo_root, &item.path))
-                .collect::<Vec<_>>()
-                .join(", ");
-            bail!("leaf work slug is ambiguous: {slug} ({locations})");
-        }
-    }
-}
-
-fn review_source_for_slug(
-    inventory: &crate::inventory::Inventory,
-    slug: &str,
-) -> Result<crate::review::ReviewSource> {
-    let matches = inventory
-        .stages
-        .iter()
-        .flat_map(|stage| stage.items.iter())
-        .filter(|item| {
-            item.kind == crate::inventory::ItemKind::LeafWork && item.slug.as_str() == slug
-        })
-        .collect::<Vec<_>>();
-
-    match matches.as_slice() {
-        [] => bail!("leaf work does not exist: {slug}"),
-        [item] => item
-            .review
-            .clone()
-            .context("review is only available for leaf work rows"),
         items => {
             let repo_root = inventory
                 .leaf_root

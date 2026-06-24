@@ -94,8 +94,9 @@ fn display_optional(value: &Option<String>, fallback: &str) -> String {
 }
 
 #[derive(Serialize)]
-struct JsonInventory {
+pub(crate) struct JsonInventory {
     leaf_root: String,
+    workspace_name: String,
     stages: JsonStages,
 }
 
@@ -128,15 +129,20 @@ struct JsonStatus {
     fallen_reason: Option<String>,
     current_phase: Option<String>,
     current_gate: Option<String>,
+    progress_done: usize,
+    progress_current: Option<usize>,
+    progress_total: usize,
+    progress_label: String,
     first_missing_gate: Option<String>,
     next_action: Option<String>,
     missing_fields: Vec<&'static str>,
 }
 
 impl JsonInventory {
-    fn from_inventory(inventory: &Inventory) -> Result<Self> {
+    pub(crate) fn from_inventory(inventory: &Inventory) -> Result<Self> {
         Ok(JsonInventory {
             leaf_root: ".leaf".to_string(),
+            workspace_name: workspace_name(inventory),
             stages: JsonStages {
                 sprouts: json_stage(inventory, StageDir::Sprouts)?,
                 leaves: json_stage(inventory, StageDir::Leaves)?,
@@ -178,12 +184,17 @@ impl JsonItem {
 
 impl JsonStatus {
     fn from_summary(status: &StatusSummary) -> Self {
+        let progress = ProgressJson::from_summary(status);
         JsonStatus {
             parse_state: parse_state_label(status.parse_state),
             stage: status.stage.clone(),
             fallen_reason: status.fallen_reason.clone(),
             current_phase: status.current_phase.clone(),
             current_gate: status.current_gate.clone(),
+            progress_done: progress.done,
+            progress_current: progress.current,
+            progress_total: progress.total,
+            progress_label: progress.label,
             first_missing_gate: status.first_missing_gate.clone(),
             next_action: status.next_action.clone(),
             missing_fields: status
@@ -194,6 +205,50 @@ impl JsonStatus {
                 .collect(),
         }
     }
+}
+
+struct ProgressJson {
+    done: usize,
+    current: Option<usize>,
+    total: usize,
+    label: String,
+}
+
+impl ProgressJson {
+    fn from_summary(status: &StatusSummary) -> Self {
+        const TOTAL: usize = 10;
+        let text = format!(
+            "{} {}",
+            status.current_phase.as_deref().unwrap_or(""),
+            status.current_gate.as_deref().unwrap_or("")
+        );
+        if is_terminal_progress(&text) {
+            return ProgressJson {
+                done: TOTAL,
+                current: None,
+                total: TOTAL,
+                label: format!("{TOTAL}/{TOTAL}"),
+            };
+        }
+        let current = status
+            .current_gate
+            .as_deref()
+            .and_then(crate::review::parse_gate_index);
+        let done = current.map_or(0, |gate| gate.saturating_sub(1));
+        ProgressJson {
+            done,
+            current,
+            total: TOTAL,
+            label: current.map_or_else(|| format!("—/{TOTAL}"), |gate| format!("{gate}/{TOTAL}")),
+        }
+    }
+}
+
+fn is_terminal_progress(text: &str) -> bool {
+    let text = text.to_lowercase();
+    ["완료", "pressed", "leaf-done", "done", "complete"]
+        .iter()
+        .any(|needle| text.contains(needle))
 }
 
 fn relative_leaf_path(inventory: &Inventory, path: &Path) -> Result<String> {
@@ -212,5 +267,47 @@ fn item_kind_label(kind: ItemKind) -> &'static str {
     match kind {
         ItemKind::LeafWork => "leaf_work",
         ItemKind::PressedDigest => "pressed_digest",
+    }
+}
+
+fn workspace_name(inventory: &Inventory) -> String {
+    inventory
+        .leaf_root
+        .parent()
+        .and_then(Path::file_name)
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_else(|| ".".to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::inventory::StageInventory;
+
+    fn empty_stage(stage_dir: StageDir) -> StageInventory {
+        StageInventory {
+            stage_dir,
+            items: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn json_inventory_includes_workspace_name_from_leaf_parent() {
+        let inventory = Inventory {
+            leaf_root: PathBuf::from("repos").join("indi-donors").join(".leaf"),
+            stages: vec![
+                empty_stage(StageDir::Sprouts),
+                empty_stage(StageDir::Leaves),
+                empty_stage(StageDir::Fallen),
+            ],
+        };
+
+        let value = serde_json::to_value(
+            JsonInventory::from_inventory(&inventory).expect("json inventory"),
+        )
+        .expect("serialize json inventory");
+
+        assert_eq!(value["leaf_root"], ".leaf");
+        assert_eq!(value["workspace_name"], "indi-donors");
     }
 }
