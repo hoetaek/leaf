@@ -5,6 +5,7 @@ import type { ReviewRefFocus, ReviewResponse } from "./types";
 
 interface ReviewKeyboardShortcutOptions {
   data: ReviewResponse | null;
+  onBack?: () => void;
   onNextReference?: () => void;
   onOpenReferenceFullPage?: () => void;
   onPreviousReference?: () => void;
@@ -18,6 +19,7 @@ interface ReviewKeyboardShortcutOptions {
 
 export function useReviewKeyboardShortcuts({
   data,
+  onBack,
   onNextReference,
   onOpenReferenceFullPage,
   onPreviousReference,
@@ -44,6 +46,7 @@ export function useReviewKeyboardShortcuts({
         case "q":
         case "Escape":
           if (showRefs) setShowRefs(false);
+          else if (onBack) onBack();
           else window.location.hash = "#/";
           break;
         case "r":
@@ -115,6 +118,7 @@ export function useReviewKeyboardShortcuts({
     return () => window.removeEventListener("keydown", onKey);
   }, [
     data,
+    onBack,
     onNextReference,
     onOpenReferenceFullPage,
     onPreviousReference,

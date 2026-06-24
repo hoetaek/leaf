@@ -150,6 +150,17 @@ test("moves between full page references with h and l", async () => {
   expect(window.location.hash).toBe("#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fa.md");
 });
 
+test("returns from a full page reference to the review with q", async () => {
+  window.location.hash = "#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fb.md";
+  render(<ReviewReader slug="web-graph-structure-refactor" referencePath="01-Learn/02-references/b.md" />);
+
+  expect(await screen.findByRole("heading", { name: "Beta" })).toBeInTheDocument();
+
+  fireEvent.keyDown(window, { key: "q" });
+
+  expect(window.location.hash).toBe("#/leaf/web-graph-structure-refactor");
+});
+
 test("renders reader validation and API error states", async () => {
   const { rerender } = render(<ReviewReader slug="" />);
   expect(screen.getByText("리뷰 slug가 없습니다.")).toBeInTheDocument();

@@ -202,7 +202,7 @@ export function ReferenceFullPage({
         <span className="khint">
           <span className="kbd">j</span>
           <span className="kbd">k</span> 스크롤 &middot; <span className="kbd">h</span>
-          <span className="kbd">l</span> reference
+          <span className="kbd">l</span> reference &middot; <span className="kbd">q</span> review
         </span>
       </p>
       <article className="report reference-full">

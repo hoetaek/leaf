@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { leafHref, openLeaf } from "./routes";
 import { useJsonResource } from "./useJsonResource";
+import WorkspacePreview from "./WorkspacePreview";
 import {
   clampWorkspaceSelection,
   filterWorkspaceRows,
@@ -32,12 +33,14 @@ export default function WorkspaceList() {
   const [stage, setStage] = useState<WorkspaceStageFilter>("all");
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(0);
+  const [previewOpen, setPreviewOpen] = useState(true);
   const filterRef = useRef<HTMLInputElement | null>(null);
   const rowRefs = useRef<Array<HTMLAnchorElement | null>>([]);
 
   const rows = useMemo(() => filterWorkspaceRows(data, { stage, query: q }), [data, stage, q]);
 
   const selectedIndex = clampWorkspaceSelection(sel, rows.length);
+  const selectedRow = rows[selectedIndex];
   const openRow = useCallback(
     (index = selectedIndex) => {
       const it = rows[index];
@@ -45,6 +48,21 @@ export default function WorkspaceList() {
     },
     [rows, selectedIndex],
   );
+
+  const isPlainPrimaryClick = (event: MouseEvent<HTMLAnchorElement>) =>
+    event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+
+  const selectRow = (event: MouseEvent<HTMLAnchorElement>, index: number) => {
+    if (!isPlainPrimaryClick(event)) return;
+    event.preventDefault();
+    setSel(index);
+  };
+
+  const openRowFromMouse = (event: MouseEvent<HTMLAnchorElement>, index: number) => {
+    if (!isPlainPrimaryClick(event)) return;
+    event.preventDefault();
+    openRow(index);
+  };
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
@@ -62,7 +80,7 @@ export default function WorkspaceList() {
     return () => cancelAnimationFrame(id);
   }, [selectedIndex, rows.length]);
 
-  // keyboard: j/k move, Enter open, / focus filter, h/l stage
+  // keyboard: j/k move, Enter open, / focus filter, h/l stage, p preview
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (document.activeElement === filterRef.current) {
@@ -83,6 +101,9 @@ export default function WorkspaceList() {
         setSel((s) => Math.max(0, s - 1));
       } else if (e.key === "Enter") {
         openRow();
+      } else if (e.key === "p") {
+        e.preventDefault();
+        setPreviewOpen((open) => !open);
       } else if (e.key === "d" || e.key === "u") {
         e.preventDefault();
         window.scrollBy({
@@ -117,6 +138,8 @@ export default function WorkspaceList() {
           <span className="hint">/</span>
           <input
             ref={filterRef}
+            id="workspace-filter"
+            name="workspace-filter"
             value={q}
             enterKeyHint="go"
             onChange={(e) => {
@@ -140,41 +163,54 @@ export default function WorkspaceList() {
             </button>
           ))}
         </div>
+        <button
+          aria-pressed={previewOpen}
+          className={`preview-toggle${previewOpen ? " on" : ""}`}
+          onClick={() => setPreviewOpen((open) => !open)}
+          title="Toggle workspace preview"
+          type="button"
+        >
+          Preview <span className="kbd">p</span>
+        </button>
       </div>
 
-      <div className="tbl">
-        <div className="thead">
-          <span>Leaf</span>
-          <span>Phase &#8250; Gate</span>
-          <span>Progress</span>
-          <span style={{ textAlign: "right" }}>Status</span>
-        </div>
-        {rows.map((it, i) => (
-          <a
-            key={it.slug}
-            ref={(el) => {
-              rowRefs.current[i] = el;
-            }}
-            className={`trow${i === selectedIndex ? " sel" : ""}`}
-            href={leafHref(it.slug)}
-            onMouseEnter={() => setSel(i)}
-          >
-            <div className="c-leaf">
-              <div className="slug">
-                <span className={`tagdot ${it._stage}`} />
-                {it.slug}
+      <div className={`workspace-grid${previewOpen ? " with-preview" : ""}`}>
+        <div className="tbl">
+          <div className="thead">
+            <span>Leaf</span>
+            <span>Phase &#8250; Gate</span>
+            <span>Progress</span>
+            <span style={{ textAlign: "right" }}>Status</span>
+          </div>
+          {rows.map((it, i) => (
+            <a
+              key={it.slug}
+              ref={(el) => {
+                rowRefs.current[i] = el;
+              }}
+              className={`trow${i === selectedIndex ? " sel" : ""}`}
+              href={leafHref(it.slug)}
+              onClick={(event) => selectRow(event, i)}
+              onDoubleClick={(event) => openRowFromMouse(event, i)}
+            >
+              <div className="c-leaf">
+                <div className="slug">
+                  <span className={`tagdot ${it._stage}`} />
+                  {it.slug}
+                </div>
+                <div className="why">{it.status?.next_action || "—"}</div>
               </div>
-              <div className="why">{it.status?.next_action || "—"}</div>
-            </div>
-            <div className="phase">
-              <b>{it.status?.current_phase || "—"}</b> {it.status?.current_gate ? `› ${it.status.current_gate}` : ""}
-            </div>
-            <Progress status={it.status} />
-            <div className={`status ${it.status?.parse_state || "ok"}`}>
-              <span className="d" /> {it.status?.parse_state || "ok"}
-            </div>
-          </a>
-        ))}
+              <div className="phase">
+                <b>{it.status?.current_phase || "—"}</b> {it.status?.current_gate ? `› ${it.status.current_gate}` : ""}
+              </div>
+              <Progress status={it.status} />
+              <div className={`status ${it.status?.parse_state || "ok"}`}>
+                <span className="d" /> {it.status?.parse_state || "ok"}
+              </div>
+            </a>
+          ))}
+        </div>
+        {previewOpen && selectedRow && <WorkspacePreview row={selectedRow} />}
       </div>
       <p className="foot-note">
         {rows.length} shown
@@ -183,8 +219,8 @@ export default function WorkspaceList() {
           <span className="kbd">k</span> 이동 &middot; <span className="kbd">Enter</span> 열기 &middot;{" "}
           <span className="kbd">d</span>
           <span className="kbd">u</span> 페이지 &middot; <span className="kbd">/</span> 필터 &middot;{" "}
-          <span className="kbd">h</span>
-          <span className="kbd">l</span> stage
+          <span className="kbd">p</span> preview &middot; <span className="kbd">h</span>
+          <span className="kbd">l</span> stage &middot; click 선택 &middot; double-click 열기
         </span>
       </p>
     </div>

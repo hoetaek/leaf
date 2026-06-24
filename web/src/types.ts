@@ -86,6 +86,7 @@ export interface LeafStatus {
 
 export interface WorkspaceItem {
   slug: string;
+  path?: string;
   status?: LeafStatus;
   [key: string]: unknown;
 }
@@ -102,6 +103,20 @@ export interface WorkspaceStageData {
 export interface WorkspaceListResponse {
   workspace_name?: string;
   stages?: Record<string, WorkspaceStageData | undefined>;
+}
+
+export type WorkspacePreviewLine =
+  | { kind: "heading"; level: number; text: string }
+  | { kind: "source_boundary"; phase: string; gate: string; source: string }
+  | { kind: "checkbox"; marker: string; checked: boolean; text: string }
+  | { kind: "list_item"; marker: string; text: string }
+  | { kind: "code"; text: string }
+  | { kind: "table"; text: string }
+  | { kind: "text"; text: string };
+
+export interface WorkspacePreviewResponse {
+  title: string;
+  lines: WorkspacePreviewLine[];
 }
 
 export interface ReviewSource {

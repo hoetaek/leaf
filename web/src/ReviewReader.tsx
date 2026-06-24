@@ -8,7 +8,7 @@ import {
   TocOverlay,
 } from "./ReviewReaderParts";
 import { nextReferenceIndex, progressWidth, reviewResourcePath, REVIEW_REF_FOCUS } from "./reviewReaderModel";
-import { openReference } from "./routes";
+import { leafHref, openReference } from "./routes";
 import { useActiveReviewSection } from "./useActiveReviewSection";
 import { useJsonResource } from "./useJsonResource";
 import { useReadingProgress } from "./useReadingProgress";
@@ -56,9 +56,13 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
     [openFullPageReferenceByStep],
   );
   const openNextFullPageReference = useCallback(() => openFullPageReferenceByStep(1), [openFullPageReferenceByStep]);
+  const backToReview = useCallback(() => {
+    window.location.hash = leafHref(slug);
+  }, [slug]);
 
   useReviewKeyboardShortcuts({
     data,
+    onBack: referencePath ? backToReview : undefined,
     onNextReference: referencePath ? openNextFullPageReference : undefined,
     onOpenReferenceFullPage: openSelectedReference,
     onPreviousReference: referencePath ? openPreviousFullPageReference : undefined,

@@ -54,6 +54,7 @@ async fn serve(repo_root: PathBuf, port: u16, fallback: PortFallback) -> Result<
 
     let app = Router::new()
         .route("/api/review/{slug}", get(review_handler))
+        .route("/api/preview/{slug}", get(preview_handler))
         .route("/api/list", get(list_handler))
         .route("/api/graph", get(graph_handler));
     let app = attach_static(app, &web_dist).with_state(state);
@@ -127,6 +128,31 @@ fn build_review(repo_root: &StdPath, slug: &str) -> Result<crate::review::Review
     let inventory = crate::inventory::load(repo_root)?;
     let source = crate::review::source_for_slug(&inventory, &slug)?;
     crate::review::build_json(&source)
+}
+
+async fn preview_handler(
+    State(state): State<AppState>,
+    Path(slug): Path<String>,
+) -> impl IntoResponse {
+    let repo_root = state.repo_root.clone();
+    match blocking(move || build_preview(&repo_root, &slug)).await {
+        Ok(json) => (StatusCode::OK, Json(json)).into_response(),
+        Err(err) => json_error(StatusCode::NOT_FOUND, &err.to_string()),
+    }
+}
+
+fn build_preview(repo_root: &StdPath, slug: &str) -> Result<crate::preview::PreviewJson> {
+    let slug = crate::slug::validate(slug)?;
+    let inventory = crate::inventory::load(repo_root)?;
+    let item = inventory
+        .stages
+        .iter()
+        .flat_map(|stage| stage.items.iter())
+        .find(|item| {
+            item.kind == crate::inventory::ItemKind::LeafWork && item.slug.as_str() == slug
+        })
+        .with_context(|| format!("leaf work not found: {slug}"))?;
+    crate::preview::build_json_from_source(&item.slug, &item.preview)
 }
 
 /// Workspace list as JSON. Reuses the exact `leaf list --json` projection, so
@@ -268,6 +294,7 @@ fn html_escape(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
     use std::net::TcpListener as StdTcpListener;
 
     #[tokio::test]
@@ -323,5 +350,42 @@ mod tests {
         assert!(html.contains("not the project you are serving"));
         assert!(html.contains("release"));
         assert!(html.contains("embedded web UI"));
+    }
+
+    #[test]
+    fn build_preview_reuses_inventory_preview_source() {
+        let repo = tempfile::tempdir().expect("repo tempdir");
+        let leaf = repo.path().join(".leaf/02-leaves/demo");
+        fs::create_dir_all(leaf.join("01-Learn")).expect("learn dir");
+        fs::write(
+            leaf.join("00-status.md"),
+            "# 상태\n\n- stage: leaf\n- current phase: Learn\n- next action: 다음 행동\n",
+        )
+        .expect("status");
+        fs::write(
+            leaf.join("01-Learn/01-intent.md"),
+            "# 의도\n\n미리보기 본문\n",
+        )
+        .expect("intent");
+
+        let preview = build_preview(repo.path(), "demo").expect("preview");
+
+        assert_eq!(preview.title, "demo");
+        assert!(preview.lines.iter().any(|line| {
+            matches!(
+                line,
+                crate::preview::PreviewLineJson::SourceBoundary {
+                    phase,
+                    gate,
+                    ..
+                } if phase == "Learn" && gate == "① Intent"
+            )
+        }));
+        assert!(preview.lines.iter().any(|line| {
+            matches!(
+                line,
+                crate::preview::PreviewLineJson::Text { text } if text == "미리보기 본문"
+            )
+        }));
     }
 }
