@@ -2,23 +2,29 @@ import { useEffect, useState } from "react";
 import { fetchJson } from "./api";
 
 export function useJsonResource<T>(path: string | null) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [resource, setResource] = useState<{
+    data: T | null;
+    error: string | null;
+    path: string | null;
+  }>({ data: null, error: null, path: null });
 
   useEffect(() => {
     let alive = true;
-    setData(null);
-    setError(null);
     if (!path) return undefined;
 
     fetchJson<T>(path)
       .then((nextData) => {
         if (!alive) return;
-        setData(nextData);
-        setError(null);
+        setResource({ data: nextData, error: null, path });
       })
       .catch((nextError) => {
-        if (alive) setError(nextError instanceof Error ? nextError.message : String(nextError));
+        if (alive) {
+          setResource({
+            data: null,
+            error: nextError instanceof Error ? nextError.message : String(nextError),
+            path,
+          });
+        }
       });
 
     return () => {
@@ -26,5 +32,8 @@ export function useJsonResource<T>(path: string | null) {
     };
   }, [path]);
 
-  return { data, error };
+  return {
+    data: resource.path === path ? resource.data : null,
+    error: resource.path === path ? resource.error : null,
+  };
 }
