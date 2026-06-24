@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
 import App from "./App";
 import { mockJsonFetch } from "./test/mockFetch";
@@ -32,6 +32,8 @@ test("routes between workspace, graph, and leaf review hash views", async () => 
   expect(screen.getByRole("link", { name: /LEAF/ })).toHaveAttribute("href", "#/");
   expect(await screen.findByText(/indi-donors/)).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Workspace" })).toHaveClass("on");
+  expect(screen.getByRole("link", { name: "Workspace" })).toHaveAttribute("aria-keyshortcuts", "1");
+  expect(screen.getByRole("link", { name: "Graph" })).toHaveAttribute("aria-keyshortcuts", "2");
 
   window.location.hash = "#/graph";
   window.dispatchEvent(new HashChangeEvent("hashchange"));
@@ -49,4 +51,35 @@ test("routes between workspace, graph, and leaf review hash views", async () => 
       screen.getByText("review route: web-graph-structure-refactor reference: 01-Learn/02-references/a.md"),
     ).toBeInTheDocument(),
   );
+});
+
+test("uses 1 and 2 as top-level navigation shortcuts", async () => {
+  render(<App />);
+
+  expect(await screen.findByText("workspace route")).toBeInTheDocument();
+
+  fireEvent.keyDown(window, { key: "2" });
+  await waitFor(() => expect(screen.getByText("graph route")).toBeInTheDocument());
+  expect(window.location.hash).toBe("#/graph");
+
+  fireEvent.keyDown(window, { key: "1" });
+  await waitFor(() => expect(screen.getByText("workspace route")).toBeInTheDocument());
+  expect(window.location.hash).toBe("#/");
+});
+
+test("does not use top-level navigation shortcuts while typing", async () => {
+  render(<App />);
+
+  fireEvent.keyDown(window, { key: "2" });
+  await waitFor(() => expect(screen.getByText("graph route")).toBeInTheDocument());
+
+  const input = document.createElement("input");
+  document.body.append(input);
+  input.focus();
+  fireEvent.keyDown(window, { key: "1" });
+
+  expect(window.location.hash).toBe("#/graph");
+  expect(screen.getByText("graph route")).toBeInTheDocument();
+
+  input.remove();
 });

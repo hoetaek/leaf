@@ -6,6 +6,11 @@ import { useJsonResource } from "./useJsonResource";
 import type { WorkspaceListResponse } from "./types";
 
 // Tiny hash router: #/ (list) · #/leaf/<slug> (review reader) · #/leaf/<slug>/ref/<path> · #/graph
+function isAppTextEntryElement(element: Element | null): boolean {
+  const tagName = element?.tagName;
+  return tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
+}
+
 function useHashRoute(): string {
   const [hash, setHash] = useState(window.location.hash || "#/");
   useEffect(() => {
@@ -16,8 +21,28 @@ function useHashRoute(): string {
   return hash;
 }
 
+function useTopLevelShortcuts() {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (isAppTextEntryElement(document.activeElement)) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+      if (event.key === "1") {
+        event.preventDefault();
+        window.location.hash = "#/";
+      } else if (event.key === "2") {
+        event.preventDefault();
+        window.location.hash = "#/graph";
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+}
+
 export default function App() {
   const hash = useHashRoute();
+  useTopLevelShortcuts();
   const { data: workspace } = useJsonResource<WorkspaceListResponse>("/api/list");
   const referenceMatch = hash.match(/^#\/leaf\/([^/]+)\/ref\/(.+)$/);
   const leafMatch = referenceMatch ? null : hash.match(/^#\/leaf\/(.+)$/);
@@ -41,11 +66,17 @@ export default function App() {
           </span>
         )}
         <nav className="tabs">
-          <a className={view === "list" ? "on" : ""} href="#/">
+          <a aria-keyshortcuts="1" className={view === "list" ? "on" : ""} href="#/">
             Workspace
+            <span aria-hidden="true" className="tabkey">
+              1
+            </span>
           </a>
-          <a className={view === "graph" ? "on" : ""} href="#/graph">
+          <a aria-keyshortcuts="2" className={view === "graph" ? "on" : ""} href="#/graph">
             Graph
+            <span aria-hidden="true" className="tabkey">
+              2
+            </span>
           </a>
         </nav>
       </header>
