@@ -10,19 +10,20 @@ function formatCount(value: number | null): string {
 
 function GrowthSnapshot({ model }: { model: TreeViewModel }) {
   const foliage = [
-    [78, 42],
-    [108, 30],
-    [138, 45],
-    [96, 65],
-    [126, 64],
-    [158, 68],
-    [65, 72],
-    [112, 86],
-    [145, 88],
-    [180, 88],
+    { cx: 78, cy: 42, rx: 17, ry: 11, rotate: -28 },
+    { cx: 108, cy: 30, rx: 18, ry: 12, rotate: -8 },
+    { cx: 138, cy: 45, rx: 17, ry: 11, rotate: 24 },
+    { cx: 96, cy: 65, rx: 19, ry: 12, rotate: -18 },
+    { cx: 126, cy: 64, rx: 20, ry: 13, rotate: 8 },
+    { cx: 158, cy: 68, rx: 18, ry: 12, rotate: 22 },
+    { cx: 65, cy: 72, rx: 15, ry: 10, rotate: -36 },
+    { cx: 112, cy: 86, rx: 18, ry: 11, rotate: -10 },
+    { cx: 145, cy: 88, rx: 19, ry: 12, rotate: 16 },
+    { cx: 180, cy: 88, rx: 15, ry: 10, rotate: 32 },
   ];
   const filledFoliage = Math.min(foliage.length, Math.max(1, Math.ceil((model.counts.leaves || 0) / 4)));
   const fruitCount = Math.min(5, Math.max(0, Math.ceil((model.pressedCount || 0) / 5)));
+  const pressedLabel = `${formatCount(model.pressedCount)} pressed`;
 
   return (
     <figure className="tree-snapshot" aria-label={`Tree snapshot, ${model.maturityLabel}`}>
@@ -33,13 +34,15 @@ function GrowthSnapshot({ model }: { model: TreeViewModel }) {
         <path className="tree-branch thin" d="M121 86 C145 72 160 58 174 38" />
         <path className="tree-branch thin" d="M120 112 C98 105 80 98 62 90" />
         <path className="tree-branch thin" d="M122 112 C150 106 172 100 190 92" />
-        {foliage.map(([cx, cy], index) => (
-          <circle
+        {foliage.slice(0, filledFoliage).map(({ cx, cy, rotate, rx, ry }) => (
+          <ellipse
             key={`${cx}-${cy}`}
-            className={index < filledFoliage ? "tree-leaf on" : "tree-leaf"}
+            className="tree-leaf"
             cx={cx}
             cy={cy}
-            r={index < filledFoliage ? 18 : 10}
+            rx={rx}
+            ry={ry}
+            transform={`rotate(${rotate} ${cx} ${cy})`}
           />
         ))}
         {Array.from({ length: fruitCount }, (_, index) => (
@@ -48,7 +51,7 @@ function GrowthSnapshot({ model }: { model: TreeViewModel }) {
         <path className="tree-ground" d="M72 153 C96 162 145 162 168 153" />
       </svg>
       <figcaption>
-        {model.maturityLabel} · {model.totalWork} total
+        {model.maturityLabel} · {model.totalWork} work · {pressedLabel}
       </figcaption>
     </figure>
   );

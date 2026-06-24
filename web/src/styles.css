@@ -1126,14 +1126,9 @@ h4 {
 }
 
 .tree-leaf {
-  fill: var(--sage-soft);
-  stroke: #cbdccc;
-  stroke-width: 1;
-}
-
-.tree-leaf.on {
   fill: var(--sage);
   stroke: #22553e;
+  stroke-width: 1.5;
 }
 
 .tree-fruit {
