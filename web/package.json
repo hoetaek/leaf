@@ -10,13 +10,14 @@
     "test:unit": "vitest run src/*.test.ts",
     "test:components": "vitest run src/*.test.tsx",
     "test": "npm run test:unit && npm run test:components",
+    "coverage": "vitest run --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "stylelint": "stylelint \"src/**/*.css\"",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run stylelint && npm run format:check && npm run test && npm run typecheck && npm run build"
+    "check": "npm run lint && npm run stylelint && npm run format:check && npm run coverage && npm run typecheck && npm run build"
   },
   "dependencies": {
     "d3-force": "^3.0.0",
@@ -39,6 +40,7 @@
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",

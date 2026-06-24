@@ -32,6 +32,15 @@ The test runner is unified on Vitest because Node's built-in test runner does no
 
 The migration includes `src/typescriptMigration.test.ts`, which fails if `.js`, `.jsx`, `.mjs`, or `.cjs` files reappear under `web/src`.
 
+`npm run coverage` uses the V8 provider and includes runtime `src/**/*.{ts,tsx}` files. Tests, test setup, type-only declarations, and the bootstrap entry point are excluded. The first target thresholds are:
+
+- statements: 50%
+- branches: 40%
+- functions: 50%
+- lines: 50%
+
+The current measured baseline is higher than that gate: statements 86.98%, branches 74.31%, functions 91.86%, and lines 90.85%. Raise the thresholds deliberately when the next coverage target is chosen; do not lower them to make a broad change pass.
+
 ## Maintenance Gate
 
-Use `npm run check` before merging TypeScript changes. It runs lint, stylelint, Prettier check, unit tests, component tests, strict typecheck, and production build.
+Use `npm run check` before merging TypeScript changes. It runs lint, stylelint, Prettier check, coverage-gated tests, strict typecheck, and production build.
