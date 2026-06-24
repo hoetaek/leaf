@@ -2,38 +2,36 @@
 
 ## Current Baseline
 
-`npm run typecheck` runs TypeScript in no-emit readiness mode over the current JS/JSX source.
+`npm run typecheck` runs TypeScript in strict no-emit mode over the `web/src` TypeScript source.
 
-The baseline intentionally uses:
+The web UI source now uses:
 
-- `allowJs: true`
-- `checkJs: false`
+- `.ts` for logic, hooks, and tests without JSX
+- `.tsx` for React components and component tests
+- `allowJs: false`
+- `strict: true`
 - `noEmit: true`
-- React 18 type packages
+- React 18, Vite, Node, and D3 type packages
+- `typescript-eslint` for `.ts`/`.tsx` linting
 
-This proves TypeScript can load the project, JSX runtime, Vite config, Node test imports, and D3 type packages without forcing a broad annotation pass yet.
+This proves TypeScript can load the project, JSX runtime, DOM refs, graph interaction handlers, D3 force/selection/zoom integrations, and API data contracts without a JS fallback.
 
-## Deferred Strictness
+## Runtime Contracts
 
-`checkJs` is not enabled as a blocking gate yet. A probe with `allowJs + checkJs + noEmit` found broad follow-up work:
+The conversion landed the following source contracts:
 
-- implicit parameter and destructured prop types across React components and graph helpers
-- DOM ref and pointer event types in graph interaction code
-- graph node/link data model types
-- D3 force/selection/zoom integration types
-- CSS side-effect import declaration details
+- `types.ts` defines graph API payloads, graph model/layout nodes and links, workspace list payloads, and review reader payloads.
+- Graph force helpers type the D3 mutation boundary where links can start as ids and become node objects.
+- Graph zoom and drag hooks type SVG refs, wheel events, pointer events, and simulation refs.
+- Reader and workspace components type their DOM refs, keyboard handlers, stage filters, and response data.
+- Storage helpers persist only string leaf ids.
 
-Those are real migration tasks, not setup tasks. Enforcing them here would turn the readiness baseline into a large source conversion.
+## Test Gate
 
-## Migration Order
+The test runner is unified on Vitest because Node's built-in test runner does not execute TypeScript source directly in this app setup.
 
-1. Type pure graph helpers first: `graphGeometry`, `graphPhysics`, `graphZoom`, and their tests.
-2. Type graph data contracts: graph API payloads, nodes, links, and model output.
-3. Type leaf UI components with explicit props: `GraphDetailsPanel`, `GraphCanvas`, `WorkspaceList`, and `ReviewReader`.
-4. Type DOM refs and event handlers in graph interaction code.
-5. Type API and route helpers, then `App`.
-6. Rename files from `.js`/`.jsx` to `.ts`/`.tsx` only after their local contracts are explicit.
+The migration includes `src/typescriptMigration.test.ts`, which fails if `.js`, `.jsx`, `.mjs`, or `.cjs` files reappear under `web/src`.
 
-## Promotion Gate
+## Maintenance Gate
 
-Enable `checkJs` or begin file renames only when the first three migration slices have landed and `npm run typecheck` remains green.
+Use `npm run check` before merging TypeScript changes. It runs lint, stylelint, Prettier check, unit tests, component tests, strict typecheck, and production build.

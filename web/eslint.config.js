@@ -5,6 +5,7 @@ import globals from "globals";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 import { reactRefresh } from "eslint-plugin-react-refresh";
+import tseslint from "typescript-eslint";
 
 export default defineConfig([
   globalIgnores(["dist", "coverage"]),
@@ -17,23 +18,31 @@ export default defineConfig([
     },
   },
   {
-    files: ["eslint.config.js", "src/*.test.js"],
+    files: ["src/**/*.{ts,tsx}"],
+    extends: [tseslint.configs.recommended],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+    },
+  },
+  {
+    files: ["eslint.config.js", "src/**/*.test.ts", "src/**/*.test.tsx"],
     languageOptions: {
       globals: globals.node,
     },
   },
   {
-    files: ["src/**/*.{js,jsx}"],
+    files: ["src/**/*.{ts,tsx}"],
     languageOptions: {
       globals: globals.browser,
     },
   },
   {
-    files: ["src/**/*.{js,jsx}"],
+    files: ["src/**/*.{ts,tsx}"],
     extends: [reactHooks.configs.flat.recommended],
   },
   {
-    files: ["src/**/*.jsx"],
+    files: ["src/**/*.tsx"],
     extends: [react.configs.flat.recommended, react.configs.flat["jsx-runtime"], reactRefresh.configs.vite],
     settings: {
       react: {
