@@ -5,6 +5,7 @@ import type { ReviewRefFocus, ReviewResponse } from "./types";
 
 interface ReviewKeyboardShortcutOptions {
   data: ReviewResponse | null;
+  onOpenReferenceFullPage?: () => void;
   refFocus: ReviewRefFocus;
   refReadRef: RefObject<HTMLDivElement>;
   setRefFocus: Dispatch<SetStateAction<ReviewRefFocus>>;
@@ -15,6 +16,7 @@ interface ReviewKeyboardShortcutOptions {
 
 export function useReviewKeyboardShortcuts({
   data,
+  onOpenReferenceFullPage,
   refFocus,
   refReadRef,
   setRefFocus,
@@ -88,11 +90,18 @@ export function useReviewKeyboardShortcuts({
           event.preventDefault();
           page(-0.85);
           break;
+        case "f":
+        case "F":
+          if (showRefs && count > 0 && onOpenReferenceFullPage) {
+            event.preventDefault();
+            onOpenReferenceFullPage();
+          }
+          break;
         default:
           break;
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [data, refFocus, refReadRef, setRefFocus, setRefSel, setShowRefs, showRefs]);
+  }, [data, onOpenReferenceFullPage, refFocus, refReadRef, setRefFocus, setRefSel, setShowRefs, showRefs]);
 }

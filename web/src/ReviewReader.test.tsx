@@ -71,6 +71,9 @@ test("renders review gates, markdown, missing gate states, and reference drawer"
 
   fireEvent.click(screen.getByText("b.md"));
   expect(screen.getByText("두 번째 레퍼런스")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "전체 페이지로 보기" }));
+  expect(window.location.hash).toBe("#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fb.md");
 });
 
 test("opens the mobile table of contents and follows reader keyboard shortcuts", async () => {
@@ -89,6 +92,10 @@ test("opens the mobile table of contents and follows reader keyboard shortcuts",
   fireEvent.keyDown(window, { key: "l" });
   expect(screen.getByText(/스크롤/)).toBeInTheDocument();
 
+  fireEvent.keyDown(window, { key: "f" });
+  expect(window.location.hash).toBe("#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fa.md");
+  window.location.hash = "#/leaf/web-graph-structure-refactor";
+
   fireEvent.keyDown(window, { key: "h" });
   expect(screen.getByText(/이동/)).toBeInTheDocument();
 
@@ -97,6 +104,18 @@ test("opens the mobile table of contents and follows reader keyboard shortcuts",
 
   fireEvent.keyDown(window, { key: "q" });
   expect(window.location.hash).toBe("#/");
+});
+
+test("renders a selected reference as a full page", async () => {
+  render(<ReviewReader slug="web-graph-structure-refactor" referencePath="01-Learn/02-references/b.md" />);
+
+  expect(await screen.findByRole("heading", { name: "Beta" })).toBeInTheDocument();
+  expect(screen.getByText("두 번째 레퍼런스")).toBeInTheDocument();
+  expect(screen.getByText("01-Learn/02-references/b.md")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /review로 돌아가기/ })).toHaveAttribute(
+    "href",
+    "#/leaf/web-graph-structure-refactor",
+  );
 });
 
 test("renders reader validation and API error states", async () => {

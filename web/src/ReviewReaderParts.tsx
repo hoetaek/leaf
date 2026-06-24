@@ -3,6 +3,7 @@ import type { RefObject } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { REVIEW_REF_FOCUS, progressWidth, referenceCount } from "./reviewReaderModel";
+import { leafHref } from "./routes";
 import type { ReviewRefFocus, ReviewReference, ReviewSource } from "./types";
 
 const MARKDOWN_PLUGINS = [remarkGfm];
@@ -106,6 +107,7 @@ export function ReferencesDrawer({
   selectedIndex,
   readRef,
   onClose,
+  onOpenFullPage,
   onSelectReference,
 }: {
   references: ReviewReference[];
@@ -113,6 +115,7 @@ export function ReferencesDrawer({
   selectedIndex: number;
   readRef: RefObject<HTMLDivElement>;
   onClose: () => void;
+  onOpenFullPage: () => void;
   onSelectReference: (index: number) => void;
 }) {
   const selected = references[selectedIndex];
@@ -127,20 +130,34 @@ export function ReferencesDrawer({
               <>
                 <span className="kbd">j</span>
                 <span className="kbd">k</span> 이동 &middot; <span className="kbd">l</span> 선택 &middot;{" "}
-                <span className="kbd">h</span> 닫기
+                <span className="kbd">f</span> 전체 &middot; <span className="kbd">h</span> 닫기
               </>
             ) : (
               <>
                 <span className="kbd">j</span>
                 <span className="kbd">k</span>
                 <span className="kbd">d</span>
-                <span className="kbd">u</span> 스크롤 &middot; <span className="kbd">h</span> 목록
+                <span className="kbd">u</span> 스크롤 &middot; <span className="kbd">f</span> 전체 &middot;{" "}
+                <span className="kbd">h</span> 목록
               </>
             )}
           </span>
-          <button className="refclose" onClick={onClose}>
-            ✕
-          </button>
+          <span className="refactions">
+            <button
+              type="button"
+              className="reficon"
+              disabled={!selected}
+              title="전체 페이지로 보기 (f)"
+              aria-label="전체 페이지로 보기"
+              aria-keyshortcuts="F"
+              onClick={onOpenFullPage}
+            >
+              ⛶
+            </button>
+            <button className="refclose" onClick={onClose}>
+              ✕
+            </button>
+          </span>
         </div>
         {references.length === 0 ? (
           <p className="muted">이 leaf에는 레퍼런스가 없습니다.</p>
@@ -165,5 +182,34 @@ export function ReferencesDrawer({
         )}
       </aside>
     </div>
+  );
+}
+
+export function ReferenceFullPage({
+  reference,
+  referencePath,
+  slug,
+}: {
+  reference?: ReviewReference;
+  referencePath: string;
+  slug: string;
+}) {
+  return (
+    <>
+      <p className="crumb">
+        <a href={leafHref(slug)}>← review로 돌아가기</a> &nbsp;·&nbsp; reference &middot;{" "}
+        <b>{referencePath.split("/").pop()}</b>
+      </p>
+      <article className="report reference-full">
+        <div className="file">{referencePath}</div>
+        {reference ? (
+          <div className="md">
+            <MarkdownContent>{reference.markdown}</MarkdownContent>
+          </div>
+        ) : (
+          <p className="err">레퍼런스를 찾지 못했습니다: {referencePath}</p>
+        )}
+      </article>
+    </>
   );
 }

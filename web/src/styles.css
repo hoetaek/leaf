@@ -164,6 +164,11 @@ h4 {
   min-height: 400px;
 }
 
+.reference-full {
+  max-width: 860px;
+  margin: 28px auto 80px;
+}
+
 .rprog {
   position: sticky;
   top: 0;
@@ -883,8 +888,14 @@ h4 {
   margin-bottom: 14px;
 }
 
-.refclose {
+.refactions {
+  display: flex;
+  gap: 6px;
   margin-left: auto;
+}
+
+.reficon,
+.refclose {
   border: 1px solid var(--line);
   background: var(--paper2);
   border-radius: var(--r-sm);
@@ -892,6 +903,15 @@ h4 {
   height: 30px;
   cursor: pointer;
   color: var(--body);
+}
+
+.reficon:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.refactions .refclose {
+  margin-left: 0;
 }
 
 /* two-pane picker: nav list + reader (TUI ReferencePicker → ReferenceRead) */
@@ -1318,7 +1338,8 @@ h4 {
   }
 
   .toc-sheethead .refclose,
-  .refdrawer .refclose {
+  .refdrawer .refclose,
+  .refdrawer .reficon {
     width: 40px;
     height: 40px;
     font-size: 20px;

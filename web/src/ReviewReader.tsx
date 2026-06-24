@@ -1,13 +1,26 @@
-import { useRef, useState } from "react";
-import { GateNav, MarkdownContent, MobileReaderActions, ReferencesDrawer, TocOverlay } from "./ReviewReaderParts";
+import { useCallback, useRef, useState } from "react";
+import {
+  GateNav,
+  MarkdownContent,
+  MobileReaderActions,
+  ReferenceFullPage,
+  ReferencesDrawer,
+  TocOverlay,
+} from "./ReviewReaderParts";
 import { progressWidth, reviewResourcePath, REVIEW_REF_FOCUS } from "./reviewReaderModel";
+import { openReference } from "./routes";
 import { useActiveReviewSection } from "./useActiveReviewSection";
 import { useJsonResource } from "./useJsonResource";
 import { useReadingProgress } from "./useReadingProgress";
 import { useReviewKeyboardShortcuts } from "./useReviewKeyboardShortcuts";
 import type { ReviewRefFocus, ReviewResponse } from "./types";
 
-export default function ReviewReader({ slug }: { slug: string }) {
+interface ReviewReaderProps {
+  referencePath?: string;
+  slug: string;
+}
+
+export default function ReviewReader({ referencePath, slug }: ReviewReaderProps) {
   const { data, error } = useJsonResource<ReviewResponse>(reviewResourcePath(slug));
   const [showRefs, setShowRefs] = useState(false);
   const [refSel, setRefSel] = useState(0);
@@ -17,9 +30,16 @@ export default function ReviewReader({ slug }: { slug: string }) {
   const refReadRef = useRef<HTMLDivElement | null>(null);
   const { active, sectionRefs, jump } = useActiveReviewSection(data);
   const progress = useReadingProgress(data, reportRef);
+  const references = data?.references || [];
+  const selectedReference = references[refSel];
+  const openSelectedReference = useCallback(() => {
+    if (!data || !selectedReference) return;
+    openReference(data.slug, selectedReference.relative_path);
+  }, [data, selectedReference]);
 
   useReviewKeyboardShortcuts({
     data,
+    onOpenReferenceFullPage: openSelectedReference,
     refFocus,
     refReadRef,
     setRefFocus,
@@ -38,7 +58,6 @@ export default function ReviewReader({ slug }: { slug: string }) {
     return <p className="muted">불러오는 중…</p>;
   }
 
-  const references = data.references || [];
   const openReferences = () => {
     setShowRefs(true);
     setRefSel(0);
@@ -48,6 +67,13 @@ export default function ReviewReader({ slug }: { slug: string }) {
     setRefSel(index);
     setRefFocus(REVIEW_REF_FOCUS.CONTENT);
   };
+  const fullPageReference = referencePath
+    ? references.find((reference) => reference.relative_path === referencePath)
+    : undefined;
+
+  if (referencePath) {
+    return <ReferenceFullPage reference={fullPageReference} referencePath={referencePath} slug={data.slug} />;
+  }
 
   return (
     <>
@@ -113,6 +139,7 @@ export default function ReviewReader({ slug }: { slug: string }) {
           selectedIndex={refSel}
           readRef={refReadRef}
           onClose={() => setShowRefs(false)}
+          onOpenFullPage={openSelectedReference}
           onSelectReference={selectReference}
         />
       )}
