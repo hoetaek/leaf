@@ -356,7 +356,8 @@ h4 {
 
 /* view headings */
 .ws,
-.graph {
+.graph,
+.tree {
   width: 100%;
   min-width: 0;
 }
@@ -1035,6 +1036,263 @@ h4 {
   margin-top: 8px;
 }
 
+/* tree */
+.tree-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 16px;
+  align-items: stretch;
+  margin-bottom: 18px;
+}
+
+.tree-hero > div,
+.tree-snapshot,
+.tree-stage {
+  min-width: 0;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+
+.tree-hero > div {
+  padding: 22px;
+}
+
+.tree-heading {
+  margin: 0 0 18px;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.tree-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tree-metric {
+  min-width: 0;
+  padding: 13px 12px;
+  background: var(--paper2);
+  border: 1px solid var(--line2);
+  border-radius: var(--r-sm);
+}
+
+.tree-metric-label,
+.tree-metric-note {
+  display: block;
+  color: var(--mut);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.tree-metric strong {
+  display: block;
+  margin: 4px 0 2px;
+  font-family: "Cabinet Grotesk", sans-serif;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.tree-snapshot {
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 14px 18px 12px;
+}
+
+.tree-snapshot svg {
+  display: block;
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+}
+
+.tree-snapshot figcaption {
+  color: var(--mut);
+  font-size: 12px;
+}
+
+.tree-branch {
+  fill: none;
+  stroke: #6f6658;
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+
+.tree-branch.thin {
+  stroke-width: 5;
+}
+
+.tree-leaf {
+  fill: var(--sage-soft);
+  stroke: #cbdccc;
+  stroke-width: 1;
+}
+
+.tree-leaf.on {
+  fill: var(--sage);
+  stroke: #22553e;
+}
+
+.tree-fruit {
+  fill: #b5862a;
+  stroke: var(--paper2);
+  stroke-width: 2;
+}
+
+.tree-ground {
+  fill: none;
+  stroke: #c8bfad;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.tree-stage-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.tree-stage {
+  overflow: hidden;
+}
+
+.tree-stage summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  color: var(--body);
+  background: var(--paper2);
+  border-bottom: 1px solid var(--line2);
+  cursor: pointer;
+}
+
+.tree-stage summary::-webkit-details-marker {
+  display: none;
+}
+
+.tree-stage summary::after {
+  content: "⌄";
+  flex: none;
+  color: var(--mut);
+  font-size: 14px;
+}
+
+.tree-stage:not([open]) summary {
+  border-bottom: none;
+}
+
+.tree-stage:not([open]) summary::after {
+  transform: rotate(-90deg);
+}
+
+.tree-stage-title,
+.tree-stage-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--mut);
+  font-size: 12px;
+}
+
+.tree-stage-name {
+  color: var(--ink);
+  font-family: "Cabinet Grotesk", sans-serif;
+  font-size: 16px;
+}
+
+.tree-stage ul {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tree-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line2);
+  color: inherit;
+  text-decoration: none;
+}
+
+.tree-row:hover {
+  background: var(--sage-soft);
+}
+
+.tree-stage li:last-child .tree-row {
+  border-bottom: none;
+}
+
+.tree-row-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 8px;
+  min-width: 0;
+  align-items: center;
+}
+
+.tree-row-main .tagdot {
+  grid-row: span 2;
+}
+
+.tree-row-slug {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: "Cabinet Grotesk", sans-serif;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.tree-row-meta {
+  grid-column: 2;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mut);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-mini-progress {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.tree-mini-segment {
+  width: 8px;
+  height: 6px;
+  border-radius: 2px;
+  background: #ddd7ca;
+}
+
+.tree-mini-segment.done {
+  background: var(--sage);
+}
+
+.tree-mini-segment.cur {
+  background: transparent;
+  border: 1.5px solid var(--ink);
+}
+
+.tree-empty-stage {
+  margin: 0;
+  padding: 18px 16px;
+  color: var(--mut);
+  font-size: 13px;
+}
+
 /* key hint + references drawer */
 .khint {
   margin-left: 12px;
@@ -1388,6 +1646,19 @@ h4 {
   .graph-svg {
     height: 390px;
     min-height: 390px;
+  }
+
+  .tree-hero,
+  .tree-stage-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tree-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tree-snapshot {
+    padding-top: 12px;
   }
 
   /* review reader: hide the stacked rail, surface a compact sticky TOC */

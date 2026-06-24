@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import WorkspaceList from "./WorkspaceList";
 import ReviewReader from "./ReviewReader";
 import GraphView from "./GraphView";
+import TreeView from "./TreeView";
 import { useJsonResource } from "./useJsonResource";
 import type { WorkspaceListResponse } from "./types";
 
-// Tiny hash router: #/ (list) · #/leaf/<slug> (review reader) · #/leaf/<slug>/ref/<path> · #/graph
+// Tiny hash router: #/ (list) · #/tree · #/graph · #/leaf/<slug> · #/leaf/<slug>/ref/<path>
 function isAppTextEntryElement(element: Element | null): boolean {
   const tagName = element?.tagName;
   return tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
@@ -33,6 +34,9 @@ function useTopLevelShortcuts() {
       } else if (event.key === "2") {
         event.preventDefault();
         window.location.hash = "#/graph";
+      } else if (event.key === "3") {
+        event.preventDefault();
+        window.location.hash = "#/tree";
       }
     };
     window.addEventListener("keydown", onKey);
@@ -46,7 +50,14 @@ export default function App() {
   const { data: workspace } = useJsonResource<WorkspaceListResponse>("/api/list");
   const referenceMatch = hash.match(/^#\/leaf\/([^/]+)\/ref\/(.+)$/);
   const leafMatch = referenceMatch ? null : hash.match(/^#\/leaf\/(.+)$/);
-  const view = referenceMatch || leafMatch ? "leaf" : hash.startsWith("#/graph") ? "graph" : "list";
+  const view =
+    referenceMatch || leafMatch
+      ? "leaf"
+      : hash.startsWith("#/graph")
+        ? "graph"
+        : hash.startsWith("#/tree")
+          ? "tree"
+          : "list";
   const leafSlug = referenceMatch
     ? decodeURIComponent(referenceMatch[1])
     : leafMatch
@@ -78,12 +89,19 @@ export default function App() {
               2
             </span>
           </a>
+          <a aria-keyshortcuts="3" className={view === "tree" ? "on" : ""} href="#/tree">
+            Tree
+            <span aria-hidden="true" className="tabkey">
+              3
+            </span>
+          </a>
         </nav>
       </header>
 
       {view === "list" && <WorkspaceList />}
       {view === "leaf" && leafSlug && <ReviewReader slug={leafSlug} referencePath={referencePath} />}
       {view === "graph" && <GraphView />}
+      {view === "tree" && <TreeView />}
     </div>
   );
 }

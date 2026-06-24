@@ -11,6 +11,10 @@ vi.mock("./GraphView", () => ({
   default: () => <div>graph route</div>,
 }));
 
+vi.mock("./TreeView", () => ({
+  default: () => <div>tree route</div>,
+}));
+
 vi.mock("./ReviewReader", () => ({
   default: ({ referencePath, slug }: { referencePath?: string; slug: string }) => (
     <div>
@@ -34,11 +38,17 @@ test("routes between workspace, graph, and leaf review hash views", async () => 
   expect(screen.getByRole("link", { name: "Workspace" })).toHaveClass("on");
   expect(screen.getByRole("link", { name: "Workspace" })).toHaveAttribute("aria-keyshortcuts", "1");
   expect(screen.getByRole("link", { name: "Graph" })).toHaveAttribute("aria-keyshortcuts", "2");
+  expect(screen.getByRole("link", { name: "Tree" })).toHaveAttribute("aria-keyshortcuts", "3");
 
   window.location.hash = "#/graph";
   window.dispatchEvent(new HashChangeEvent("hashchange"));
   await waitFor(() => expect(screen.getByText("graph route")).toBeInTheDocument());
   expect(screen.getByRole("link", { name: "Graph" })).toHaveClass("on");
+
+  window.location.hash = "#/tree";
+  window.dispatchEvent(new HashChangeEvent("hashchange"));
+  await waitFor(() => expect(screen.getByText("tree route")).toBeInTheDocument());
+  expect(screen.getByRole("link", { name: "Tree" })).toHaveClass("on");
 
   window.location.hash = "#/leaf/web-graph-structure-refactor";
   window.dispatchEvent(new HashChangeEvent("hashchange"));
@@ -53,7 +63,7 @@ test("routes between workspace, graph, and leaf review hash views", async () => 
   );
 });
 
-test("uses 1 and 2 as top-level navigation shortcuts", async () => {
+test("uses 1, 2, and 3 as top-level navigation shortcuts", async () => {
   render(<App />);
 
   expect(await screen.findByText("workspace route")).toBeInTheDocument();
@@ -61,6 +71,10 @@ test("uses 1 and 2 as top-level navigation shortcuts", async () => {
   fireEvent.keyDown(window, { key: "2" });
   await waitFor(() => expect(screen.getByText("graph route")).toBeInTheDocument());
   expect(window.location.hash).toBe("#/graph");
+
+  fireEvent.keyDown(window, { key: "3" });
+  await waitFor(() => expect(screen.getByText("tree route")).toBeInTheDocument());
+  expect(window.location.hash).toBe("#/tree");
 
   fireEvent.keyDown(window, { key: "1" });
   await waitFor(() => expect(screen.getByText("workspace route")).toBeInTheDocument());
@@ -76,7 +90,7 @@ test("does not use top-level navigation shortcuts while typing", async () => {
   const input = document.createElement("input");
   document.body.append(input);
   input.focus();
-  fireEvent.keyDown(window, { key: "1" });
+  fireEvent.keyDown(window, { key: "3" });
 
   expect(window.location.hash).toBe("#/graph");
   expect(screen.getByText("graph route")).toBeInTheDocument();
