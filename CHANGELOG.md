@@ -16,6 +16,8 @@ minor version instead of moving to `x.0.0`.
 - `leaf serve` now treats `4173` as a preferred port. If it is busy, the server
   falls back to the next available localhost port and prints the actual URL;
   `--strict-port` preserves exact-port failure behavior for scripts.
+- The web UI top bar now shows the served workspace folder name, so simultaneous
+  `leaf serve` browser tabs can be distinguished.
 - Non-embedded contributor builds now serve web assets from the leaf checkout's
   `web/dist`, not from the project being viewed, and the missing-asset notice
   points developers at the leaf source checkout instead of the served project.

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import WorkspaceList from "./WorkspaceList";
 import ReviewReader from "./ReviewReader";
 import GraphView from "./GraphView";
+import { useJsonResource } from "./useJsonResource";
+import type { WorkspaceListResponse } from "./types";
 
 // Tiny hash router: #/ (list) · #/leaf/<slug> (review reader) · #/leaf/<slug>/ref/<path> · #/graph
 function useHashRoute(): string {
@@ -16,6 +18,7 @@ function useHashRoute(): string {
 
 export default function App() {
   const hash = useHashRoute();
+  const { data: workspace } = useJsonResource<WorkspaceListResponse>("/api/list");
   const referenceMatch = hash.match(/^#\/leaf\/([^/]+)\/ref\/(.+)$/);
   const leafMatch = referenceMatch ? null : hash.match(/^#\/leaf\/(.+)$/);
   const view = referenceMatch || leafMatch ? "leaf" : hash.startsWith("#/graph") ? "graph" : "list";
@@ -32,6 +35,11 @@ export default function App() {
         <a className="brand" href="#/">
           <span className="mk">&#9672;</span> LEAF
         </a>
+        {workspace?.workspace_name && (
+          <span className="workspace-name" title={workspace.workspace_name}>
+            &middot; {workspace.workspace_name}
+          </span>
+        )}
         <nav className="tabs">
           <a className={view === "list" ? "on" : ""} href="#/">
             Workspace

@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
 import App from "./App";
+import { mockJsonFetch } from "./test/mockFetch";
 
 vi.mock("./WorkspaceList", () => ({
   default: () => <div>workspace route</div>,
@@ -20,6 +21,7 @@ vi.mock("./ReviewReader", () => ({
 }));
 
 beforeEach(() => {
+  vi.stubGlobal("fetch", mockJsonFetch({ "/api/list": { workspace_name: "indi-donors", stages: {} } }));
   window.location.hash = "#/";
 });
 
@@ -28,6 +30,7 @@ test("routes between workspace, graph, and leaf review hash views", async () => 
 
   expect(screen.getByText("workspace route")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /LEAF/ })).toHaveAttribute("href", "#/");
+  expect(await screen.findByText(/indi-donors/)).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Workspace" })).toHaveClass("on");
 
   window.location.hash = "#/graph";

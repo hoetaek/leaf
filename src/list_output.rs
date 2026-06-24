@@ -96,6 +96,7 @@ fn display_optional(value: &Option<String>, fallback: &str) -> String {
 #[derive(Serialize)]
 pub(crate) struct JsonInventory {
     leaf_root: String,
+    workspace_name: String,
     stages: JsonStages,
 }
 
@@ -141,6 +142,7 @@ impl JsonInventory {
     pub(crate) fn from_inventory(inventory: &Inventory) -> Result<Self> {
         Ok(JsonInventory {
             leaf_root: ".leaf".to_string(),
+            workspace_name: workspace_name(inventory),
             stages: JsonStages {
                 sprouts: json_stage(inventory, StageDir::Sprouts)?,
                 leaves: json_stage(inventory, StageDir::Leaves)?,
@@ -265,5 +267,47 @@ fn item_kind_label(kind: ItemKind) -> &'static str {
     match kind {
         ItemKind::LeafWork => "leaf_work",
         ItemKind::PressedDigest => "pressed_digest",
+    }
+}
+
+fn workspace_name(inventory: &Inventory) -> String {
+    inventory
+        .leaf_root
+        .parent()
+        .and_then(Path::file_name)
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_else(|| ".".to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::inventory::StageInventory;
+
+    fn empty_stage(stage_dir: StageDir) -> StageInventory {
+        StageInventory {
+            stage_dir,
+            items: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn json_inventory_includes_workspace_name_from_leaf_parent() {
+        let inventory = Inventory {
+            leaf_root: PathBuf::from("repos").join("indi-donors").join(".leaf"),
+            stages: vec![
+                empty_stage(StageDir::Sprouts),
+                empty_stage(StageDir::Leaves),
+                empty_stage(StageDir::Fallen),
+            ],
+        };
+
+        let value = serde_json::to_value(
+            JsonInventory::from_inventory(&inventory).expect("json inventory"),
+        )
+        .expect("serialize json inventory");
+
+        assert_eq!(value["leaf_root"], ".leaf");
+        assert_eq!(value["workspace_name"], "indi-donors");
     }
 }

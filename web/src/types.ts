@@ -100,6 +100,7 @@ export interface WorkspaceStageData {
 }
 
 export interface WorkspaceListResponse {
+  workspace_name?: string;
   stages?: Record<string, WorkspaceStageData | undefined>;
 }
 

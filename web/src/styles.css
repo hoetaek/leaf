@@ -79,6 +79,17 @@ h4 {
   color: var(--sage-mid);
 }
 
+.workspace-name {
+  min-width: 0;
+  max-width: min(36vw, 320px);
+  overflow: hidden;
+  color: var(--mut);
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .crumb {
   color: var(--mut);
   font-size: 13px;
