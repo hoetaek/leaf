@@ -1,4 +1,38 @@
-import type { ReviewRefFocus, ReviewResponse } from "./types";
+import type { ReviewRefFocus, ReviewResponse, ReviewSource } from "./types";
+
+// The four LEAF phases shown as pipeline bars, in order. The `Status` source
+// (00-status.md) is intentionally excluded — it has no gate sequence.
+export const PIPELINE_PHASES = ["Learn", "Example", "Architect", "Feedback"] as const;
+
+export interface PhaseProgress {
+  phase: string;
+  done: number;
+  total: number;
+  state: "done" | "partial" | "zero";
+}
+
+// Derive each phase's done/total from the canonical sources by counting
+// `present` gates per phase. Reflects real partial completion (never a fake
+// all-done), and skips the Status source so no spurious 5th bar appears.
+export function computePhasePipeline(sources: ReviewSource[]): PhaseProgress[] {
+  return PIPELINE_PHASES.map((phase) => {
+    const gates = sources.filter((source) => source.phase === phase);
+    const done = gates.filter((source) => source.present).length;
+    const total = gates.length;
+    const state = total > 0 && done === total ? "done" : done === 0 ? "zero" : "partial";
+    return { phase, done, total, state };
+  });
+}
+
+export type LeafStamp = "pressed" | "sprout" | "leaf";
+
+// pressed.md wins; otherwise a sprout stage shows the sprout stamp; everything
+// else is a plain leaf.
+export function leafStamp(stage: string | undefined, pressed: boolean | undefined): LeafStamp {
+  if (pressed) return "pressed";
+  if (stage === "sprout") return "sprout";
+  return "leaf";
+}
 
 export const REVIEW_REF_FOCUS = Object.freeze({
   LIST: "list",

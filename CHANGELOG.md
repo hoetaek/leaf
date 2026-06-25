@@ -6,6 +6,31 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.14.0 - 2026-06-25
+
+- `leaf serve`: the leaf detail view now opens with a header card that surfaces
+  the why / what / wireframe triple, a four-phase progress pipeline that reflects
+  real partial completion (not a fake all-done), and a stage stamp
+  (pressed / sprout / leaf). The review API now exposes typed `why` / `what` /
+  `wireframe` / `stage` / `pressed` fields parsed in Rust, so the client never
+  re-parses status markdown.
+- `leaf serve`: workspace footer shortcuts now stay visible on long lists
+  (sticky), a global `:focus-visible` ring was added, accent colors were
+  tokenized, and the stage filter shows capitalized labels with color dots.
+- `leaf doctor`: new `status_triple_missing` / `status_triple_unfilled` checks
+  warn when a sprout or leaf status is missing the why / what / wireframe triple
+  or still holds the scaffold `TODO` placeholder. Fallen and pressed items are
+  exempt; a `none — …` value is a valid answer. Existing leaves without the
+  triple will surface a new warning.
+- `leaf serve` / `leaf list` preview: the status title no longer consumes one of
+  the eight preview lines, so the last operational field (`next action`) stays
+  within the at-a-glance summary.
+
+## 0.7.0 - 2026-06-25
+
+- `leaf:learn` skill: documented that `leaf doctor` now reads and checks the
+  why / what / wireframe triple (previously stated it was ignored by doctor).
+
 ## 0.13.1 - 2026-06-24
 
 - Fixed `leaf review --json` and the web review API hiding broken reference

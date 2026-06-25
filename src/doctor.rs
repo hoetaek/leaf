@@ -1,5 +1,7 @@
 use crate::fs_ext::{DirectoryStatus, directory_status};
-use crate::inventory::{OLD_NUMBERED_STAGE_DIRS, Stage, StageDir, parse_status_summary};
+use crate::inventory::{
+    OLD_NUMBERED_STAGE_DIRS, Stage, StageDir, parse_status_summary, status_triple_state,
+};
 use anyhow::Result;
 use std::collections::BTreeMap;
 use std::fs;
@@ -581,6 +583,41 @@ fn check_item_status(
             )
             .with_path(rel_status.clone()),
         );
+    }
+
+    // The why/what/wireframe triple is what the detail header and the status
+    // preview surface "at a glance". Sprouts and leaves should carry it; fallen
+    // and pressed are exempt (closed/archived). A `none — …` value is a valid
+    // understanding-only answer and is not flagged.
+    if matches!(stage_dir, StageDir::Sprouts | StageDir::Leaves) {
+        let triple = status_triple_state(&content);
+        if !triple.missing.is_empty() {
+            findings.push(
+                DoctorFinding::warn(
+                    "status_triple_missing",
+                    format!(
+                        "status is missing the {} line(s); lock the why/what/wireframe triple with leaf:learn so the preview shows what this leaf is",
+                        triple.missing.join(", ")
+                    ),
+                )
+                .with_path(rel_status.clone()),
+            );
+        }
+        // A `TODO` placeholder is acceptable transiently in a sprout (just
+        // scaffolded, filled at the Learn-close triple lock); only a leaf — work
+        // that has passed ⑧ — shipping a placeholder is a real defect.
+        if stage_dir == StageDir::Leaves && !triple.unfilled.is_empty() {
+            findings.push(
+                DoctorFinding::warn(
+                    "status_triple_unfilled",
+                    format!(
+                        "status triple {} still holds the scaffold placeholder; fill it with leaf:learn",
+                        triple.unfilled.join(", ")
+                    ),
+                )
+                .with_path(rel_status.clone()),
+            );
+        }
     }
 }
 
