@@ -11,6 +11,7 @@
   --sage: #2f6b4f;
   --sage-mid: #3f8f6a;
   --sage-soft: #e3efe8;
+
   /* accent tokens — tokenized at current shipped values (no visual change) */
   --gold: #b5862a;
   --gold-soft: #f1e7cf;
@@ -118,139 +119,6 @@ h2 {
 .crumb {
   color: var(--mut);
   font-size: 13px;
-}
-
-/* ===== detail header (.dhead) — v2 information hierarchy ===== */
-.dhead {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  padding: 28px;
-  margin-top: 18px;
-}
-
-.dtop {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.dtop h1 {
-  font-size: 28px;
-  font-weight: 800;
-}
-
-.stamp {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 9px;
-  border-radius: 20px;
-}
-
-.stamp.press,
-.stamp.pressed {
-  background: var(--gold-soft);
-  color: var(--gold);
-}
-
-.stamp.sprout {
-  background: var(--sage-soft);
-  color: var(--sage);
-}
-
-.stamp.leaf {
-  background: var(--paper2);
-  color: var(--mut);
-  border: 1px solid var(--line);
-}
-
-.triple {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 9px 18px;
-  max-width: 760px;
-}
-
-.triple .k {
-  font-family: "Cabinet Grotesk", sans-serif;
-  font-weight: 700;
-  color: var(--sage);
-  font-size: 13px;
-  padding-top: 2px;
-}
-
-.triple .v {
-  font-size: var(--type-reader);
-  line-height: 1.45;
-  color: var(--body);
-}
-
-.triple .v p {
-  margin: 0;
-}
-
-.triple .v code {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 13px;
-  background: var(--paper);
-  padding: 1px 5px;
-  border-radius: 5px;
-}
-
-.pipe {
-  margin-top: 24px;
-  padding-top: 22px;
-  border-top: 1px solid var(--line2);
-  display: flex;
-  gap: 12px;
-}
-
-.pphase {
-  flex: 1;
-}
-
-.pphase .pn {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--mut);
-  margin-bottom: 8px;
-}
-
-.pphase.done .pn {
-  color: var(--sage);
-}
-
-.pphase .track {
-  height: 6px;
-  border-radius: 6px;
-  background: #ddd7ca;
-  overflow: hidden;
-}
-
-.pphase .track i {
-  display: block;
-  height: 100%;
-  background: var(--sage-mid);
-}
-
-.pphase.done .track i {
-  background: var(--sage);
-}
-
-.pphase .pg {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 11px;
-  color: var(--dim);
-  margin-top: 6px;
-}
-
-.pphase.partial .pg {
-  color: var(--gold);
-}
-
-.pphase.done .pg {
-  color: var(--sage);
 }
 
 .reader {
@@ -383,6 +251,11 @@ h2 {
   border-left: 2px solid var(--sage);
   padding-left: 10px;
   margin-bottom: 16px;
+}
+
+.dtop h1 {
+  font-size: 28px;
+  font-weight: 800;
 }
 
 .md h1,
@@ -1654,6 +1527,134 @@ h2 {
 
 .toc-overlay {
   display: none;
+}
+
+/* ===== detail header (.dhead) — v2 information hierarchy ===== */
+.dhead {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 28px;
+  margin-top: 18px;
+}
+
+.dtop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stamp {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+
+.stamp.press,
+.stamp.pressed {
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+.stamp.sprout {
+  background: var(--sage-soft);
+  color: var(--sage);
+}
+
+.stamp.leaf {
+  background: var(--paper2);
+  color: var(--mut);
+  border: 1px solid var(--line);
+}
+
+.triple {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 9px 18px;
+  max-width: 760px;
+}
+
+.triple .k {
+  font-family: "Cabinet Grotesk", sans-serif;
+  font-weight: 700;
+  color: var(--sage);
+  font-size: 13px;
+  padding-top: 2px;
+}
+
+.triple .v {
+  font-size: var(--type-reader);
+  line-height: 1.45;
+  color: var(--body);
+}
+
+.triple .v p {
+  margin: 0;
+}
+
+.triple .v code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  background: var(--paper);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+.pipe {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line2);
+  display: flex;
+  gap: 12px;
+}
+
+.pphase {
+  flex: 1;
+}
+
+.pphase .pn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mut);
+  margin-bottom: 8px;
+}
+
+.pphase.done .pn {
+  color: var(--sage);
+}
+
+.pphase .track {
+  height: 6px;
+  border-radius: 6px;
+  background: #ddd7ca;
+  overflow: hidden;
+}
+
+.pphase .track i {
+  display: block;
+  height: 100%;
+  background: var(--sage-mid);
+}
+
+.pphase.done .track i {
+  background: var(--sage);
+}
+
+.pphase .pg {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  color: var(--dim);
+  margin-top: 6px;
+}
+
+.pphase.partial .pg {
+  color: var(--gold);
+}
+
+.pphase.done .pg {
+  color: var(--sage);
 }
 
 @media (prefers-reduced-motion: reduce) {

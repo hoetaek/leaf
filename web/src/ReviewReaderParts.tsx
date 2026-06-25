@@ -2,13 +2,7 @@ import React from "react";
 import type { RefObject } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import {
-  computePhasePipeline,
-  leafStamp,
-  progressWidth,
-  referenceCount,
-  REVIEW_REF_FOCUS,
-} from "./reviewReaderModel";
+import { computePhasePipeline, leafStamp, progressWidth, referenceCount, REVIEW_REF_FOCUS } from "./reviewReaderModel";
 import { leafHref } from "./routes";
 import type { ReviewRefFocus, ReviewReference, ReviewResponse, ReviewSource } from "./types";
 
