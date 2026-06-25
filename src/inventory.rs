@@ -506,6 +506,56 @@ fn normalize_key(raw_key: &str) -> String {
         .to_lowercase()
 }
 
+/// Presence and fill state of the why / what / wireframe triple in a status
+/// preamble. `missing` holds triple keys with no `- key:` line at all;
+/// `unfilled` holds keys whose value is still a scaffold `TODO` placeholder or
+/// empty. A `none — …` value is a valid Learn-close answer (understanding-only)
+/// and counts as neither. `leaf doctor` uses this to guarantee the triple the
+/// detail header and preview surface is actually present and filled — the status
+/// parser proper deliberately ignores these keys, so this is the one place that
+/// looks at them for diagnosis.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub(crate) struct TripleState {
+    pub(crate) missing: Vec<&'static str>,
+    pub(crate) unfilled: Vec<&'static str>,
+}
+
+pub(crate) fn status_triple_state(content: &str) -> TripleState {
+    let mut why = None;
+    let mut what = None;
+    let mut wireframe = None;
+    for line in content.lines() {
+        // Only the preamble is canonical; a `##` heading ends it (matches
+        // parse_status_summary so `## Previous Status` can't leak triple lines).
+        if line.trim_start().starts_with("##") {
+            break;
+        }
+        let Some((key, value)) = parse_field_line(line) else {
+            continue;
+        };
+        match key.as_str() {
+            "why" => why = Some(value),
+            "what" => what = Some(value),
+            "wireframe" => wireframe = Some(value),
+            _ => {}
+        }
+    }
+
+    let mut state = TripleState::default();
+    for (label, value) in [("why", &why), ("what", &what), ("wireframe", &wireframe)] {
+        match value {
+            None => state.missing.push(label),
+            Some(v) => {
+                let trimmed = v.trim();
+                if trimmed.is_empty() || trimmed.starts_with("TODO") {
+                    state.unfilled.push(label);
+                }
+            }
+        }
+    }
+    state
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -831,6 +881,30 @@ mod tests {
         assert_eq!(summary.current_gate.as_deref(), Some("G1"));
         assert_eq!(summary.first_missing_gate.as_deref(), Some("G2"));
         assert_eq!(summary.next_action.as_deref(), Some("do it: now"));
+    }
+
+    #[test]
+    fn inventory_status_triple_state_classifies_missing_unfilled_and_valid() {
+        // all three real → clean
+        let ok =
+            status_triple_state("- why: 막는다\n- what: 스킬\n- wireframe: 한 건\n- stage: leaf\n");
+        assert_eq!(ok, TripleState::default());
+
+        // none — is a valid Learn-close answer → neither missing nor unfilled
+        let none_ok = status_triple_state(
+            "- why: 실제 이유\n- what: none — 이해 전용\n- wireframe: none — 이해 전용\n",
+        );
+        assert_eq!(none_ok, TripleState::default());
+
+        // absent lines → missing; TODO/empty → unfilled
+        let mixed =
+            status_triple_state("- why: TODO state the problem\n- what:   \n- stage: sprout\n");
+        assert_eq!(mixed.missing, vec!["wireframe"]);
+        assert_eq!(mixed.unfilled, vec!["why", "what"]);
+
+        // a `## Overview` heading ends the preamble; later `- why:` is ignored
+        let preamble_only = status_triple_state("- stage: leaf\n\n## Overview\n- why: 본문 밖\n");
+        assert_eq!(preamble_only.missing, vec!["why", "what", "wireframe"]);
     }
 
     #[test]
