@@ -1663,6 +1663,30 @@ h2 {
   color: var(--sage);
 }
 
+/* transient confirmation toast (e.g. y = copy citation) */
+.toast {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  z-index: 80;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  padding: 9px 16px;
+  border-radius: var(--r-sm);
+  opacity: 0;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  pointer-events: none;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto !important;

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
+import { copyLeafCitation } from "./clipboard";
 import { isTextEntryElement, nextReferenceIndex, referenceCount, REVIEW_REF_FOCUS } from "./reviewReaderModel";
 import type { ReviewRefFocus, ReviewResponse } from "./types";
 
@@ -57,6 +58,12 @@ export function useReviewKeyboardShortcuts({
           if (showRefs) setShowRefs(false);
           else if (onBack) onBack();
           else window.location.hash = "#/";
+          break;
+        case "y":
+          if (data) {
+            event.preventDefault();
+            copyLeafCitation(data.slug);
+          }
           break;
         case "r":
         case "R":

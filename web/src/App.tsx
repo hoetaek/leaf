@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Toaster } from "./Toast";
 import WorkspaceList from "./WorkspaceList";
 import ReviewReader from "./ReviewReader";
 import GraphView from "./GraphView";
@@ -102,6 +103,7 @@ export default function App() {
       {view === "leaf" && leafSlug && <ReviewReader slug={leafSlug} referencePath={referencePath} />}
       {view === "graph" && <GraphView />}
       {view === "tree" && <TreeView />}
+      <Toaster />
     </div>
   );
 }

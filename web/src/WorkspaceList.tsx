@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { copyLeafCitation } from "./clipboard";
 import { leafHref, openLeaf } from "./routes";
 import { useJsonResource } from "./useJsonResource";
 import WorkspacePreview from "./WorkspacePreview";
@@ -129,11 +130,16 @@ export default function WorkspaceList() {
         const next = e.key === "l" ? Math.min(WORKSPACE_STAGES.length - 1, i + 1) : Math.max(0, i - 1);
         setStage(WORKSPACE_STAGES[next]);
         setSel(0);
+      } else if (e.key === "y") {
+        if (selectedRow) {
+          e.preventDefault();
+          copyLeafCitation(selectedRow.slug);
+        }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [openRow, rows.length, stage]);
+  }, [openRow, rows.length, stage, selectedRow]);
 
   if (error) return <p className="err">목록을 불러오지 못했습니다: {error}. `leaf serve`가 떠 있나요?</p>;
   if (!data) return <p className="muted">불러오는 중…</p>;
@@ -244,7 +250,8 @@ export default function WorkspaceList() {
           <span className="kbd">d</span>
           <span className="kbd">u</span> 페이지 &middot; <span className="kbd">/</span> 필터 &middot;{" "}
           <span className="kbd">p</span> preview &middot; <span className="kbd">h</span>
-          <span className="kbd">l</span> stage &middot; click 선택 &middot; double-click 열기
+          <span className="kbd">l</span> stage &middot; <span className="kbd">y</span> 복사 &middot; click 선택 &middot;
+          double-click 열기
         </span>
       </p>
     </div>
