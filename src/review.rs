@@ -234,6 +234,20 @@ pub(crate) struct ReviewJson {
     pub(crate) slug: String,
     pub(crate) title: String,
     pub(crate) root: String,
+    /// Leaf stage from the status preamble (`sprout` / `leaf` / `fallen`), if present.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) stage: Option<String>,
+    /// True when a `pressed.md` digest exists in the leaf root (read-only check).
+    pub(crate) pressed: bool,
+    /// The locked why / what / wireframe triple from the status preamble. Each is
+    /// `None` when absent or `none — …`, so the client renders a row only when set
+    /// and never re-parses status markdown (single source of truth stays in Rust).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) why: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) what: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) wireframe: Option<String>,
     pub(crate) sources: Vec<SourceJson>,
     pub(crate) references: Vec<ReferenceJson>,
 }
@@ -302,13 +316,77 @@ pub(crate) fn build_json(source: &ReviewSource) -> Result<ReviewJson> {
         })
         .collect::<Result<Vec<_>>>()?;
 
+    // Surface the status preamble's stage and why/what/wireframe triple as typed
+    // fields so the web detail header renders them without re-parsing markdown.
+    // The status is the first canonical source (gate "Status").
+    let status_markdown = sources
+        .iter()
+        .find(|entry| entry.gate == "Status")
+        .map(|entry| entry.markdown.as_str())
+        .unwrap_or("");
+    let StatusMeta {
+        stage,
+        why,
+        what,
+        wireframe,
+    } = parse_status_meta(status_markdown);
+    let pressed = root_path.join("pressed.md").is_file();
+
     Ok(ReviewJson {
         slug: title.clone(),
         title,
         root: root_relative_path.clone(),
+        stage,
+        pressed,
+        why,
+        what,
+        wireframe,
         sources,
         references,
     })
+}
+
+#[derive(Debug, Default, PartialEq)]
+struct StatusMeta {
+    stage: Option<String>,
+    why: Option<String>,
+    what: Option<String>,
+    wireframe: Option<String>,
+}
+
+/// Extract stage and the why/what/wireframe triple from a status file's
+/// preamble, reusing the same `- key: value` parsing as `parse_current_gate`
+/// and stopping at the first `##` heading. A value that is empty or begins with
+/// `none` (the `none — …` convention) is treated as absent.
+fn parse_status_meta(content: &str) -> StatusMeta {
+    let mut meta = StatusMeta::default();
+    for line in content.lines() {
+        if line.trim_start().starts_with("##") {
+            break;
+        }
+        let Some((key, value)) = parse_status_field_line(line) else {
+            continue;
+        };
+        let normalized = normalize_status_value(&value);
+        match key.as_str() {
+            "stage" => meta.stage = Some(value),
+            "why" => meta.why = normalized,
+            "what" => meta.what = normalized,
+            "wireframe" => meta.wireframe = normalized,
+            _ => {}
+        }
+    }
+    meta
+}
+
+/// Treat an empty value, or one starting with `none` (the `none — …`
+/// understanding-only convention), as absent.
+fn normalize_status_value(value: &str) -> Option<String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() || trimmed.to_lowercase().starts_with("none") {
+        return None;
+    }
+    Some(trimmed.to_string())
 }
 
 /// Resolve a folder-form gate (or report it absent). Concatenates the folder's
@@ -831,6 +909,54 @@ mod tests {
             .map(ReviewLine::visible_text)
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    #[test]
+    fn parse_status_meta_extracts_triple_and_stage_and_normalizes_none() {
+        let content = "# Sprout Status\n\n\
+- why: 의도 한 줄\n\
+- what: 산출물 형태\n\
+- wireframe: 값싼 미리보기\n\
+- stage: leaf\n\
+- current gate: ⑩ Retrospect\n\n\
+## Overview\n\
+- why: 이건 프리앰블 밖이라 무시돼야 함\n";
+        let meta = parse_status_meta(content);
+        assert_eq!(meta.stage.as_deref(), Some("leaf"));
+        assert_eq!(meta.why.as_deref(), Some("의도 한 줄"));
+        assert_eq!(meta.what.as_deref(), Some("산출물 형태"));
+        assert_eq!(meta.wireframe.as_deref(), Some("값싼 미리보기"));
+
+        // `none — …` and empty are treated as absent.
+        let none_content =
+            "- why: none — 이해 전용\n- what: \n- wireframe: 실제 값\n- stage: sprout\n";
+        let none_meta = parse_status_meta(none_content);
+        assert_eq!(none_meta.why, None);
+        assert_eq!(none_meta.what, None);
+        assert_eq!(none_meta.wireframe.as_deref(), Some("실제 값"));
+        assert_eq!(none_meta.stage.as_deref(), Some("sprout"));
+    }
+
+    #[test]
+    fn build_json_surfaces_triple_stage_and_pressed_flag() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        let slug = "meta-demo";
+        write_file(
+            &root,
+            slug,
+            "00-status.md",
+            "# Sprout Status\n- why: 막는다\n- what: 스킬\n- wireframe: 한 건\n- stage: leaf\n",
+        );
+        let json = build_json(&source(&root, slug)).expect("build json");
+        assert_eq!(json.stage.as_deref(), Some("leaf"));
+        assert_eq!(json.why.as_deref(), Some("막는다"));
+        assert_eq!(json.what.as_deref(), Some("스킬"));
+        assert_eq!(json.wireframe.as_deref(), Some("한 건"));
+        assert!(!json.pressed, "no pressed.md yet");
+
+        write_file(&root, slug, "pressed.md", "# digest\n");
+        let pressed = build_json(&source(&root, slug)).expect("build json");
+        assert!(pressed.pressed, "pressed.md now exists");
     }
 
     #[test]

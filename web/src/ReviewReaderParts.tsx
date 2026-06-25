@@ -2,15 +2,69 @@ import React from "react";
 import type { RefObject } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { REVIEW_REF_FOCUS, progressWidth, referenceCount } from "./reviewReaderModel";
+import {
+  computePhasePipeline,
+  leafStamp,
+  progressWidth,
+  referenceCount,
+  REVIEW_REF_FOCUS,
+} from "./reviewReaderModel";
 import { leafHref } from "./routes";
-import type { ReviewRefFocus, ReviewReference, ReviewSource } from "./types";
+import type { ReviewRefFocus, ReviewReference, ReviewResponse, ReviewSource } from "./types";
 
 const MARKDOWN_PLUGINS = [remarkGfm];
 
 export const MarkdownContent = React.memo(function MarkdownContent({ children }: { children: string }) {
   return <ReactMarkdown remarkPlugins={MARKDOWN_PLUGINS}>{children}</ReactMarkdown>;
 });
+
+// Detail header: the why/what/wireframe triple, the four-phase pipeline (real
+// partial completion), and the stage stamp — the v2 information hierarchy that
+// the plain-markdown reader was missing. All data comes from typed server
+// fields; nothing here re-parses status markdown.
+export function DetailHeader({ data }: { data: ReviewResponse }) {
+  const triple: Array<[string, string]> = [
+    ["why", data.why ?? ""],
+    ["what", data.what ?? ""],
+    ["wire", data.wireframe ?? ""],
+  ].filter((entry): entry is [string, string] => entry[1].length > 0);
+  const pipeline = computePhasePipeline(data.sources);
+  const stamp = leafStamp(data.stage, data.pressed);
+
+  return (
+    <header className="dhead">
+      <div className="dtop">
+        <h1>{data.slug}</h1>
+        <span className={`stamp ${stamp}`}>{stamp}</span>
+      </div>
+      {triple.length > 0 && (
+        <div className="triple">
+          {triple.map(([key, value]) => (
+            <React.Fragment key={key}>
+              <div className="k">{key}</div>
+              <div className="v">
+                <MarkdownContent>{value}</MarkdownContent>
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+      <div className="pipe">
+        {pipeline.map((phase) => (
+          <div key={phase.phase} className={`pphase ${phase.state}`}>
+            <div className="pn">{phase.phase}</div>
+            <div className="track">
+              <i style={{ width: progressWidth(phase.total ? phase.done / phase.total : 0) }} />
+            </div>
+            <div className="pg">
+              {phase.done}/{phase.total}
+            </div>
+          </div>
+        ))}
+      </div>
+    </header>
+  );
+}
 
 export function GateNav({
   sources,

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
+  DetailHeader,
   GateNav,
   MarkdownContent,
   MobileReaderActions,
@@ -121,6 +122,7 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
         onOpenToc={() => setShowToc(true)}
         onOpenReferences={openReferences}
       />
+      <DetailHeader data={data} />
       <div className="reader">
         <aside className="rail">
           <h4>Gates &mdash; read all</h4>

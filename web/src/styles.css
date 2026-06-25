@@ -11,6 +11,11 @@
   --sage: #2f6b4f;
   --sage-mid: #3f8f6a;
   --sage-soft: #e3efe8;
+  /* accent tokens — tokenized at current shipped values (no visual change) */
+  --gold: #b5862a;
+  --gold-soft: #f1e7cf;
+  --rose: #9c5249;
+  --blue: #365a99;
   --r-sm: 8px;
   --r: 14px;
   --r-lg: 20px;
@@ -44,6 +49,20 @@ h4 {
   letter-spacing: 0;
 }
 
+/* Cabinet Grotesk display headings read tighter with negative tracking (v2). */
+h1,
+h2 {
+  letter-spacing: -0.025em;
+}
+
+/* Global keyboard focus ring — keyboard nav is a core UX, so focus must be
+   visible everywhere (the .filter input keeps its intentional outline:none). */
+:focus-visible {
+  outline: 2px solid var(--sage-mid);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
 .shell {
   max-width: 1180px;
   margin: 0 auto;
@@ -55,7 +74,7 @@ h4 {
 }
 
 .err {
-  color: #9c5249;
+  color: var(--rose);
 }
 
 .topbar {
@@ -99,6 +118,139 @@ h4 {
 .crumb {
   color: var(--mut);
   font-size: 13px;
+}
+
+/* ===== detail header (.dhead) — v2 information hierarchy ===== */
+.dhead {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 28px;
+  margin-top: 18px;
+}
+
+.dtop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.dtop h1 {
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.stamp {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+
+.stamp.press,
+.stamp.pressed {
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+.stamp.sprout {
+  background: var(--sage-soft);
+  color: var(--sage);
+}
+
+.stamp.leaf {
+  background: var(--paper2);
+  color: var(--mut);
+  border: 1px solid var(--line);
+}
+
+.triple {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 9px 18px;
+  max-width: 760px;
+}
+
+.triple .k {
+  font-family: "Cabinet Grotesk", sans-serif;
+  font-weight: 700;
+  color: var(--sage);
+  font-size: 13px;
+  padding-top: 2px;
+}
+
+.triple .v {
+  font-size: var(--type-reader);
+  line-height: 1.45;
+  color: var(--body);
+}
+
+.triple .v p {
+  margin: 0;
+}
+
+.triple .v code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  background: var(--paper);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+.pipe {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line2);
+  display: flex;
+  gap: 12px;
+}
+
+.pphase {
+  flex: 1;
+}
+
+.pphase .pn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mut);
+  margin-bottom: 8px;
+}
+
+.pphase.done .pn {
+  color: var(--sage);
+}
+
+.pphase .track {
+  height: 6px;
+  border-radius: 6px;
+  background: #ddd7ca;
+  overflow: hidden;
+}
+
+.pphase .track i {
+  display: block;
+  height: 100%;
+  background: var(--sage-mid);
+}
+
+.pphase.done .track i {
+  background: var(--sage);
+}
+
+.pphase .pg {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  color: var(--dim);
+  margin-top: 6px;
+}
+
+.pphase.partial .pg {
+  color: var(--gold);
+}
+
+.pphase.done .pg {
+  color: var(--sage);
 }
 
 .reader {
@@ -380,6 +532,19 @@ h4 {
   margin-top: 12px;
 }
 
+/* Keep the workspace keyboard hints visible on long lists: stick to the
+   viewport bottom with an opaque background so rows don't show through.
+   Scoped to .ws so TreeView/ReviewReader footers are unaffected. */
+.ws .foot-note {
+  position: sticky;
+  bottom: 0;
+  margin-top: 0;
+  padding: 10px 0 8px;
+  background: var(--paper);
+  border-top: 1px solid var(--line2);
+  z-index: 5;
+}
+
 /* toolbar */
 .tools {
   display: flex;
@@ -423,6 +588,9 @@ h4 {
 }
 
 .stageseg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   border: none;
   background: none;
   color: var(--mut);
@@ -639,11 +807,11 @@ h4 {
 }
 
 .status:not(.ok) {
-  color: #9c5249;
+  color: var(--rose);
 }
 
 .status:not(.ok) .d {
-  background: #9c5249;
+  background: var(--rose);
 }
 
 /* top-align each cell so every column's first line shares one start line regardless of wrap */
@@ -932,7 +1100,7 @@ h4 {
 
 .graph-node {
   cursor: pointer;
-  color: #b5862a;
+  color: var(--gold);
   transition: opacity 120ms ease;
 }
 
@@ -950,14 +1118,14 @@ h4 {
 }
 
 .graph-node .node-dot {
-  fill: #b5862a;
+  fill: var(--gold);
   stroke: var(--paper2);
   stroke-width: 2.5;
   filter: drop-shadow(0 2px 4px rgb(22 24 29 / 16%));
 }
 
 .graph-node.visited .node-dot {
-  fill: #365a99;
+  fill: var(--blue);
 }
 
 .graph-node.sel .node-halo {
@@ -1164,7 +1332,7 @@ h4 {
 }
 
 .tree-fruit {
-  fill: #b5862a;
+  fill: var(--gold);
   stroke: var(--paper2);
   stroke-width: 2;
 }
@@ -1491,6 +1659,8 @@ h4 {
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
   }
 }
 
