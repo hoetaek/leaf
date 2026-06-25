@@ -112,7 +112,8 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
           <span className="kbd">g</span>
           <span className="kbd">G</span> 줄 &middot; <span className="kbd">d</span>
           <span className="kbd">u</span> 페이지 &middot; <span className="kbd">R</span> references (
-          {data.references?.length || 0}) &middot; <span className="kbd">q</span> 목록
+          {data.references?.length || 0}) &middot; <span className="kbd">y</span> 복사 &middot;{" "}
+          <span className="kbd">q</span> 목록
         </span>
       </p>
       <MobileReaderActions

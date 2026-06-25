@@ -6,6 +6,13 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.14.3 - 2026-06-25
+
+- `leaf serve`: press `y` on a leaf detail or a selected workspace row to copy its
+  `leaf:<slug>` citation token to the clipboard, with a toast confirmation. A
+  read-only, client-only action (it never touches `.leaf`); typing in the filter
+  is unaffected.
+
 ## 0.14.2 - 2026-06-25
 
 - Fixed `leaf serve` detail header showing a "pressed" stamp for a pressed leaf
