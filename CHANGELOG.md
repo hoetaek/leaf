@@ -6,6 +6,13 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.14.2 - 2026-06-25
+
+- Fixed `leaf serve` detail header showing a "pressed" stamp for a pressed leaf
+  that was later fallen (e.g. via the supersede flow, which keeps `pressed.md`
+  while moving the leaf to fallen). The fallen (archived) state now takes
+  precedence over the pressed stamp.
+
 ## 0.14.1 - 2026-06-25
 
 - Fixed `leaf serve` detail header hiding a why/what/wireframe value that merely
