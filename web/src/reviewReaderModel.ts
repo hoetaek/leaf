@@ -24,13 +24,14 @@ export function computePhasePipeline(sources: ReviewSource[]): PhaseProgress[] {
   });
 }
 
-export type LeafStamp = "pressed" | "sprout" | "leaf";
+export type LeafStamp = "pressed" | "sprout" | "leaf" | "fallen";
 
-// pressed.md wins; otherwise a sprout stage shows the sprout stamp; everything
-// else is a plain leaf.
+// pressed.md wins; otherwise the stamp follows the stage so an archived (fallen)
+// item is never mislabelled as an active leaf.
 export function leafStamp(stage: string | undefined, pressed: boolean | undefined): LeafStamp {
   if (pressed) return "pressed";
   if (stage === "sprout") return "sprout";
+  if (stage === "fallen") return "fallen";
   return "leaf";
 }
 

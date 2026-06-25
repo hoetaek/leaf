@@ -586,8 +586,11 @@ fn check_item_status(
     }
 
     // The why/what/wireframe triple is what the detail header and the status
-    // preview surface "at a glance". Sprouts and leaves should carry it; fallen
-    // and pressed are exempt (closed/archived). A `none — …` value is a valid
+    // preview surface "at a glance". Sprouts and leaves should carry it — this
+    // deliberately includes a pressed leaf (a `02-leaves` item with a
+    // `pressed.md`), since a reference-worthy leaf is exactly where the triple
+    // matters most. Only the legacy top-level `StageDir::Pressed` dir and
+    // `StageDir::Fallen` are exempt. A `none — …` value is a valid
     // understanding-only answer and is not flagged.
     if matches!(stage_dir, StageDir::Sprouts | StageDir::Leaves) {
         let triple = status_triple_state(&content);

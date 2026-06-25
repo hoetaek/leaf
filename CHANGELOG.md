@@ -6,6 +6,17 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.14.1 - 2026-06-25
+
+- Fixed `leaf serve` detail header hiding a why/what/wireframe value that merely
+  begins with the word "none" (e.g. "None of the notes explain…"). Only the
+  `none` / `none — …` understanding-only sentinel is suppressed now.
+- Fixed `leaf serve` detail header showing a "leaf" stamp for fallen items;
+  fallen leaves now get their own stamp.
+- Clarified `leaf doctor`'s triple check: pressed leaves are intentionally
+  checked (a reference-worthy leaf is where the triple matters most); only the
+  legacy top-level pressed dir and fallen items are exempt (no behavior change).
+
 ## 0.14.0 - 2026-06-25
 
 - `leaf serve`: the leaf detail view now opens with a header card that surfaces
