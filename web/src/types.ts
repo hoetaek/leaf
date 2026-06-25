@@ -136,6 +136,13 @@ export interface ReviewResponse {
   slug: string;
   sources: ReviewSource[];
   references?: ReviewReference[];
+  // Status preamble surfaced as typed fields by the Rust server (single source
+  // of truth). why/what/wireframe are omitted when absent or `none — …`.
+  stage?: string;
+  pressed?: boolean;
+  why?: string;
+  what?: string;
+  wireframe?: string;
 }
 
 export type ReviewRefFocus = "list" | "content";

@@ -11,6 +11,14 @@ import {
 } from "./workspaceModel";
 import type { LeafStatus, WorkspaceListResponse, WorkspaceStageFilter } from "./types";
 
+// Human-friendly capitalized labels for the raw stage filter keys.
+const STAGE_LABELS: Record<string, string> = {
+  all: "All",
+  sprouts: "Sprouts",
+  leaves: "Leaves",
+  fallen: "Fallen",
+};
+
 function Progress({ status }: { status?: LeafStatus }) {
   const done = status?.progress_done || 0;
   const cur = status?.progress_current || 0;
@@ -171,7 +179,8 @@ export default function WorkspaceList() {
                 setSel(0);
               }}
             >
-              {s}
+              {s !== "all" && <span className={`tagdot ${s}`} />}
+              {STAGE_LABELS[s] ?? s}
               {s !== "all" && <span className="c"> {counts[s] || 0}</span>}
             </button>
           ))}
