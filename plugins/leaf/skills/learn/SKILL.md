@@ -23,6 +23,16 @@ the point; the learning is.
   own.
 - Older compatibility folders may exist as storage data only.
 
+## Research Tool Check
+
+Before triage or local truth, check whether the current runtime exposes the
+`insane-search`/`insane-search-codex` and
+`insane-research`/`insane-research-codex` plugins or tools. Use `tool_search`
+when available; otherwise inspect the visible tools, skills, apps, and plugin
+cache. Record the result as checked context, then continue normally. These tools
+are accelerators, not blockers: if they are unavailable, use built-in search,
+fetch, browser, and explicit limitation notes.
+
 ## First Read
 
 Inspect local truth before asking:
@@ -202,9 +212,14 @@ the operational fields:
 
 These three are written only through the Learn-close lock — an ask → approve →
 write loop, per item, never agent-authored (see Workflow step 8 and
-`references/gate-02-unknowns-context.md`). The status parser ignores unknown
-preamble keys, so the triple sits safely above `stage` / `current phase` /
-`current gate` without affecting `leaf doctor`.
+`references/gate-02-unknowns-context.md`). The operational status parser
+(`stage` / `current phase` / `current gate`) ignores these keys, so the triple
+sits safely in the preamble above the operational fields. `leaf doctor` does
+read the triple — it warns (`status_triple_missing` / `status_triple_unfilled`)
+when a sprout or leaf lacks the why/what/wireframe lines or still carries the
+scaffold `TODO` placeholder, so the summary the preview and detail header
+surface is guaranteed present (a `none — …` value is a valid answer and is not
+flagged; fallen and pressed are exempt).
 
 The `## Overview` section below the preamble keeps the rest:
 

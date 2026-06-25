@@ -186,7 +186,7 @@ test("supports keyboard selection, stage switching, and opening the selected row
 
   fireEvent.keyDown(window, { key: "l" });
   await waitFor(() => {
-    expect(screen.getByRole("button", { name: /sprouts/ })).toHaveClass("on");
+    expect(screen.getByRole("button", { name: /sprouts/i })).toHaveClass("on");
   });
   expect(screen.getByRole("link", { name: /web-graph-structure-refactor/ })).toBeInTheDocument();
   expect(screen.queryByRole("link", { name: /react-lint-format-baseline/ })).not.toBeInTheDocument();
@@ -206,7 +206,7 @@ test("resets selection when changing stages by mouse", async () => {
     expect(screen.getByRole("link", { name: /old-web-ui/ })).toHaveClass("sel");
   });
 
-  fireEvent.click(screen.getByRole("button", { name: /leaves/ }));
+  fireEvent.click(screen.getByRole("button", { name: /leaves/i }));
 
   await waitFor(() => {
     expect(screen.getByRole("link", { name: /react-lint-format-baseline/ })).toHaveClass("sel");

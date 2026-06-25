@@ -67,7 +67,8 @@ test("renders review gates, markdown, missing gate states, and reference drawer"
   render(<ReviewReader slug="web-graph-structure-refactor" />);
 
   expect(screen.getByText("불러오는 중…")).toBeInTheDocument();
-  expect(await screen.findByText("web-graph-structure-refactor")).toBeInTheDocument();
+  // slug now appears in both the breadcrumb and the detail header (.dhead h1)
+  expect((await screen.findAllByText("web-graph-structure-refactor")).length).toBeGreaterThan(0);
   expect(screen.getAllByText("① Intent")[0]).toBeInTheDocument();
   expect(screen.getByText("그래프 구조를 분리한다.")).toBeInTheDocument();
   expect(screen.getByText("(이 게이트 문서는 아직 없음)")).toBeInTheDocument();
