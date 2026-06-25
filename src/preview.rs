@@ -1693,13 +1693,21 @@ fn display_local_link_path(path_text: &str, cwd: Option<&Path>) -> String {
 }
 
 fn useful_lines(content: &str, limit: usize) -> Vec<String> {
-    content
+    let mut lines = content
         .lines()
         .map(str::trim)
         .filter(|line| !line.is_empty())
-        .take(limit)
-        .map(str::to_string)
-        .collect()
+        .peekable();
+
+    let mut out = Vec::new();
+    // The leading markdown title (e.g. `# Sprout Status`, `# Intent`) is kept but
+    // does NOT consume a budget slot — otherwise the status preview's title eats a
+    // line and the last operational field (next action) falls outside `limit`.
+    if lines.peek().is_some_and(|line| line.starts_with('#')) {
+        out.push(lines.next().unwrap().to_string());
+    }
+    out.extend(lines.take(limit).map(str::to_string));
+    out
 }
 
 fn digest_lines(content: &str) -> Vec<String> {

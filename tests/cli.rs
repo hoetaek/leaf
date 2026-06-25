@@ -1096,7 +1096,10 @@ fn doctor_json_outputs_flat_findings_with_paths() {
     write_status(
         &repo,
         ".leaf/01-sprouts/duplicate/00-status.md",
-        "- stage: sprout\n\
+        "- why: w\n\
+         - what: w\n\
+         - wireframe: w\n\
+         - stage: sprout\n\
          - current phase: Learn\n\
          - current gate: ② Unknowns & Context\n\
          - first missing gate: ③ Criteria\n\
@@ -1105,7 +1108,10 @@ fn doctor_json_outputs_flat_findings_with_paths() {
     write_status(
         &repo,
         ".leaf/02-leaves/duplicate/00-status.md",
-        "- stage: leaf\n\
+        "- why: w\n\
+         - what: w\n\
+         - wireframe: w\n\
+         - stage: leaf\n\
          - current phase: Feedback\n\
          - current gate: ⑨ Review\n\
          - first missing gate: ⑩ Retrospect\n\
