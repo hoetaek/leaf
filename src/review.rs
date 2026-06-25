@@ -379,11 +379,18 @@ fn parse_status_meta(content: &str) -> StatusMeta {
     meta
 }
 
-/// Treat an empty value, or one starting with `none` (the `none — …`
-/// understanding-only convention), as absent.
+/// Treat an empty value, or the understanding-only sentinel (`none`, `none — …`,
+/// `none - …`), as absent. Only the sentinel is suppressed — a legitimate value
+/// that merely begins with the word "none" (e.g. "None of the notes explain …")
+/// is kept.
 fn normalize_status_value(value: &str) -> Option<String> {
     let trimmed = value.trim();
-    if trimmed.is_empty() || trimmed.to_lowercase().starts_with("none") {
+    let lower = trimmed.to_lowercase();
+    if trimmed.is_empty()
+        || lower == "none"
+        || lower.starts_with("none —")
+        || lower.starts_with("none -")
+    {
         return None;
     }
     Some(trimmed.to_string())
@@ -927,14 +934,23 @@ mod tests {
         assert_eq!(meta.what.as_deref(), Some("산출물 형태"));
         assert_eq!(meta.wireframe.as_deref(), Some("값싼 미리보기"));
 
-        // `none — …` and empty are treated as absent.
+        // `none`, `none — …`, `none - …` and empty are treated as absent, but a
+        // legitimate value that merely begins with the word "none" is kept.
         let none_content =
-            "- why: none — 이해 전용\n- what: \n- wireframe: 실제 값\n- stage: sprout\n";
+            "- why: none — 이해 전용\n- what: \n- wireframe: none\n- stage: sprout\n";
         let none_meta = parse_status_meta(none_content);
         assert_eq!(none_meta.why, None);
         assert_eq!(none_meta.what, None);
-        assert_eq!(none_meta.wireframe.as_deref(), Some("실제 값"));
+        assert_eq!(none_meta.wireframe, None);
         assert_eq!(none_meta.stage.as_deref(), Some("sprout"));
+
+        let real_none_prefix =
+            parse_status_meta("- why: None of the notes explain the workflow yet\n");
+        assert_eq!(
+            real_none_prefix.why.as_deref(),
+            Some("None of the notes explain the workflow yet"),
+            "a real value starting with 'None' must not be suppressed"
+        );
     }
 
     #[test]

@@ -1569,6 +1569,12 @@ h2 {
   border: 1px solid var(--line);
 }
 
+.stamp.fallen {
+  background: var(--paper2);
+  color: var(--rose);
+  border: 1px solid var(--line);
+}
+
 .triple {
   display: grid;
   grid-template-columns: auto 1fr;

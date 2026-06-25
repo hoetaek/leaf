@@ -79,10 +79,11 @@ test("computePhasePipeline counts present gates per phase and excludes Status", 
   );
 });
 
-test("leafStamp prefers pressed, then sprout, else leaf", () => {
+test("leafStamp prefers pressed, then follows stage (sprout/fallen/leaf)", () => {
   assert.equal(leafStamp("leaf", true), "pressed");
   assert.equal(leafStamp("sprout", true), "pressed");
   assert.equal(leafStamp("sprout", false), "sprout");
+  assert.equal(leafStamp("fallen", false), "fallen");
   assert.equal(leafStamp("leaf", false), "leaf");
   assert.equal(leafStamp(undefined, undefined), "leaf");
 });
