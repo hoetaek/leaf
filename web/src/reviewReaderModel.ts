@@ -26,12 +26,14 @@ export function computePhasePipeline(sources: ReviewSource[]): PhaseProgress[] {
 
 export type LeafStamp = "pressed" | "sprout" | "leaf" | "fallen";
 
-// pressed.md wins; otherwise the stamp follows the stage so an archived (fallen)
-// item is never mislabelled as an active leaf.
+// Fallen wins first: a pressed leaf that is later fallen (e.g. the supersede
+// flow) keeps its pressed.md, so the API reports stage:"fallen" + pressed:true —
+// the archived state must take precedence over the pressed stamp. Otherwise
+// pressed.md wins, then the stamp follows the stage.
 export function leafStamp(stage: string | undefined, pressed: boolean | undefined): LeafStamp {
+  if (stage === "fallen") return "fallen";
   if (pressed) return "pressed";
   if (stage === "sprout") return "sprout";
-  if (stage === "fallen") return "fallen";
   return "leaf";
 }
 
