@@ -305,7 +305,7 @@ fn execute(cli: Cli) -> Result<ExitCode> {
         }
         Commands::Doctor { json } => {
             let paths = crate::git::repo_paths(std::env::current_dir()?)?;
-            let report = crate::doctor::check(&paths.root)?;
+            let report = crate::doctor::check_with_git_exclude(&paths.root, Some(&paths.exclude))?;
             let stdout = std::io::stdout();
             let mut stdout = stdout.lock();
             if json {

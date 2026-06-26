@@ -16,6 +16,10 @@ Use RALPLAN-DR for choices that:
 - shape several downstream tasks or interfaces
 - pick one option from a real field of alternatives, not one obvious answer
 - preserve a constraint the team has previously argued about
+- introduce a name, structure, placement, taxonomy, format, workflow, policy
+  language, component boundary, file location, or interface shape that future
+  work may copy as precedent
+- define, split, merge, or move an artifact responsibility boundary
 - are easy to forget the *why* of within a few weeks
 
 ## When to skip
@@ -24,7 +28,9 @@ Skip when:
 
 - the choice follows directly from ③ Criteria or the ④ contract
 - there is one option and ruling out alternatives would be artificial
-- the choice is a local naming or formatting decision with no downstream coupling
+- the choice is a local naming or formatting decision with no downstream
+  coupling and no precedent risk
+- the artifact responsibility statement is obvious, short, and not contested
 - the rationale is already captured in ③ Criteria itself
 
 ## The four fields
@@ -36,7 +42,8 @@ choice cannot violate even if it would be more convenient.
 
 Examples: "no breaking changes to public API in this release"; "no new
 production data store this quarter"; "every user-facing string must be
-translatable"; "stay below 200ms p50 for this route."
+translatable"; "follow the existing terminology unless it blocks the work";
+"stay below 200ms p50 for this route."
 
 ### Decision drivers
 

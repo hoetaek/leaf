@@ -55,7 +55,8 @@ Criteria has two parts:
   artifact shape. It answers the necessity locked at ①: the problem lives
   upstream, purpose is the change that resolves it.
 - **Requirements / test** — observable acceptance checks, evidence needs, scope,
-  tone, format, deadline, non-goals, quality bars, and tradeoff principles.
+  tone, format, deadline, non-goals, quality bars, precedent constraints, and
+  tradeoff principles.
 
 **Score the Clarity Ledger before locking criteria.** Its five rows are exactly
 the dimensions criteria must pin down — Intent → Purpose; Topology, Success,
@@ -81,6 +82,9 @@ Gate to continue:
 - Major claims have evidence needs.
 - Unknowns are either assumptions, research tasks, or reviewer questions.
 - Non-goals and tradeoff principles are explicit when they matter.
+- For work entering an existing system, corpus, product, policy, taxonomy,
+  document set, or visual language, criteria state the local grammar /
+  precedent constraints the result must respect, or why none apply.
 - The deliverable's **Output form is consumed from the Learn-locked `what`**, not
   re-decided here; if ③ needs a different output form, return to `learn` and
   re-lock the what rather than silently overriding it.
@@ -233,6 +237,32 @@ which existing component is extended vs replaced, whether the stated current
 structure is actually true — against local code, docs, or current rendered
 behavior where the check is cheap; do not design against a remembered system.
 
+**Precedent Fit is domain-agnostic.** Every artifact leaves a surface that
+future work may copy: names, structure, placement, order, tone, taxonomy,
+workflow, proof shape, policy language, component boundaries, file location, or
+API shape. When the design enters an existing system or corpus, record the local
+grammar it follows, any new precedent it introduces, why the existing precedent
+is insufficient, what confusion a future copier could inherit, and how the
+exception is signposted. If the existing precedent is good enough, use it.
+
+**Responsibility Statement Test.** Every designed artifact should be explainable
+as one simple sentence: "This artifact exists to ...". The sentence may name
+collaboration or orchestration as the single responsibility, but if it needs
+several sentences, strained clauses, or a list of unrelated `and` / `or` jobs,
+the design is probably mixing responsibilities. Split, rename, or move the work
+until the sentence is honest.
+
+When a responsibility statement must live next to a concrete artifact as a
+local, opt-in contract, prefer `<artifact>.leaf.local.toml` over free-form
+Markdown. Keep it narrow: `schema = "leaf.srp-sidecar.v1"`, `artifact`,
+`status = "advisory"`, `last_verified`, `responsibility`, and optional string
+arrays such as `does_not_own`, `contracts`, and `split_signals`. Arbitrary notes
+or extra keys do not belong in the sidecar; put working context in the gate
+files. `leaf doctor` validates the v1 field set, artifact pairing, stale
+sidecars, and the local `.git/info/exclude` pattern. Use sidecars only for
+load-bearing artifacts whose responsibility future work is likely to copy or
+accidentally broaden; ordinary gate prose is enough otherwise.
+
 Gate to continue:
 
 - Each section has a role, not just a title.
@@ -249,6 +279,13 @@ Gate to continue:
 - For brownfield structural change, the before/after architecture sketch is
   present and cheap-checks the current model against the actual system before
   committing to the after model.
+- Precedent Fit is recorded when the design introduces or changes names,
+  structure, placement, order, taxonomy, workflow, policy language, component
+  boundaries, file location, or interface shape that future work may copy.
+- The main artifacts introduced or substantially changed by the design have a
+  one-sentence responsibility statement; complex or multi-clause statements are
+  treated as split/rename/move signals unless the single responsibility is
+  orchestration.
 - Public terminology and model terms pass a project glossary / canonical
   terminology check: when a term conflicts with existing docs or the project
   glossary, the conflict is called out and the canonical term proposed before
@@ -279,6 +316,8 @@ gets a quick self-pass:
 - security, privacy, safety, compliance, or permission boundaries
 - migrations, destructive changes, data loss risk, or irreversible operations
 - public terminology, interface, API, policy, workflow, or document structure
+- new names, structures, locations, taxonomies, formats, or examples that future
+  work may treat as precedent
 - cross-team, cross-module, or cross-artifact coupling
 - large user-facing behavior, argument, narrative, or visual shifts
 - one asserted option with weak alternatives or unclear decision drivers
@@ -312,6 +351,8 @@ Gate to continue:
 - Dependencies are real, not just conversation order.
 - Parallel work is identified.
 - Each task has a check that proves it helped.
+- Each task that touches an existing system or corpus names the precedent it
+  follows, or where the exception rationale will be recorded.
 
 **Task/PR size is a reviewability gate.** Label each slice `small` (1–5
 meaningful files, ≤ 200 meaningful changed lines), `medium` (6–10 files,
@@ -387,11 +428,14 @@ close-out ends it (see `using-leaf`, "Ending a leaf").
 Review checks: Does the artifact satisfy criteria? Are claims supported by
 evidence? Does section order still fit the argument? Did drafting reveal missing
 research or a weaker thesis? Are non-goals respected? Is detail right for the
-audience? Does the wireframe still fit?
+audience? Does the wireframe still fit? Did the finished artifact introduce a
+new precedent or break local grammar that ⑤ did not name? Can the changed
+artifact still be described by the responsibility statement ⑤ gave it?
 
 Sync rule: if review changes the claim/effect, update criteria; if it changes
-the argument flow, update the design/outline; if it changes workload, update the
-task graph. Do not keep stale planning notes beside a changed draft.
+the argument flow or precedent surface, update the design/outline; if it changes
+workload, update the task graph. Do not keep stale planning notes beside a
+changed draft.
 
 ## ⑩ Retrospect
 
@@ -413,6 +457,8 @@ retrospect file).
 **Lessons — the process retrospective.** Improve the next loop. Capture: What
 sequence worked? What did we draft too early? Which criterion was missing?
 Which review check caught the most? What template or skill should change?
+What precedent did this work leave, and should later work copy it or avoid it?
+Which responsibility statements held, and which turned into split signals?
 **Which unknowns surfaced mid-work that should have been caught at ②?** Open
 the discoveries note and, for each unplanned detour, ask which category was
 missed — a domain concept, a convention, a selection criterion, or an

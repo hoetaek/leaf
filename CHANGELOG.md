@@ -6,6 +6,16 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.15.0 - 2026-06-26
+
+- `leaf doctor`: added strict validation for local SRP sidecar contracts
+  (`*.leaf.local.toml`) and keeps the sidecar ignore rule in `.git/info/exclude`
+  during `leaf init`.
+- Fixed `leaf fall` so a failed move no longer rewrites the active sprout/leaf
+  status as fallen before the directory transition succeeds.
+- Plugin skills: released `leaf` plugin 0.7.2 with updated Learn/Work guidance
+  for unknowns, gate authoring, design critique, and decision rationale.
+
 ## 0.14.3 - 2026-06-25
 
 - `leaf serve`: press `y` on a leaf detail or a selected workspace row to copy its

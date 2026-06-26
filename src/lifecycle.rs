@@ -48,17 +48,13 @@ pub(crate) fn fall_leaf(repo_root: &Path, slug: &str, reason: &str) -> Result<Fa
     let previous_status = read_optional_status(&status_path)?;
 
     let timestamp = unix_timestamp()?;
-    fs::write(
-        &status_path,
-        fallen_status(
-            &source,
-            &reason,
-            &timestamp,
-            previous_status.as_deref(),
-            repo_root,
-        ),
-    )
-    .with_context(|| format!("failed to write {}", status_path.display()))?;
+    let status = fallen_status(
+        &source,
+        &reason,
+        &timestamp,
+        previous_status.as_deref(),
+        repo_root,
+    );
 
     fs::rename(&source, &destination).with_context(|| {
         format!(
@@ -67,6 +63,9 @@ pub(crate) fn fall_leaf(repo_root: &Path, slug: &str, reason: &str) -> Result<Fa
             destination.display()
         )
     })?;
+    let status_path = destination.join("00-status.md");
+    fs::write(&status_path, status)
+        .with_context(|| format!("failed to write {}", status_path.display()))?;
 
     Ok(FallResult {
         source,

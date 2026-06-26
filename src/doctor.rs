@@ -1,35 +1,10 @@
 use crate::fs_ext::{DirectoryStatus, directory_status};
-use crate::inventory::{
-    OLD_NUMBERED_STAGE_DIRS, Stage, StageDir, parse_status_summary, status_triple_state,
-};
 use anyhow::Result;
-use std::collections::BTreeMap;
-use std::fs;
 use std::path::{Path, PathBuf};
 
-const PRESSED_FRONTMATTER_TYPE: &str = "Leaf Pressed Digest";
-const PRESSED_FRONTMATTER_FIELDS: &[&str] = &[
-    "type",
-    "title",
-    "description",
-    "resource",
-    "tags",
-    "timestamp",
-    "citation_handle",
-    "stage",
-];
-const PRESSED_FRONTMATTER_TEMPLATE: &str = "\
----
-type: Leaf Pressed Digest
-title: <human-readable title>
-description: <one-sentence summary for indexes and previews>
-resource: <source path>
-tags: [leaf, <short-topic-tag>]
-timestamp: <ISO 8601 local timestamp>
-citation_handle: leaf:{slug}
-stage: leaf
----
-";
+mod lifecycle;
+mod pressed;
+pub(crate) mod srp_sidecar;
 
 #[derive(Debug)]
 pub(crate) struct DoctorReport {
@@ -67,7 +42,15 @@ pub(crate) enum Location {
     Paths(Vec<PathBuf>),
 }
 
+#[cfg(test)]
 pub(crate) fn check(repo_root: &Path) -> Result<DoctorReport> {
+    check_with_git_exclude(repo_root, None)
+}
+
+pub(crate) fn check_with_git_exclude(
+    repo_root: &Path,
+    git_exclude: Option<&Path>,
+) -> Result<DoctorReport> {
     let leaf_root = repo_root.join(".leaf");
     let mut findings = Vec::new();
 
@@ -93,712 +76,11 @@ pub(crate) fn check(repo_root: &Path) -> Result<DoctorReport> {
         }
     }
 
-    check_stage_dirs(&leaf_root, &mut findings)?;
-    check_entries(&leaf_root, &mut findings)?;
+    lifecycle::check_stage_dirs(&leaf_root, &mut findings)?;
+    lifecycle::check_entries(&leaf_root, &mut findings)?;
+    srp_sidecar::check(repo_root, git_exclude, &mut findings);
 
     Ok(DoctorReport::new(".leaf", findings))
-}
-
-fn check_stage_dirs(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<()> {
-    let mut all_stage_dirs_readable = true;
-
-    for stage_dir in stage_dirs() {
-        let stage_name = stage_dir.dir_name();
-        let stage_dir = leaf_root.join(stage_name);
-        let stage_status = directory_status(&stage_dir)?;
-
-        match stage_status {
-            DirectoryStatus::Directory => {
-                if let Err(err) = fs::read_dir(&stage_dir) {
-                    all_stage_dirs_readable = false;
-                    findings.push(
-                        DoctorFinding::error(
-                            "stage_dir_unreadable",
-                            format!("failed to read stage dir {stage_name}: {err}"),
-                        )
-                        .with_path(format!(".leaf/{stage_name}")),
-                    );
-                }
-            }
-            DirectoryStatus::NotDirectory => {
-                all_stage_dirs_readable = false;
-                findings.push(
-                    DoctorFinding::error(
-                        "stage_dir_not_directory",
-                        format!("stage dir {stage_name} is not a directory"),
-                    )
-                    .with_path(format!(".leaf/{stage_name}")),
-                );
-            }
-            DirectoryStatus::Missing => {
-                all_stage_dirs_readable = false;
-                findings.push(
-                    DoctorFinding::warn(
-                        "stage_dir_missing",
-                        format!("stage dir {stage_name} is missing"),
-                    )
-                    .with_path(format!(".leaf/{stage_name}")),
-                );
-            }
-        }
-    }
-
-    for stage_dir in OLD_NUMBERED_STAGE_DIRS {
-        let Some(old_name) = stage_dir.old_numbered_dir_name() else {
-            continue;
-        };
-        push_legacy_stage_dir_warning(leaf_root, findings, stage_dir, old_name);
-    }
-
-    for (stage_dir, old_name) in [
-        (StageDir::Sprouts, "seeds"),
-        (StageDir::Leaves, "leaves"),
-        (StageDir::Fallen, "fallen"),
-        (StageDir::Pressed, "pressed"),
-    ] {
-        push_legacy_stage_dir_warning(leaf_root, findings, stage_dir, old_name);
-    }
-
-    if all_stage_dirs_readable {
-        findings.push(DoctorFinding::ok(
-            "stage_dirs_readable",
-            "stage dirs readable",
-        ));
-    }
-
-    Ok(())
-}
-
-fn push_legacy_stage_dir_warning(
-    leaf_root: &Path,
-    findings: &mut Vec<DoctorFinding>,
-    stage_dir: StageDir,
-    old_name: &str,
-) {
-    let old_dir = leaf_root.join(old_name);
-    if !old_dir.is_dir() {
-        return;
-    }
-
-    let (code, message) = match stage_dir {
-        StageDir::Pressed => (
-            "pressed_stage_dir_present",
-            "top-level pressed dir is obsolete; move digests into matching leaf pressed.md"
-                .to_string(),
-        ),
-        _ => (
-            "old_stage_dir_present",
-            format!("old stage dir {old_name} is present; run the migration operator"),
-        ),
-    };
-    findings.push(DoctorFinding::warn(code, message).with_path(format!(".leaf/{old_name}")));
-}
-
-/// Read-only pass over the raw entries of each stage directory.
-///
-/// Classifies every entry as visible leaf-work or ignored stray, validates the
-/// status file of each visible item, and reports
-/// slugs that appear in more than one lifecycle stage. Stage-dir problems
-/// (missing, unreadable, not-a-directory) are already reported by
-/// [`check_stage_dirs`], so unreadable stages are simply skipped here.
-fn check_entries(leaf_root: &Path, findings: &mut Vec<DoctorFinding>) -> Result<()> {
-    // slug -> repo-relative directory paths, accumulated in stage
-    // order so duplicate findings list their paths deterministically.
-    let mut slug_paths: BTreeMap<String, Vec<PathBuf>> = BTreeMap::new();
-
-    for stage_dir in stage_dirs() {
-        let dir_name = stage_dir.dir_name();
-        let stage_dir_path = leaf_root.join(dir_name);
-
-        let mut entries: Vec<(String, PathBuf, fs::FileType)> = Vec::new();
-        match fs::read_dir(&stage_dir_path) {
-            Ok(read_dir) => {
-                for entry in read_dir {
-                    let entry = entry?;
-                    let file_type = entry.file_type()?;
-                    let name = entry.file_name().to_string_lossy().into_owned();
-                    entries.push((name, entry.path(), file_type));
-                }
-            }
-            // A missing or unreadable stage dir is reported by check_stage_dirs; skip it.
-            Err(_) => continue,
-        }
-
-        entries.sort_by(|left, right| left.0.cmp(&right.0));
-
-        for (name, path, file_type) in entries {
-            if !file_type.is_dir() {
-                findings.push(
-                    DoctorFinding::warn(
-                        "ignored_stage_entry",
-                        format!("ignored non-directory entry in {dir_name}: {name}"),
-                    )
-                    .with_path(format!(".leaf/{dir_name}/{name}")),
-                );
-                continue;
-            }
-            slug_paths
-                .entry(name.clone())
-                .or_default()
-                .push(PathBuf::from(format!(".leaf/{dir_name}/{name}")));
-            check_item_status(stage_dir, dir_name, &name, &path, findings);
-            check_item_boundary_polish(stage_dir, dir_name, &name, &path, findings);
-            check_item_pressed_digest(stage_dir, dir_name, &name, &path, findings);
-            check_item_linked_metadata(stage_dir, dir_name, &name, &path, findings);
-        }
-    }
-
-    for paths in slug_paths.into_values() {
-        if paths.len() > 1 {
-            findings.push(
-                DoctorFinding::warn("duplicate_slug", "slug appears in more than one stage")
-                    .with_paths(paths),
-            );
-        }
-    }
-
-    Ok(())
-}
-
-/// Read and validate optional `<item>/linked.md` graph edges.
-fn check_item_linked_metadata(
-    stage_dir: StageDir,
-    dir_name: &str,
-    slug: &str,
-    item_path: &Path,
-    findings: &mut Vec<DoctorFinding>,
-) {
-    let linked_path = item_path.join("linked.md");
-    let rel_linked = format!(".leaf/{dir_name}/{slug}/linked.md");
-
-    let metadata = match fs::metadata(&linked_path) {
-        Ok(metadata) => metadata,
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return,
-        Err(err) => {
-            findings.push(
-                DoctorFinding::warn(
-                    "linked_metadata_unreadable",
-                    format!("failed to inspect linked metadata: {err}"),
-                )
-                .with_path(rel_linked),
-            );
-            return;
-        }
-    };
-
-    if !metadata.is_file() {
-        findings.push(
-            DoctorFinding::warn(
-                "linked_metadata_not_file",
-                "linked.md exists but is not a regular file",
-            )
-            .with_path(rel_linked),
-        );
-        return;
-    }
-
-    if stage_dir != StageDir::Leaves {
-        findings.push(
-            DoctorFinding::warn(
-                "linked_metadata_wrong_stage",
-                "linked.md belongs next to pressed.md in .leaf/02-leaves",
-            )
-            .with_path(rel_linked.clone()),
-        );
-    }
-
-    if !item_path.join("pressed.md").is_file() {
-        findings.push(
-            DoctorFinding::warn(
-                "linked_metadata_without_pressed",
-                "linked.md should only exist next to a pressed.md digest",
-            )
-            .with_path(rel_linked.clone()),
-        );
-    }
-
-    let content = match fs::read_to_string(&linked_path) {
-        Ok(content) => content,
-        Err(err) => {
-            findings.push(
-                DoctorFinding::warn(
-                    "linked_metadata_unreadable",
-                    format!("failed to read linked metadata: {err}"),
-                )
-                .with_path(rel_linked),
-            );
-            return;
-        }
-    };
-
-    let mut edge_count = 0usize;
-    for (line_index, line) in content.lines().enumerate() {
-        match crate::graph::parse_link_line(line) {
-            Ok(Some(_)) => edge_count += 1,
-            Ok(None) => {}
-            Err(message) => {
-                findings.push(
-                    DoctorFinding::warn("linked_metadata_invalid_edge", message)
-                        .with_impact(expected_linked_metadata_message())
-                        .with_path(format!("{rel_linked}:{}", line_index + 1)),
-                );
-            }
-        }
-    }
-
-    if edge_count == 0 {
-        findings.push(
-            DoctorFinding::warn(
-                "linked_metadata_no_edges",
-                "linked.md has no graph edges; remove it or add `predicate -> target` rows",
-            )
-            .with_impact(expected_linked_metadata_message())
-            .with_path(rel_linked),
-        );
-    }
-}
-
-/// Read and validate `<item>/pressed.md` when a visible leaf-work directory has one.
-fn check_item_pressed_digest(
-    stage_dir: StageDir,
-    dir_name: &str,
-    slug: &str,
-    item_path: &Path,
-    findings: &mut Vec<DoctorFinding>,
-) {
-    let digest_path = item_path.join("pressed.md");
-    let rel_digest = format!(".leaf/{dir_name}/{slug}/pressed.md");
-
-    let metadata = match fs::metadata(&digest_path) {
-        Ok(metadata) => metadata,
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return,
-        Err(err) => {
-            findings.push(
-                DoctorFinding::warn(
-                    "pressed_digest_unreadable",
-                    format!("failed to inspect pressed digest: {err}"),
-                )
-                .with_path(rel_digest),
-            );
-            return;
-        }
-    };
-
-    if !metadata.is_file() {
-        findings.push(
-            DoctorFinding::warn(
-                "pressed_digest_not_file",
-                "pressed.md exists but is not a regular file",
-            )
-            .with_path(rel_digest),
-        );
-        return;
-    }
-
-    if stage_dir != StageDir::Leaves {
-        findings.push(
-            DoctorFinding::warn(
-                "pressed_digest_wrong_stage",
-                "pressed.md belongs only in .leaf/02-leaves after ⑧ passes",
-            )
-            .with_path(rel_digest.clone()),
-        );
-    }
-
-    let content = match fs::read_to_string(&digest_path) {
-        Ok(content) => content,
-        Err(err) => {
-            findings.push(
-                DoctorFinding::warn(
-                    "pressed_digest_unreadable",
-                    format!("failed to read pressed digest: {err}"),
-                )
-                .with_path(rel_digest),
-            );
-            return;
-        }
-    };
-
-    let Some(frontmatter) = parse_yaml_frontmatter(&content) else {
-        findings.push(
-            DoctorFinding::warn(
-                "pressed_frontmatter_missing",
-                "pressed.md must start with OKF-compatible YAML frontmatter",
-            )
-            .with_impact(expected_pressed_frontmatter_message())
-            .with_path(rel_digest),
-        );
-        return;
-    };
-
-    let missing_fields = PRESSED_FRONTMATTER_FIELDS
-        .iter()
-        .copied()
-        .filter(|field| !frontmatter_has_key(frontmatter, field))
-        .collect::<Vec<_>>();
-    if !missing_fields.is_empty() {
-        findings.push(
-            DoctorFinding::warn(
-                "pressed_frontmatter_missing_fields",
-                format!(
-                    "pressed.md frontmatter missing fields: {}",
-                    missing_fields.join(", ")
-                ),
-            )
-            .with_impact(expected_pressed_frontmatter_message())
-            .with_path(rel_digest.clone()),
-        );
-    }
-
-    match frontmatter_value(frontmatter, "type") {
-        Some(value) if value == PRESSED_FRONTMATTER_TYPE => {}
-        Some(value) => {
-            findings.push(
-                DoctorFinding::warn(
-                    "pressed_frontmatter_invalid_type",
-                    format!(
-                        "pressed.md frontmatter type must be {PRESSED_FRONTMATTER_TYPE:?}, got {value:?}"
-                    ),
-                )
-                .with_impact(expected_pressed_frontmatter_message())
-                .with_path(rel_digest.clone()),
-            );
-        }
-        None => {}
-    }
-
-    match frontmatter_value(frontmatter, "stage") {
-        Some(value) if value == Stage::Leaf.label() => {}
-        Some(value) => {
-            findings.push(
-                DoctorFinding::warn(
-                    "pressed_frontmatter_invalid_stage",
-                    format!(
-                        "pressed.md frontmatter stage must be {:?}, got {value:?}",
-                        Stage::Leaf.label()
-                    ),
-                )
-                .with_impact(expected_pressed_frontmatter_message())
-                .with_path(rel_digest),
-            );
-        }
-        None => {}
-    }
-}
-
-/// Read and validate `<item>/00-status.md` for one visible leaf-work directory.
-fn check_item_status(
-    stage_dir: StageDir,
-    dir_name: &str,
-    slug: &str,
-    item_path: &Path,
-    findings: &mut Vec<DoctorFinding>,
-) {
-    let status_path = item_path.join("00-status.md");
-    let rel_status = format!(".leaf/{dir_name}/{slug}/00-status.md");
-
-    let content = match fs::read_to_string(&status_path) {
-        Ok(content) => content,
-        Err(err) => {
-            findings.push(
-                DoctorFinding::error(
-                    "status_unreadable",
-                    format!("failed to read status file {rel_status}: {err}"),
-                )
-                .with_path(rel_status),
-            );
-            return;
-        }
-    };
-
-    let summary = parse_status_summary(&content, stage_dir);
-
-    if !summary.missing_fields.is_empty() {
-        let labels = summary
-            .missing_fields
-            .iter()
-            .map(|&field| field.label())
-            .collect::<Vec<_>>()
-            .join(", ");
-        let severity = match stage_dir {
-            StageDir::Fallen => Severity::Error,
-            _ => Severity::Warn,
-        };
-        findings.push(
-            DoctorFinding::new(
-                severity,
-                "status_missing_fields",
-                format!("missing status fields: {labels}"),
-            )
-            .with_path(rel_status.clone()),
-        );
-    }
-
-    if summary.legacy_state.is_some() {
-        findings.push(
-            DoctorFinding::warn(
-                "legacy_state_field",
-                "status uses old state field; write canonical stage instead",
-            )
-            .with_path(rel_status.clone()),
-        );
-    }
-
-    if has_status_field(&content, "fall reason") {
-        findings.push(
-            DoctorFinding::warn(
-                "legacy_fall_reason_field",
-                "status uses old fall reason field; write fallen reason instead",
-            )
-            .with_path(rel_status.clone()),
-        );
-    }
-
-    if let (Some(expected), Some(actual)) = (expected_stage(stage_dir), summary.stage.as_deref())
-        && actual != expected.label()
-    {
-        findings.push(
-            DoctorFinding::error(
-                "stage_dir_mismatch",
-                format!(
-                    "stage {actual} conflicts with directory {dir_name}; expected {}",
-                    expected.label()
-                ),
-            )
-            .with_path(rel_status.clone()),
-        );
-    }
-
-    if stage_dir == StageDir::Leaves
-        && summary
-            .current_gate
-            .as_deref()
-            .and_then(parse_gate_index)
-            .is_some_and(|gate| gate < 9)
-    {
-        findings.push(
-            DoctorFinding::warn(
-                "leaf_before_feedback",
-                "leaf stage is for work that has passed ⑧ and entered Feedback",
-            )
-            .with_path(rel_status.clone()),
-        );
-    }
-
-    // The why/what/wireframe triple is what the detail header and the status
-    // preview surface "at a glance". Sprouts and leaves should carry it — this
-    // deliberately includes a pressed leaf (a `02-leaves` item with a
-    // `pressed.md`), since a reference-worthy leaf is exactly where the triple
-    // matters most. Only the legacy top-level `StageDir::Pressed` dir and
-    // `StageDir::Fallen` are exempt. A `none — …` value is a valid
-    // understanding-only answer and is not flagged.
-    if matches!(stage_dir, StageDir::Sprouts | StageDir::Leaves) {
-        let triple = status_triple_state(&content);
-        if !triple.missing.is_empty() {
-            findings.push(
-                DoctorFinding::warn(
-                    "status_triple_missing",
-                    format!(
-                        "status is missing the {} line(s); lock the why/what/wireframe triple with leaf:learn so the preview shows what this leaf is",
-                        triple.missing.join(", ")
-                    ),
-                )
-                .with_path(rel_status.clone()),
-            );
-        }
-        // A `TODO` placeholder is acceptable transiently in a sprout (just
-        // scaffolded, filled at the Learn-close triple lock); only a leaf — work
-        // that has passed ⑧ — shipping a placeholder is a real defect.
-        if stage_dir == StageDir::Leaves && !triple.unfilled.is_empty() {
-            findings.push(
-                DoctorFinding::warn(
-                    "status_triple_unfilled",
-                    format!(
-                        "status triple {} still holds the scaffold placeholder; fill it with leaf:learn",
-                        triple.unfilled.join(", ")
-                    ),
-                )
-                .with_path(rel_status.clone()),
-            );
-        }
-    }
-}
-
-/// Report any *already-passed* phase that still carries the polish-pending
-/// marker (`leaf:polish` removes it). This is the floor under `leaf next`: it
-/// makes a skipped boundary polish visible even when `leaf next` was bypassed.
-/// Non-blocking (Warn), and only for in-flight or completed work.
-fn check_item_boundary_polish(
-    stage_dir: StageDir,
-    dir_name: &str,
-    slug: &str,
-    item_path: &Path,
-    findings: &mut Vec<DoctorFinding>,
-) {
-    if stage_dir == StageDir::Fallen {
-        return;
-    }
-
-    let status_path = item_path.join("00-status.md");
-    // status_unreadable is already reported by check_item_status.
-    let Ok(content) = fs::read_to_string(&status_path) else {
-        return;
-    };
-
-    let summary = parse_status_summary(&content, stage_dir);
-    let Some(current) = summary
-        .current_phase
-        .as_deref()
-        .and_then(crate::phase::Phase::from_status_value)
-    else {
-        return;
-    };
-
-    for phase in crate::phase::Phase::ORDER {
-        if phase.index() >= current.index() {
-            break;
-        }
-        if crate::phase::phase_unpolished(&item_path.join(phase.dir())) {
-            findings.push(
-                DoctorFinding::warn(
-                    "boundary_unpolished",
-                    format!(
-                        "phase {} was left unpolished before the boundary; run leaf:polish on it, then remove its marker",
-                        phase.name()
-                    ),
-                )
-                .with_impact(
-                    "경계 polish 누락 — 누적 문서가 하나의 보고서로 다듬어지지 않은 채 다음 phase로 넘어갔다"
-                        .to_string(),
-                )
-                .with_path(format!(".leaf/{dir_name}/{slug}/{}", phase.dir())),
-            );
-        }
-    }
-}
-
-fn stage_dirs() -> [StageDir; 3] {
-    [StageDir::Sprouts, StageDir::Leaves, StageDir::Fallen]
-}
-
-/// The canonical `stage` value expected for items living in `stage_dir`.
-fn expected_stage(stage_dir: StageDir) -> Option<Stage> {
-    match stage_dir {
-        StageDir::Sprouts => Some(Stage::Sprout),
-        StageDir::Leaves => Some(Stage::Leaf),
-        StageDir::Fallen => Some(Stage::Fallen),
-        StageDir::Pressed => None,
-    }
-}
-
-fn parse_gate_index(value: &str) -> Option<usize> {
-    let first = value.trim_start().chars().next()?;
-    match first {
-        '①' => Some(1),
-        '②' => Some(2),
-        '③' => Some(3),
-        '④' => Some(4),
-        '⑤' => Some(5),
-        '⑥' => Some(6),
-        '⑦' => Some(7),
-        '⑧' => Some(8),
-        '⑨' => Some(9),
-        '⑩' => Some(10),
-        ch if ch.is_ascii_digit() => value
-            .trim_start()
-            .chars()
-            .take_while(|ch| ch.is_ascii_digit())
-            .collect::<String>()
-            .parse::<usize>()
-            .ok(),
-        'g' | 'G' => value
-            .trim_start()
-            .strip_prefix(['g', 'G'])?
-            .chars()
-            .take_while(|ch| ch.is_ascii_digit())
-            .collect::<String>()
-            .parse::<usize>()
-            .ok(),
-        _ => None,
-    }
-}
-
-fn has_status_field(content: &str, field: &str) -> bool {
-    content.lines().any(|line| {
-        let Some(rest) = line.trim_start().strip_prefix("- ") else {
-            return false;
-        };
-        let Some((raw_key, _)) = rest.split_once(':') else {
-            return false;
-        };
-        raw_key
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ")
-            .eq_ignore_ascii_case(field)
-    })
-}
-
-fn parse_yaml_frontmatter(content: &str) -> Option<&str> {
-    let mut lines = content.lines();
-    if lines.next()?.trim() != "---" {
-        return None;
-    }
-
-    let start = content.find('\n').map_or(content.len(), |index| index + 1);
-    let mut offset = start;
-    for line in lines {
-        if line.trim() == "---" {
-            return content.get(start..offset);
-        }
-        offset += line.len();
-        if content.as_bytes().get(offset) == Some(&b'\n') {
-            offset += 1;
-        }
-    }
-
-    None
-}
-
-fn frontmatter_has_key(frontmatter: &str, key: &str) -> bool {
-    frontmatter_value(frontmatter, key).is_some()
-}
-
-fn frontmatter_value(frontmatter: &str, key: &str) -> Option<String> {
-    for line in frontmatter.lines() {
-        let trimmed = line.trim_start();
-        if trimmed.is_empty() || trimmed.starts_with('#') {
-            continue;
-        }
-        let Some((raw_key, raw_value)) = trimmed.split_once(':') else {
-            continue;
-        };
-        if raw_key.trim() != key {
-            continue;
-        }
-        return Some(unquote_yaml_scalar(raw_value.trim()).to_string());
-    }
-
-    None
-}
-
-fn unquote_yaml_scalar(value: &str) -> &str {
-    if value.len() >= 2
-        && ((value.starts_with('"') && value.ends_with('"'))
-            || (value.starts_with('\'') && value.ends_with('\'')))
-    {
-        &value[1..value.len() - 1]
-    } else {
-        value
-    }
-}
-
-fn expected_pressed_frontmatter_message() -> String {
-    format!("expected frontmatter:\n{PRESSED_FRONTMATTER_TEMPLATE}")
-}
-
-fn expected_linked_metadata_message() -> &'static str {
-    "expected link rows like `- `cites` -> `leaf:other-slug` - optional note`; allowed predicates: cites, refines, supersedes, depends_on, derived_from, related_to"
 }
 
 impl DoctorReport {
@@ -879,6 +161,7 @@ impl DoctorFinding {
 mod tests {
     use super::*;
     use assert_fs::prelude::*;
+    use std::fs;
 
     #[test]
     fn report_counts_findings_by_severity_and_detects_errors() {
@@ -1557,6 +840,178 @@ mod tests {
     }
 
     #[test]
+    fn check_accepts_valid_srp_sidecar_contract() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_stage_dirs(&root);
+        root.child("src/phase.rs")
+            .write_str("// phase\n")
+            .expect("artifact");
+        root.child("src/phase.rs.leaf.local.toml")
+            .write_str(
+                r#"
+schema = "leaf.srp-sidecar.v1"
+artifact = "src/phase.rs"
+status = "advisory"
+last_verified = "2026-06-26"
+responsibility = "Owns LEAF phase ordering, labels, transitions, and polish-boundary checks."
+does_not_own = ["File scaffolding; see src/scaffold.rs."]
+contracts = ["Phase order is Learn -> Example -> Architect -> Feedback."]
+split_signals = ["If this starts creating files, move that to src/scaffold.rs."]
+"#,
+            )
+            .expect("sidecar");
+        let exclude = write_srp_exclude(&root, srp_sidecar::EXCLUDE_LINE);
+
+        let report = check_with_git_exclude(root.path(), Some(&exclude)).expect("doctor report");
+
+        assert!(!report.has_errors());
+        assert!(
+            report
+                .findings
+                .iter()
+                .all(|finding| !finding.code.starts_with("srp_sidecar")),
+            "valid sidecar should not emit SRP findings: {:?}",
+            report.findings
+        );
+    }
+
+    #[test]
+    fn check_warns_for_srp_sidecar_missing_required_fields() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_stage_dirs(&root);
+        root.child("src/phase.rs")
+            .write_str("// phase\n")
+            .expect("artifact");
+        root.child("src/phase.rs.leaf.local.toml")
+            .write_str(
+                r#"
+schema = "leaf.srp-sidecar.v1"
+artifact = "src/phase.rs"
+status = "advisory"
+"#,
+            )
+            .expect("sidecar");
+        let exclude = write_srp_exclude(&root, srp_sidecar::EXCLUDE_LINE);
+
+        let report = check_with_git_exclude(root.path(), Some(&exclude)).expect("doctor report");
+
+        assert!(!report.has_errors());
+        let finding = assert_finding(
+            &report,
+            Severity::Warn,
+            "srp_sidecar_missing_field",
+            Some(Location::Path("src/phase.rs.leaf.local.toml".into())),
+        );
+        assert!(
+            finding.message.contains("last_verified") || finding.message.contains("responsibility")
+        );
+    }
+
+    #[test]
+    fn check_warns_when_srp_sidecar_exclude_pattern_is_missing() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_stage_dirs(&root);
+        root.child("src/phase.rs")
+            .write_str("// phase\n")
+            .expect("artifact");
+        root.child("src/phase.rs.leaf.local.toml")
+            .write_str(
+                r#"
+schema = "leaf.srp-sidecar.v1"
+artifact = "src/phase.rs"
+status = "advisory"
+last_verified = "2026-06-26"
+responsibility = "Owns LEAF phase ordering."
+"#,
+            )
+            .expect("sidecar");
+        let exclude = write_srp_exclude(&root, "/.leaf");
+
+        let report = check_with_git_exclude(root.path(), Some(&exclude)).expect("doctor report");
+
+        assert!(!report.has_errors());
+        assert_finding(
+            &report,
+            Severity::Warn,
+            "srp_sidecar_exclude_missing",
+            Some(Location::Path(".git/info/exclude".into())),
+        );
+    }
+
+    #[test]
+    fn check_warns_when_srp_sidecar_is_stale() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_stage_dirs(&root);
+        root.child("src/phase.rs")
+            .write_str("// phase v1\n")
+            .expect("artifact");
+        root.child("src/phase.rs.leaf.local.toml")
+            .write_str(
+                r#"
+schema = "leaf.srp-sidecar.v1"
+artifact = "src/phase.rs"
+status = "advisory"
+last_verified = "2026-06-26"
+responsibility = "Owns LEAF phase ordering."
+"#,
+            )
+            .expect("sidecar");
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        root.child("src/phase.rs")
+            .write_str("// phase v2\n")
+            .expect("artifact update");
+        let exclude = write_srp_exclude(&root, srp_sidecar::EXCLUDE_LINE);
+
+        let report = check_with_git_exclude(root.path(), Some(&exclude)).expect("doctor report");
+
+        assert!(!report.has_errors());
+        assert_finding(
+            &report,
+            Severity::Warn,
+            "srp_sidecar_stale",
+            Some(Location::Path("src/phase.rs.leaf.local.toml".into())),
+        );
+    }
+
+    #[test]
+    fn check_warns_for_srp_sidecar_wrong_schema_and_unknown_fields() {
+        let root = assert_fs::TempDir::new().expect("temp repo");
+        create_lifecycle_stage_dirs(&root);
+        root.child("src/phase.rs")
+            .write_str("// phase\n")
+            .expect("artifact");
+        root.child("src/phase.rs.leaf.local.toml")
+            .write_str(
+                r#"
+schema = "leaf.srp-sidecar.v0"
+artifact = "src/phase.rs"
+status = "advisory"
+last_verified = "2026-06-26"
+responsibility = "Owns LEAF phase ordering."
+notes = "This is where sidecars become junk drawers."
+"#,
+            )
+            .expect("sidecar");
+        let exclude = write_srp_exclude(&root, srp_sidecar::EXCLUDE_LINE);
+
+        let report = check_with_git_exclude(root.path(), Some(&exclude)).expect("doctor report");
+
+        assert!(!report.has_errors());
+        assert_finding(
+            &report,
+            Severity::Warn,
+            "srp_sidecar_invalid_schema",
+            Some(Location::Path("src/phase.rs.leaf.local.toml".into())),
+        );
+        assert_finding(
+            &report,
+            Severity::Warn,
+            "srp_sidecar_unknown_field",
+            Some(Location::Path("src/phase.rs.leaf.local.toml".into())),
+        );
+    }
+
+    #[test]
     fn check_warns_for_duplicate_slug_across_lifecycle_stages() {
         let root = assert_fs::TempDir::new().expect("temp repo");
         create_lifecycle_stage_dirs(&root);
@@ -1591,6 +1046,14 @@ mod tests {
                 ".leaf/02-leaves/duplicate".into(),
             ])),
         );
+    }
+
+    fn write_srp_exclude(root: &assert_fs::TempDir, content: &str) -> PathBuf {
+        root.child(".git/info").create_dir_all().expect("git info");
+        root.child(".git/info/exclude")
+            .write_str(content)
+            .expect("exclude");
+        root.path().join(".git/info/exclude")
     }
 
     fn assert_finding<'a>(

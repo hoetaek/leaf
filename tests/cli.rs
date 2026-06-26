@@ -560,6 +560,13 @@ fn init_creates_stage_dirs_and_exclude_line() {
             .count(),
         1
     );
+    assert_eq!(
+        exclude_contents(repo.path())
+            .lines()
+            .filter(|line| *line == "*.leaf.local.toml")
+            .count(),
+        1
+    );
 }
 
 #[test]
@@ -582,6 +589,13 @@ fn init_is_idempotent() {
         exclude_contents(repo.path())
             .lines()
             .filter(|line| *line == "/.leaf")
+            .count(),
+        1
+    );
+    assert_eq!(
+        exclude_contents(repo.path())
+            .lines()
+            .filter(|line| *line == "*.leaf.local.toml")
             .count(),
         1
     );
@@ -668,7 +682,10 @@ fn init_preserves_exclude_without_trailing_newline() {
         .assert()
         .success();
 
-    assert_eq!(exclude_contents(repo.path()), "existing\n/.leaf\n");
+    assert_eq!(
+        exclude_contents(repo.path()),
+        "existing\n/.leaf\n*.leaf.local.toml\n"
+    );
 }
 
 #[test]
@@ -1029,6 +1046,42 @@ fn doctor_healthy_workspace_exits_zero_with_ready_result() {
 }
 
 #[test]
+fn doctor_warns_for_invalid_srp_sidecar_contract() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+    repo.child("src/phase.rs")
+        .write_str("// phase\n")
+        .expect("artifact");
+    repo.child("src/phase.rs.leaf.local.toml")
+        .write_str(
+            r#"
+schema = "leaf.srp-sidecar.v1"
+artifact = "src/phase.rs"
+status = "enforced"
+last_verified = "2026-06-26"
+responsibility = "Owns LEAF phase ordering."
+"#,
+        )
+        .expect("sidecar");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("WARN srp_sidecar_invalid_status"))
+        .stdout(predicate::str::contains(
+            "path    src/phase.rs.leaf.local.toml",
+        ))
+        .stdout(predicate::str::contains("srp_sidecar_exclude_missing").not());
+}
+
+#[test]
 fn doctor_warning_only_workspace_exits_zero_with_warning_result() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
@@ -1190,6 +1243,13 @@ fn new_creates_sprout_skeleton_and_bootstraps_repo() {
         exclude_contents(repo.path())
             .lines()
             .filter(|line| *line == "/.leaf")
+            .count(),
+        1
+    );
+    assert_eq!(
+        exclude_contents(repo.path())
+            .lines()
+            .filter(|line| *line == "*.leaf.local.toml")
             .count(),
         1
     );
@@ -1656,6 +1716,41 @@ fn fall_rejects_existing_fallen_without_overwrite() {
         .assert(predicate::path::is_dir());
     repo.child(".leaf/03-fallen/research-memo/00-status.md")
         .assert("keep me\n");
+}
+
+#[cfg(unix)]
+#[test]
+fn fall_failed_move_leaves_source_status_unchanged() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+    repo.child(".leaf/01-sprouts/research-memo/00-status.md")
+        .write_str("original status\n")
+        .expect("source status");
+
+    let fallen_dir = repo.path().join(".leaf/03-fallen");
+    fs::set_permissions(&fallen_dir, fs::Permissions::from_mode(0o555)).expect("lock fallen dir");
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["fall", "research-memo", "--reason", "superseded"])
+        .output()
+        .expect("fall command");
+    fs::set_permissions(&fallen_dir, fs::Permissions::from_mode(0o755)).expect("unlock fallen dir");
+
+    assert!(!output.status.success(), "fall unexpectedly succeeded");
+    let stderr = String::from_utf8(output.stderr).expect("utf8 stderr");
+    assert!(stderr.contains("failed to move"), "{stderr}");
+    repo.child(".leaf/01-sprouts/research-memo/00-status.md")
+        .assert("original status\n");
+    repo.child(".leaf/03-fallen/research-memo")
+        .assert(predicate::path::missing());
 }
 
 #[test]
