@@ -1,7 +1,0 @@
-interface:
-  display_name: "Angry Sherlock"
-  short_description: "Evidence-first debugging review — no theory ahead of data"
-  default_prompt: "Use $angry-sherlock to check whether this diagnosis follows from the evidence."
-
-policy:
-  allow_implicit_invocation: false

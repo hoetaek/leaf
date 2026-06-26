@@ -1,0 +1,7 @@
+interface:
+  display_name: "Angry Jobs"
+  short_description: "Ruthless product-taste review — focus is saying no"
+  default_prompt: "Use $angry:jobs to check whether this deserves to exist and is ruthlessly simple."
+
+policy:
+  allow_implicit_invocation: false

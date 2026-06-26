@@ -1,7 +1,0 @@
-interface:
-  display_name: "Angry Council"
-  short_description: "Panel of angry review personas — one role each, synthesized verdict"
-  default_prompt: "Use $angry-council to convene the relevant angry personas and review this scope."
-
-policy:
-  allow_implicit_invocation: false

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Angry Ramsay"
+  short_description: "Production-readiness review — would you serve this to a user?"
+  default_prompt: "Use $angry:ramsay to check whether this is actually done or still raw in the middle."
+
+policy:
+  allow_implicit_invocation: false

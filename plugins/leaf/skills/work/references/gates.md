@@ -435,7 +435,7 @@ artifact still be described by the responsibility statement ⑤ gave it?
 These checks are LEAF-specific — criteria fit, evidence, non-goals, the
 wireframe, the ⑤ responsibility statement — and stay mandatory. Pair them with a
 domain-quality pass over the artifact itself. Check whether the runtime exposes
-an `angry-council` (or individual `angry-*` review) skill; if it is listed, use
+a `council` skill, or individual review persona skills; if one is listed, use
 it as that pass: it triages which lenses the artifact needs — code →
 torvalds / dijkstra / theo, prose or docs → orwell, design → rams / jobs, a plan
 or rationale → feynman / pauli — reviews each independently, and synthesizes one

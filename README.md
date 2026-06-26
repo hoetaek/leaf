@@ -297,9 +297,9 @@ This marketplace also serves an optional second plugin, `angry` — a panel of
 blunt, single-axis review personas plus a council that convenes the right ones.
 It is independent of LEAF: install it on its own or alongside `leaf`.
 
-Each persona reviews through one lens — `angry-torvalds` (code craft),
-`angry-theo` (security), `angry-dijkstra` (correctness), `angry-orwell` (prose),
-`angry-rams` / `angry-jobs` (design / product), and more. `angry-council` triages
+Each persona reviews through one lens — `torvalds` (code craft),
+`theo` (security), `dijkstra` (correctness), `orwell` (prose),
+`rams` / `jobs` (design / product), and more. `council` triages
 which lenses a diff, PR, design, doc, or plan needs, runs each independently, and
 synthesizes one ranked verdict with the single highest-priority fix.
 
@@ -310,7 +310,7 @@ synthesizes one ranked verdict with the single highest-priority fix.
 /plugin install angry@leaf
 ```
 
-The skills appear namespaced as `/angry:angry-council`, `/angry:angry-theo`, … .
+The skills appear namespaced as `/angry:council`, `/angry:theo`, … .
 
 **Codex:**
 
@@ -326,7 +326,7 @@ Or enable it in `~/.codex/config.toml`:
 enabled = true
 ```
 
-When the `angry` plugin is installed, LEAF's ⑨ Review gate uses `angry-council`
+When the `angry` plugin is installed, LEAF's ⑨ Review gate uses `council`
 as its domain-quality pass over the finished artifact — it augments the
 LEAF-specific checks, never replaces them.
 

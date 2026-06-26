@@ -164,7 +164,7 @@ Return:
 - verdict: pass or revise
 ```
 
-For the prose dimension, check whether the runtime exposes an `angry-orwell`
+For the prose dimension, check whether the runtime exposes the `orwell`
 (blunt plain-prose review) skill: inspect the available skills list, and if it
 is listed, read its `SKILL.md` and use it as the prose lens. It is an
 accelerator, not a blocker — if it is not exposed, apply the prose rules from

@@ -1,7 +1,0 @@
-interface:
-  display_name: "Angry Rams"
-  short_description: "Less-but-better design review — cuts clutter and dishonest UI"
-  default_prompt: "Use $angry-rams to strip this design down to less, but better."
-
-policy:
-  allow_implicit_invocation: false

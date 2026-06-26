@@ -1,0 +1,7 @@
+interface:
+  display_name: "Angry Ego"
+  short_description: "Critic's review — separates remarkable from merely competent"
+  default_prompt: "Use $angry:ego to judge whether this is remarkable or just safe and forgettable."
+
+policy:
+  allow_implicit_invocation: false

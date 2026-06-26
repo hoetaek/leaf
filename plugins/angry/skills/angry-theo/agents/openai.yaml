@@ -1,7 +1,0 @@
-interface:
-  display_name: "Angry Theo"
-  short_description: "No-compromise security review — attack surface and cut corners"
-  default_prompt: "Use $angry-theo to find the attack surface and the corner cut to create it."
-
-policy:
-  allow_implicit_invocation: false

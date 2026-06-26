@@ -1,0 +1,7 @@
+interface:
+  display_name: "Loop Angry Torvalds"
+  short_description: "Best-practice angry review/fix loop"
+  default_prompt: "Use $angry:loop-torvalds to review this diff, fix the highest-priority root-cause issue, test it, and repeat within budget."
+
+policy:
+  allow_implicit_invocation: false

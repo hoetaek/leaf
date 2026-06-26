@@ -1,7 +1,0 @@
-interface:
-  display_name: "Angry Pauli"
-  short_description: "Falsifiability review — is this claim even wrong-able?"
-  default_prompt: "Use $angry-pauli to check whether this claim is testable or just not-even-wrong."
-
-policy:
-  allow_implicit_invocation: false
