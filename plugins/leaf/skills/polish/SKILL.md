@@ -123,6 +123,18 @@ Then edit toward the current report:
 - state assumptions and unresolved limits plainly;
 - keep Korean prose when the user is working in Korean.
 
+For prose — not tables, code, parser fields, paths, or quoted source — apply
+Orwell's plain-prose rules:
+
+- name the actor in the active voice; do not bury who acted in a passive or a
+  nominalization ("X로 닫힘" → "사용자가 X를 닫았다");
+- call one thing by one name; never two names for the same concept;
+- replace dead metaphor, cliché, and the long or jargon word with the short
+  plain one;
+- cut the hedge that blurs a commitment ("거의 그대로", "mostly") — if it is
+  true, assert it;
+- never dress an empty or unpleasant truth in euphemism.
+
 Extra checks: drift, surface, archive, fallen.
 
 - drift: `00-status.md` must match the existing gate files.
@@ -147,8 +159,16 @@ Return:
 - cut: stale, duplicated, decorative, or non-load-bearing text
 - unclear: why/what/evidence/decision gaps
 - drift/surface: status/file mismatch, archive confusion, or fallen closure gaps
+- prose: passive voice hiding the actor, one concept under two names, dead
+  metaphor, jargon or long words, euphemism, hedging that blurs a commitment
 - verdict: pass or revise
 ```
+
+For the prose dimension, check whether the runtime exposes an `angry-orwell`
+(blunt plain-prose review) skill: inspect the available skills list, and if it
+is listed, read its `SKILL.md` and use it as the prose lens. It is an
+accelerator, not a blocker — if it is not exposed, apply the prose rules from
+the Polish Pass directly. Use its harsh tone only if the user asks for it.
 
 ## Pass Criteria
 
