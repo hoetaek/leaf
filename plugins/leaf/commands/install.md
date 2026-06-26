@@ -11,7 +11,7 @@ run the matching installer, then verify.
    leaf --version
    ```
 
-   If it is `0.8.0` or newer, report that version and stop. If `leaf` is
+   If it is `0.12.0` or newer, report that version and stop. If `leaf` is
    missing or older, continue.
 
 2. Determine the current OS. Do not use the current repo, `Cargo.toml`, or
@@ -55,7 +55,7 @@ run the matching installer, then verify.
      powershell -ExecutionPolicy ByPass -c "irm https://github.com/hoetaek/leaf/releases/latest/download/leaf-installer.ps1 | iex"
      ```
 
-4. Verify with `leaf --version` and confirm it is `0.8.0` or newer.
+4. Verify with `leaf --version` and confirm it is `0.12.0` or newer.
 5. Report the installed version. If installation failed, show the failing
    command and error summary, then suggest the next OS-appropriate fallback.
    Do not claim success without version output.

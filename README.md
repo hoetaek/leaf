@@ -59,7 +59,7 @@ slash command list.
 > re-install via the plugin.
 
 Install the `leaf` CLI that gives those skills a repo-local body. The plugin
-versions independently of the CLI and **requires `leaf` CLI ≥ 0.8.0**. The
+versions independently of the CLI and **requires `leaf` CLI ≥ 0.12.0**. The
 plugin does not install the CLI. In Claude Code/Cursor-style runtimes it may
 point you to `/leaf:install` from its session-start hook; in Codex, use
 `$leaf:install` from the enabled skill list. You can also install manually by
@@ -175,10 +175,12 @@ leaf fall <slug> --reason <reason>
 leaf list [--json]
 leaf tree [--plain] [--demo]
 leaf graph [--json]
-leaf review <slug>
+leaf review <slug> [--json]
 leaf profile
+leaf next <slug>
 leaf checkpoint <slug> --<gate>
 leaf doctor [--json]
+leaf serve [--port <port>] [--strict-port]
 leaf update
 ```
 
@@ -191,22 +193,16 @@ not exist yet. Both are idempotent: existing files are never overwritten.
 ```text
 .leaf/01-sprouts/my-first-idea/
 ├── 00-status.md
-├── 01-Learn/
-│   ├── 01-intent.md
-│   ├── 02-unknowns.md
-│   └── 02-references/
-│       └── README.md
-├── 02-Example/
-│   ├── 03-criteria.md
-│   └── 04-wireframe.md
-├── 03-Architect/
-│   ├── 05-design.md
-│   └── 07-tasks.md
-└── 04-Feedback/
+└── 01-Learn/
+    ├── 01-intent.md
+    ├── 02-unknowns.md
+    └── 02-references/
+        └── README.md
 ```
 
 Slug values must be path-safe ASCII strings using letters, digits, `-`, and
-`_`. Existing sprouts are not overwritten.
+`_`. Existing sprouts are not overwritten. Later phase folders are scaffolded
+by `leaf next <slug>` after the phase being left has been polished.
 
 `leaf fall <slug> --reason <reason>` moves a sprout or leaf to
 `.leaf/03-fallen/<slug>/` and writes `fallen reason` plus closure fields into
@@ -246,13 +242,17 @@ databases.
 
 `leaf review <slug>` opens the same source-faithful review reader for one
 work item directly. In non-TTY output it writes the review document as
-plain text.
+plain text; `leaf review <slug> --json` writes the machine-readable gate sources.
 
 `leaf profile` prints the effective profile: the machine-global
 `~/.config/leaf/profile.md` followed by the repo-local `.leaf/PROFILE.md`, each
 behind a source marker. On conflict the local layer wins. The global location
 honors `LEAF_CONFIG_DIR`, then `$XDG_CONFIG_HOME/leaf`, then `~/.config/leaf`.
 Outside a git repository it still prints the global layer.
+
+`leaf next <slug>` advances a work item to the next LEAF phase. It pauses if the
+phase being left still carries the `<!-- leaf:polish-pending -->` marker, so the
+agent runs `leaf:polish` before new phase files are scaffolded.
 
 `leaf checkpoint <slug> --<gate>` copies each existing canonical gate source
 next to its original with a UTC `YYMMDD-HHMM` prefix, for example
@@ -268,6 +268,10 @@ files outside `.leaf/02-leaves/`, and pressed digests that are missing the
 OKF-compatible frontmatter shape. If a pressed leaf has `linked.md`, doctor also
 checks that its relationship rows can feed `leaf graph`.
 
+`leaf serve` starts a read-only local web UI over the `.leaf/` workspace on
+`127.0.0.1:4173` by default. Use `--port <port>` to prefer a different port and
+`--strict-port` to fail instead of trying the next available port.
+
 ## Agent Skills
 
 This repository ships Agent Skills bundled as the `leaf` plugin (see Quick Start):
@@ -278,11 +282,14 @@ This repository ships Agent Skills bundled as the `leaf` plugin (see Quick Start
 | [`learn`](plugins/leaf/skills/learn/SKILL.md) | Capturing and triaging ideas, and running the Learn phase (① Intent, ② Unknowns & Context) on a sprout |
 | [`split`](plugins/leaf/skills/split/SKILL.md) | Deciding how to split one work item into separate leaves — whether to split, along which single grain, and how the pieces order and link |
 | [`autopilot`](plugins/leaf/skills/autopilot/SKILL.md) | Carrying a sprout automatically after the human-reviewed `why / what / wireframe` triple |
+| [`install`](plugins/leaf/skills/install/SKILL.md) | Installing or updating the `leaf` CLI and verifying `leaf --version` |
 | [`work`](plugins/leaf/skills/work/SKILL.md) | Carrying a sprout after Learn from ③ Example to a shipped result |
 | [`polish`](plugins/leaf/skills/polish/SKILL.md) | Polishing LEAF documents into simple, complete current reports |
 | [`press`](plugins/leaf/skills/press/SKILL.md) | Pressing a reference-worthy leaf into a citable digest once press is the chosen close-out |
 | [`profile`](plugins/leaf/skills/profile/SKILL.md) | Reading and updating the machine-global and repo-local LEAF profiles |
 | [`soul`](plugins/leaf/skills/soul/SKILL.md) | Shared conduct, voice, and reporting standard for LEAF reporting and review handoff |
+| [`tend`](plugins/leaf/skills/tend/SKILL.md) | Checking pressed digests against current code and proposing keep/banner/supersede |
+| [`help`](plugins/leaf/skills/help/SKILL.md) | Showing the one-shot LEAF quick-reference card |
 
 Install the LEAF skills together as a family — they are not independent.
 `learn`, `autopilot`, `work`, `polish`, and `press` read
@@ -333,8 +340,10 @@ LEAF-specific checks, never replaces them.
 ## Status
 
 `leaf` is currently an early Rust CLI. The current slice initializes repo-local
-LEAF storage, scaffolds sprouts, lists stage inventory, diagnoses list readiness,
-opens review readers, and moves non-reference-worthy work into fallen.
+LEAF storage, scaffolds sprouts lazily by phase, advances polished phase
+boundaries, lists / trees / graphs the workspace, opens review readers, serves a
+read-only local web UI, manages profiles and checkpoints, diagnoses readiness,
+updates the installed CLI, and moves non-reference-worthy work into fallen.
 
 The crate is not published to crates.io.
 

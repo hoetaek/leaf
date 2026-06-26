@@ -36,6 +36,7 @@ the full artifact.
 | **polish** | phase boundaries | Makes cumulative LEAF files read as one connected report. |
 | **press** | `$leaf:press` | Turns reference-worthy work into a citable digest. |
 | **profile** | LEAF preferences | Reads or updates global and repo-local LEAF profile entries. |
+| **tend** | `$leaf:tend`, pressed docs drift | Checks pressed digests against current code. |
 | **install** | `$leaf:install` | Installs or updates the `leaf` CLI, then verifies `leaf --version`. |
 | **help** | `$leaf:help`, `/leaf:help` | This card. |
 
@@ -47,17 +48,23 @@ entries as `/leaf:<skill>` when the host supports slash commands.
 | Command | Use |
 |---------|-----|
 | `leaf init` | Create the repo-local `.leaf/` workspace. |
-| `leaf profile` | Show effective global + repo-local profile. |
 | `leaf new <slug>` | Start a sprout. |
+| `leaf fall <slug> --reason "<reason>"` | Stop carrying a leaf or sprout. |
+| `leaf list [--json]` | Show workspace inventory. |
+| `leaf tree [--plain] [--demo]` | Render the workspace tree. |
+| `leaf graph [--json]` | Export the pressed-leaf knowledge graph. |
+| `leaf review <slug> [--json]` | Open or print a source-faithful review reader. |
+| `leaf profile` | Show effective global + repo-local profile. |
 | `leaf next <slug>` | Cross a polished phase boundary. |
 | `leaf checkpoint <slug> --<gate>` | Snapshot gate files before polishing. |
 | `leaf doctor` | Check workspace and boundary health. |
-| `leaf fall <slug> --reason "<reason>"` | Stop carrying a leaf or sprout. |
+| `leaf serve [--port <port>] [--strict-port]` | Serve the read-only local web UI. |
+| `leaf update` | Update the installed CLI. |
 
 ## Install Or Update
 
-Use `$leaf:install` first when `leaf` is missing or too old. It chooses the
-OS-appropriate installer and verifies with:
+Use `$leaf:install` first when `leaf` is missing or older than 0.12.0. It
+chooses the OS-appropriate installer and verifies with:
 
 ```bash
 leaf --version
