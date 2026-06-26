@@ -118,7 +118,7 @@ disagreement must stay visible. When entering ③–⑤, read `references/engine
 | `references/experiment-log.md` | a gate's question needs an experiment — an independent, cheap probe that turns a guess into a fact you can't doubt: ② probing the world ("is this true?"), ④ probing one instance of the answer; gives the core, the fact/guess boundary, the fact ladder, and the technique repertoire |
 | `references/decision-rationale.md` | you are inside ⑤ and a non-obvious choice needs durable rationale |
 | `references/design-critic.md` | you are at ⑥ — every design gets at least a quick self-pass; read this for critic depth, output shape, or a durable critic pass |
-| `references/brownfield-html-capture.md` | UI/web work needs a rendered ④ HTML view after the text-first pass — capture the real page (brownfield) or mock the sketch (greenfield), and render the decisive states; not a replacement for the text-first ④ |
+| `references/brownfield-html-capture.md` | UI/web work needs a rendered ④ HTML view after the text-first pass — for brownfield UI, anchor in the real screen with pins + close-up previews; for greenfield, mock the sketch; render decisive states; not a replacement for the text-first ④ |
 | `references/task-pr-size-guidance.md` | you are slicing ⑦ tasks/PRs and need the reviewability size tripwires (small / medium / large-justified) |
 | `references/layout.md` | you are writing files: naming, folder layout, and what each gate file records |
 | `references/patterns.md` | you want a per-domain application template |
