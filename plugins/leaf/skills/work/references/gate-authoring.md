@@ -36,10 +36,12 @@ and records gate readiness; `polish` performs the simplicity pass.
 - ① Intent: raw wording preserved, why followed to its real endpoint, core noun
   stable, topology named or explicitly deferred.
 - ② Unknowns: weakest clarity-ledger row used only to aim learning, unknowns
-  grouped, blocking items resolved or carried as explicit assumptions, fact vs
-  assumption boundary visible.
+  grouped, local grammar and relevant precedents named when an existing corpus
+  or system is involved, blocking items resolved or carried as explicit
+  assumptions, fact vs assumption boundary visible.
 - ③ Criteria: purpose states the desired effect, every ledger row is locked or
-  carried as explicit risk, success checks can reject a bad instance.
+  carried as explicit risk, precedent constraints are explicit when they matter,
+  success checks can reject a bad instance.
 - ④ Wireframe: text-first instance uses realistic data, every placeholder has a
   contract and variation point, the intended user can walk through it. For
   user-facing, ambiguous, or high-risk wireframes, record a cold/blind reader
@@ -47,11 +49,14 @@ and records gate readiness; `polish` performs the simplicity pass.
   the reader can infer the actor, purpose, expected outcome, next action, and
   important states.
 - ⑤ Design: consumes the validated ④ contract, generalizes across variation
-  points, names alternatives and rationale for non-obvious choices.
-- ⑥ Critic: verdict is `APPROVE`, `ITERATE`, or `REJECT`, and revisions route
-  back to the smallest affected gate.
+  points, names alternatives and rationale for non-obvious choices, and records
+  Precedent Fit for new names, structures, locations, formats, taxonomies,
+  workflows, or policy language that future work may copy.
+- ⑥ Critic: verdict is `APPROVE`, `ITERATE`, or `REJECT`, precedent risk is
+  checked when relevant, and revisions route back to the smallest affected gate.
 - ⑦ Tasks: slices are reviewable, dependency claims are real, each task has a
-  check that proves it helped.
+  check that proves it helped, and convention-following or exception rationale
+  is assigned to the task that creates the precedent.
 - ⑧ Execution: result or handoff can be reviewed against criteria; placeholders
   and next inputs are visible.
 - ⑨ Review/sync: criteria, design, and task graph stay true after feedback.
@@ -80,6 +85,9 @@ these are true:
 - ④ Wireframe needs the actual operator, reader, or stakeholder to confirm fit;
 - ⑤ Design commits public, costly, security/privacy-sensitive, or hard-to-revert
   structure;
+- ⑤ Design introduces a name, structure, location, taxonomy, format, workflow,
+  policy language, or interface shape that future work is likely to treat as a
+  reusable precedent;
 - ⑦ Task Graph is being consumed by ⑧ Artifact / Execution; approval covers
   ⑤ Design, ⑥ Critic verdict, ⑦ Task Graph, execution scope, risks, and the
   first execution chunk;

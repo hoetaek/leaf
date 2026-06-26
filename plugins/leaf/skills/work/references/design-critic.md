@@ -18,6 +18,8 @@ involves any of:
 - security, privacy, safety, compliance, or permission boundaries
 - migrations, destructive changes, data loss risk, or irreversible operations
 - public terminology, interface, API, policy, workflow, or document structure
+- new names, structures, locations, taxonomies, formats, examples, or policy
+  language that future work may copy as precedent
 - cross-team, cross-module, or cross-artifact coupling
 - large user-facing behavior, argument, narrative, or visual shifts
 - one asserted option with weak alternatives or unclear decision drivers
@@ -52,6 +54,11 @@ Check:
   architecture sketch names preserved, replaced, extended, and moved
   responsibilities, and the before model was checked against the real system
   where cheap.
+- Precedent fit: the design follows the existing local grammar where possible
+  and names any new precedent it introduces. If future work copies this artifact,
+  the copied naming, structure, placement, order, tone, taxonomy, workflow, proof
+  shape, policy language, component boundary, file location, or interface shape
+  should not confuse the system.
 - Evidence fit: claims about existing materials, audience, facts, examples, or
   system behavior are checked where cheap.
 - Risk mitigation: security, migration, compatibility, performance,

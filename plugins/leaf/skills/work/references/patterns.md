@@ -9,7 +9,7 @@ difference table, then the two domains that diverge enough to need their own not
 ```text
 ① Intent:             the topic, tension, question, or ask.
 ② Unknowns & Context: list missing domain concepts, standards, external
-                      comparators, and internal facts BEFORE researching;
+                      comparators, local grammar, and internal facts BEFORE researching;
                       update each entry with sourced answers, assumptions,
                       materials, unresolved questions, and candidate frames.
 ③ Criteria:           intended effect + audience, scope, evidence, tone,
@@ -19,8 +19,9 @@ difference table, then the two domains that diverge enough to need their own not
                       content; the actual reader/operator walks through and
                       confirms fit.
 ⑤ Design:             generalize the validated case into structure / section
-                      roles / component rules (consumes the ④ contract — see
-                      engine.md).
+                      roles / component rules, including Precedent Fit when the
+                      result enters an existing corpus or system (consumes the
+                      ④ contract — see engine.md).
 ⑦ Task graph:         real dependencies, not the table of contents.
 ```
 
