@@ -374,6 +374,47 @@ h2 {
   opacity: 0.62;
 }
 
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--paper2);
+  color: var(--mut);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.live-indicator:hover {
+  color: var(--ink);
+  border-color: var(--sage-mid);
+}
+
+.live-glyph {
+  color: var(--sage-mid);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.live-glyph.spin {
+  animation: leaf-spin 0.6s ease;
+}
+
+@keyframes leaf-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .shell .crumb a {
   color: var(--sage);
   text-decoration: none;

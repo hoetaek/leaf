@@ -4,6 +4,7 @@ import WorkspaceList from "./WorkspaceList";
 import ReviewReader from "./ReviewReader";
 import GraphView from "./GraphView";
 import TreeView from "./TreeView";
+import LiveIndicator from "./LiveIndicator";
 import { useJsonResource } from "./useJsonResource";
 import type { WorkspaceListResponse } from "./types";
 
@@ -97,6 +98,7 @@ export default function App() {
             </span>
           </a>
         </nav>
+        <LiveIndicator />
       </header>
 
       {view === "list" && <WorkspaceList />}
