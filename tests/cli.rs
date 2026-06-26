@@ -1718,6 +1718,41 @@ fn fall_rejects_existing_fallen_without_overwrite() {
         .assert("keep me\n");
 }
 
+#[cfg(unix)]
+#[test]
+fn fall_failed_move_leaves_source_status_unchanged() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+    repo.child(".leaf/01-sprouts/research-memo/00-status.md")
+        .write_str("original status\n")
+        .expect("source status");
+
+    let fallen_dir = repo.path().join(".leaf/03-fallen");
+    fs::set_permissions(&fallen_dir, fs::Permissions::from_mode(0o555)).expect("lock fallen dir");
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["fall", "research-memo", "--reason", "superseded"])
+        .output()
+        .expect("fall command");
+    fs::set_permissions(&fallen_dir, fs::Permissions::from_mode(0o755)).expect("unlock fallen dir");
+
+    assert!(!output.status.success(), "fall unexpectedly succeeded");
+    let stderr = String::from_utf8(output.stderr).expect("utf8 stderr");
+    assert!(stderr.contains("failed to move"), "{stderr}");
+    repo.child(".leaf/01-sprouts/research-memo/00-status.md")
+        .assert("original status\n");
+    repo.child(".leaf/03-fallen/research-memo")
+        .assert(predicate::path::missing());
+}
+
 #[test]
 fn fall_rejects_ambiguous_sprout_and_leaf_sources_without_moving_either() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
