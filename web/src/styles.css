@@ -377,7 +377,7 @@ h2 {
 .live-indicator {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   margin-left: auto;
   padding: 5px 10px;
   border: 1px solid var(--line);
@@ -395,23 +395,39 @@ h2 {
   border-color: var(--sage-mid);
 }
 
-.live-glyph {
-  color: var(--sage-mid);
-  font-size: 13px;
-  line-height: 1;
+.live-indicator.off {
+  opacity: 0.7;
 }
 
-.live-glyph.spin {
-  animation: leaf-spin 0.6s ease;
+/* Steady status dot: filled (sage) when auto-refresh is on, hollow when off.
+   No idle motion — it only flashes on an actual data change (see .flash). */
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sage-mid);
 }
 
-@keyframes leaf-spin {
-  from {
-    transform: rotate(0deg);
+.live-dot.off {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--mut);
+}
+
+.live-dot.flash {
+  animation: live-flash 0.45s ease;
+}
+
+@keyframes live-flash {
+  0% {
+    transform: scale(1);
   }
 
-  to {
-    transform: rotate(360deg);
+  40% {
+    transform: scale(1.7);
+  }
+
+  100% {
+    transform: scale(1);
   }
 }
 
