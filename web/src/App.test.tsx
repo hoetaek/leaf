@@ -24,6 +24,10 @@ vi.mock("./ReviewReader", () => ({
   ),
 }));
 
+vi.mock("./LiveIndicator", () => ({
+  default: () => <div>live indicator</div>,
+}));
+
 beforeEach(() => {
   vi.stubGlobal("fetch", mockJsonFetch({ "/api/list": { workspace_name: "indi-donors", stages: {} } }));
   window.location.hash = "#/";
