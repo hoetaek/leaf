@@ -135,8 +135,8 @@ apply; see `patterns.md` for the web/product forms.
 
 Where ② experiments on the *world* (*is this true?*), this gate experiments on
 your *answer* (*is this answer right?*) — the friction here is a concrete
-instance hitting criteria and contract, and surviving it is what proves the
-answer. When the instance falsifies a criterion, revise ③ using the purpose as
+instance hitting criteria and contract, and surviving it is evidence that the
+answer can hold. When the instance falsifies a criterion, revise ③ using the purpose as
 arbiter; when it exposes a wrong or missing world fact, return to ② and record
 the experiment there.
 

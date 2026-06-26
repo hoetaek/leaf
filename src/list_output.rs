@@ -217,12 +217,7 @@ struct ProgressJson {
 impl ProgressJson {
     fn from_summary(status: &StatusSummary) -> Self {
         const TOTAL: usize = 10;
-        let text = format!(
-            "{} {}",
-            status.current_phase.as_deref().unwrap_or(""),
-            status.current_gate.as_deref().unwrap_or("")
-        );
-        if is_terminal_progress(&text) {
+        if is_terminal_progress(status) {
             return ProgressJson {
                 done: TOTAL,
                 current: None,
@@ -244,11 +239,8 @@ impl ProgressJson {
     }
 }
 
-fn is_terminal_progress(text: &str) -> bool {
-    let text = text.to_lowercase();
-    ["완료", "pressed", "leaf-done", "done", "complete"]
-        .iter()
-        .any(|needle| text.contains(needle))
+fn is_terminal_progress(status: &StatusSummary) -> bool {
+    matches!(status.stage.as_deref(), Some("fallen"))
 }
 
 fn relative_leaf_path(inventory: &Inventory, path: &Path) -> Result<String> {

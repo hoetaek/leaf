@@ -46,6 +46,23 @@ test("shows loading instead of stale data when the resource path changes", async
   expect(await screen.findByText("second")).toBeInTheDocument();
 });
 
+test("shows server JSON error messages instead of only the HTTP status", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async () =>
+        new Response(JSON.stringify({ error: "failed to read .leaf/00-status.md: permission denied" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }),
+    ),
+  );
+
+  render(<Probe path="/broken" />);
+
+  expect(await screen.findByText("failed to read .leaf/00-status.md: permission denied")).toBeInTheDocument();
+});
+
 afterEach(() => {
   __resetPollingClock();
   vi.useRealTimers();

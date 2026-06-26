@@ -121,7 +121,7 @@ Retrospect, follow `using-leaf` ("Ending a leaf") to keep, press, or fall.
 
 LEAF closes uncertainty in order:
 
-| Phase | What it proves |
+| Phase | What it validates |
 |---|---|
 | Learn | What the work needs, learned instead of guessed |
 | Example | One cheap instance can pass inspection |

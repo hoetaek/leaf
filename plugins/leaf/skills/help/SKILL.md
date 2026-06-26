@@ -13,7 +13,7 @@ write gate files, run `leaf next`, or persist anything.
 
 ## Loop
 
-| Phase | What it proves | Gates |
+| Phase | What it validates | Gates |
 |-------|----------------|-------|
 | **Learn** | What the work needs, learned rather than guessed. | ① Intent · ② Unknowns & Context |
 | **Example** | One cheap instance is right before scaling. | ③ Criteria · ④ Wireframe |
