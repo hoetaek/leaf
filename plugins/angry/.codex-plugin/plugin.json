@@ -1,0 +1,20 @@
+{
+  "name": "angry",
+  "version": "0.1.0",
+  "description": "Angry review council — blunt single-axis review personas + a council orchestrator",
+  "author": {
+    "name": "hoetaek",
+    "email": "hoetaek@indischool.com"
+  },
+  "homepage": "https://github.com/hoetaek/leaf",
+  "repository": "https://github.com/hoetaek/leaf",
+  "license": "MIT OR Apache-2.0",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Angry Council",
+    "shortDescription": "Blunt multi-axis review personas + council orchestrator",
+    "longDescription": "A panel of blunt, single-axis review personas (code, correctness, security, prose, design, product, …) plus a council orchestrator that convenes the relevant ones and synthesizes one ranked verdict. Each persona reviews through one lens only.",
+    "category": "Productivity",
+    "developerName": "hoetaek"
+  }
+}

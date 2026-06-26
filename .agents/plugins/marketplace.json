@@ -19,6 +19,19 @@
       },
       "version": "0.7.2",
       "category": "Productivity"
+    },
+    {
+      "name": "angry",
+      "source": {
+        "source": "local",
+        "path": "./plugins/angry"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "version": "0.1.0",
+      "category": "Productivity"
     }
   ]
 }

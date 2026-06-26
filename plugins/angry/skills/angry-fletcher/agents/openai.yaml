@@ -1,0 +1,7 @@
+interface:
+  display_name: "Angry Fletcher"
+  short_description: "Refuses 'good enough' — pushes work to the standard it could reach"
+  default_prompt: "Use $angry-fletcher to find where this settled for good-enough and push it to its real standard."
+
+policy:
+  allow_implicit_invocation: false

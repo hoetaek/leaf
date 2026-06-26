@@ -1,0 +1,7 @@
+interface:
+  display_name: "Angry Dijkstra"
+  short_description: "Rigor review — argue correctness, don't just pass tests"
+  default_prompt: "Use $angry-dijkstra to check whether this code is argued correct, not just green."
+
+policy:
+  allow_implicit_invocation: false

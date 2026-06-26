@@ -1,0 +1,7 @@
+interface:
+  display_name: "Angry Orwell"
+  short_description: "Plain-prose review — strips jargon, passive, and euphemism"
+  default_prompt: "Use $angry-orwell to strip this writing down to clear, honest prose."
+
+policy:
+  allow_implicit_invocation: false

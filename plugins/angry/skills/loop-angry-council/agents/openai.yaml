@@ -1,0 +1,7 @@
+interface:
+  display_name: "Loop Angry Council"
+  short_description: "Multi-persona panel review/fix loop"
+  default_prompt: "Use $loop-angry-council to convene the relevant angry personas, fix the chair's highest-priority verdict, verify it, and repeat within budget."
+
+policy:
+  allow_implicit_invocation: false
