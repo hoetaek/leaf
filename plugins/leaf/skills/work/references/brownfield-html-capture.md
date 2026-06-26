@@ -3,10 +3,12 @@
 A fast way to build the **artifact-specific (UI/web) wireframe** at ④ after the
 text-first pass: produce a rendered HTML view the user can open and judge by eye.
 The sweet spot is a **brownfield change to an existing web page** — capture the
-real rendered page with a browser, edit only the regions that change, and save a
-self-contained single file. The same edit-and-save technique renders a greenfield
-mock of the sketched screen, and renders the decisive **states** of the changed
-regions (see the last section).
+real rendered page with a browser, mark only the regions that change, and save a
+self-contained single file. For brownfield UI, prefer screenshot-anchored
+wireframes: pins on the real screen plus close-up previews of the changed
+component. The same edit-and-save technique renders a greenfield mock of the
+sketched screen, and renders the decisive **states** of the changed regions (see
+the last section).
 
 ## When to use (and when not)
 
@@ -29,6 +31,26 @@ regions (see the last section).
 replacement for the ④ text-first wireframe. Group requirements and walk the
 journey in text before capturing.
 
+## Brownfield UI hard rule
+
+The real screen is evidence, not a canvas for a new design.
+
+1. **Capture or reuse the actual rendered screen first.**
+2. **Mark implementation locations with small pins or outlines only.**
+3. **Show proposed UI in a separate close-up**, labeled with the host component
+   and insertion point.
+4. **Name the exact existing surface**: component/file + where the change is
+   inserted.
+5. **Run the misread check:** "Could this be mistaken as the final layout?" If
+   yes, revise.
+
+Forbidden in brownfield UI wireframes:
+
+- New dashboard/shell/page unless explicitly requested.
+- Large floating cards over screenshots that look like implementation.
+- Decorative or explanatory layouts replacing the real UI.
+- More explanation as a substitute for real surface evidence.
+
 ## Recipe
 
 Any way to run JS in the page and read back a string works (DevTools console,
@@ -38,10 +60,11 @@ a browser MCP, a headless driver).
    already-authenticated profile if the surface needs login). The full rendered
    DOM is `document.documentElement.outerHTML`. This baseline is the **locked
    context** — do not redraw it.
-2. **Edit only the changed regions.** Inject the change into the DOM and mark
-   it with a visible diff (dashed outline + a small badge), so a cold reader
-   can see exactly what changes. Everything you do not touch stays as verified
-   reality.
+2. **Mark only the changed regions.** For product UI, put a pin/outline on the
+   actual screenshot or captured DOM and put the proposed UI beside it as a
+   close-up preview. Only inject the change directly into the captured DOM when
+   the changed region is small enough that it cannot be mistaken for a new
+   layout. Everything you do not touch stays as verified reality.
 3. **Preserve assets** (only as far as you need): same-origin assets —
    `<img src>`, stylesheet text, `url(...)` inside CSS — can be inlined as
    `data:` URIs via `fetch` + `FileReader.readAsDataURL`. Cross-origin or
