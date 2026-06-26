@@ -59,6 +59,10 @@ Check:
   the copied naming, structure, placement, order, tone, taxonomy, workflow, proof
   shape, policy language, component boundary, file location, or interface shape
   should not confuse the system.
+- Responsibility fit: each main artifact introduced or substantially changed by
+  the design has one simple responsibility statement. If the statement needs
+  several sentences, strained clauses, or unrelated `and` / `or` jobs, require a
+  split, rename, move, or explicit orchestration rationale before tasking.
 - Evidence fit: claims about existing materials, audience, facts, examples, or
   system behavior are checked where cheap.
 - Risk mitigation: security, migration, compatibility, performance,

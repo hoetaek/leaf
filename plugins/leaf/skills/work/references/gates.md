@@ -245,6 +245,24 @@ grammar it follows, any new precedent it introduces, why the existing precedent
 is insufficient, what confusion a future copier could inherit, and how the
 exception is signposted. If the existing precedent is good enough, use it.
 
+**Responsibility Statement Test.** Every designed artifact should be explainable
+as one simple sentence: "This artifact exists to ...". The sentence may name
+collaboration or orchestration as the single responsibility, but if it needs
+several sentences, strained clauses, or a list of unrelated `and` / `or` jobs,
+the design is probably mixing responsibilities. Split, rename, or move the work
+until the sentence is honest.
+
+When a responsibility statement must live next to a concrete artifact as a
+local, opt-in contract, prefer `<artifact>.leaf.local.toml` over free-form
+Markdown. Keep it narrow: `schema = "leaf.srp-sidecar.v1"`, `artifact`,
+`status = "advisory"`, `last_verified`, `responsibility`, and optional string
+arrays such as `does_not_own`, `contracts`, and `split_signals`. Arbitrary notes
+or extra keys do not belong in the sidecar; put working context in the gate
+files. `leaf doctor` validates the v1 field set, artifact pairing, stale
+sidecars, and the local `.git/info/exclude` pattern. Use sidecars only for
+load-bearing artifacts whose responsibility future work is likely to copy or
+accidentally broaden; ordinary gate prose is enough otherwise.
+
 Gate to continue:
 
 - Each section has a role, not just a title.
@@ -264,6 +282,10 @@ Gate to continue:
 - Precedent Fit is recorded when the design introduces or changes names,
   structure, placement, order, taxonomy, workflow, policy language, component
   boundaries, file location, or interface shape that future work may copy.
+- The main artifacts introduced or substantially changed by the design have a
+  one-sentence responsibility statement; complex or multi-clause statements are
+  treated as split/rename/move signals unless the single responsibility is
+  orchestration.
 - Public terminology and model terms pass a project glossary / canonical
   terminology check: when a term conflicts with existing docs or the project
   glossary, the conflict is called out and the canonical term proposed before
@@ -407,7 +429,8 @@ Review checks: Does the artifact satisfy criteria? Are claims supported by
 evidence? Does section order still fit the argument? Did drafting reveal missing
 research or a weaker thesis? Are non-goals respected? Is detail right for the
 audience? Does the wireframe still fit? Did the finished artifact introduce a
-new precedent or break local grammar that ⑤ did not name?
+new precedent or break local grammar that ⑤ did not name? Can the changed
+artifact still be described by the responsibility statement ⑤ gave it?
 
 Sync rule: if review changes the claim/effect, update criteria; if it changes
 the argument flow or precedent surface, update the design/outline; if it changes
@@ -435,6 +458,7 @@ retrospect file).
 sequence worked? What did we draft too early? Which criterion was missing?
 Which review check caught the most? What template or skill should change?
 What precedent did this work leave, and should later work copy it or avoid it?
+Which responsibility statements held, and which turned into split signals?
 **Which unknowns surfaced mid-work that should have been caught at ②?** Open
 the discoveries note and, for each unplanned detour, ask which category was
 missed — a domain concept, a convention, a selection criterion, or an

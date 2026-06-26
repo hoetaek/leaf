@@ -560,6 +560,13 @@ fn init_creates_stage_dirs_and_exclude_line() {
             .count(),
         1
     );
+    assert_eq!(
+        exclude_contents(repo.path())
+            .lines()
+            .filter(|line| *line == "*.leaf.local.toml")
+            .count(),
+        1
+    );
 }
 
 #[test]
@@ -582,6 +589,13 @@ fn init_is_idempotent() {
         exclude_contents(repo.path())
             .lines()
             .filter(|line| *line == "/.leaf")
+            .count(),
+        1
+    );
+    assert_eq!(
+        exclude_contents(repo.path())
+            .lines()
+            .filter(|line| *line == "*.leaf.local.toml")
             .count(),
         1
     );
@@ -668,7 +682,10 @@ fn init_preserves_exclude_without_trailing_newline() {
         .assert()
         .success();
 
-    assert_eq!(exclude_contents(repo.path()), "existing\n/.leaf\n");
+    assert_eq!(
+        exclude_contents(repo.path()),
+        "existing\n/.leaf\n*.leaf.local.toml\n"
+    );
 }
 
 #[test]
@@ -1029,6 +1046,42 @@ fn doctor_healthy_workspace_exits_zero_with_ready_result() {
 }
 
 #[test]
+fn doctor_warns_for_invalid_srp_sidecar_contract() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+    repo.child("src/phase.rs")
+        .write_str("// phase\n")
+        .expect("artifact");
+    repo.child("src/phase.rs.leaf.local.toml")
+        .write_str(
+            r#"
+schema = "leaf.srp-sidecar.v1"
+artifact = "src/phase.rs"
+status = "enforced"
+last_verified = "2026-06-26"
+responsibility = "Owns LEAF phase ordering."
+"#,
+        )
+        .expect("sidecar");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("WARN srp_sidecar_invalid_status"))
+        .stdout(predicate::str::contains(
+            "path    src/phase.rs.leaf.local.toml",
+        ))
+        .stdout(predicate::str::contains("srp_sidecar_exclude_missing").not());
+}
+
+#[test]
 fn doctor_warning_only_workspace_exits_zero_with_warning_result() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
@@ -1190,6 +1243,13 @@ fn new_creates_sprout_skeleton_and_bootstraps_repo() {
         exclude_contents(repo.path())
             .lines()
             .filter(|line| *line == "/.leaf")
+            .count(),
+        1
+    );
+    assert_eq!(
+        exclude_contents(repo.path())
+            .lines()
+            .filter(|line| *line == "*.leaf.local.toml")
             .count(),
         1
     );

@@ -51,9 +51,11 @@ and records gate readiness; `polish` performs the simplicity pass.
 - ⑤ Design: consumes the validated ④ contract, generalizes across variation
   points, names alternatives and rationale for non-obvious choices, and records
   Precedent Fit for new names, structures, locations, formats, taxonomies,
-  workflows, or policy language that future work may copy.
+  workflows, or policy language that future work may copy. Main artifacts have
+  one-sentence responsibility statements.
 - ⑥ Critic: verdict is `APPROVE`, `ITERATE`, or `REJECT`, precedent risk is
-  checked when relevant, and revisions route back to the smallest affected gate.
+  checked when relevant, responsibility statements are challenged when complex,
+  and revisions route back to the smallest affected gate.
 - ⑦ Tasks: slices are reviewable, dependency claims are real, each task has a
   check that proves it helped, and convention-following or exception rationale
   is assigned to the task that creates the precedent.

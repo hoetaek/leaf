@@ -20,8 +20,9 @@ difference table, then the two domains that diverge enough to need their own not
                       confirms fit.
 ⑤ Design:             generalize the validated case into structure / section
                       roles / component rules, including Precedent Fit when the
-                      result enters an existing corpus or system (consumes the
-                      ④ contract — see engine.md).
+                      result enters an existing corpus or system. Give each main
+                      artifact a one-sentence responsibility statement
+                      (consumes the ④ contract — see engine.md).
 ⑦ Task graph:         real dependencies, not the table of contents.
 ```
 

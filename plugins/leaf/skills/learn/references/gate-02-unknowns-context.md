@@ -117,6 +117,8 @@ Ask or infer:
 - What term, standard, fact, or internal context would I currently have to guess?
 - What local grammar already exists: names, structure, placement, order, tone,
   taxonomy, workflow, proof shape, or policy language?
+- What responsibility does each relevant existing artifact own, stated in one
+  simple sentence?
 - Which existing artifact would future work likely copy as the precedent for
   this one?
 - Which guess, if wrong, would unravel later work?
@@ -214,6 +216,8 @@ Gate to continue:
 - For work entering an existing system, corpus, product, policy, taxonomy,
   document set, or visual language, the local grammar and relevant precedents
   are named, or the reason no local precedent applies is stated.
+- Relevant existing artifact responsibilities are clear enough that ⑤ can place
+  new responsibility without guessing or overloading an existing artifact.
 - The premises required for each key judgment are listed with a source or cheap
   verification path and one of `FACT`, `VERIFIED`, `ASSUMPTION`, or
   `USER REVIEW NEEDED`.

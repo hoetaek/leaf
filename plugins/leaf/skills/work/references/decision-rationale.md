@@ -19,6 +19,7 @@ Use RALPLAN-DR for choices that:
 - introduce a name, structure, placement, taxonomy, format, workflow, policy
   language, component boundary, file location, or interface shape that future
   work may copy as precedent
+- define, split, merge, or move an artifact responsibility boundary
 - are easy to forget the *why* of within a few weeks
 
 ## When to skip
@@ -29,6 +30,7 @@ Skip when:
 - there is one option and ruling out alternatives would be artificial
 - the choice is a local naming or formatting decision with no downstream
   coupling and no precedent risk
+- the artifact responsibility statement is obvious, short, and not contested
 - the rationale is already captured in ③ Criteria itself
 
 ## The four fields
