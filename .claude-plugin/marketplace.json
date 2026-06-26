@@ -18,8 +18,8 @@
     {
       "name": "angry",
       "source": "./plugins/angry",
-      "description": "Angry review council — blunt single-axis review personas + a council orchestrator",
-      "version": "0.2.0"
+      "description": "Angry review personas — blunt single-axis reviewers + a council orchestrator",
+      "version": "0.2.1"
     }
   ]
 }

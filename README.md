@@ -298,7 +298,7 @@ Install the LEAF skills together as a family — they are not independent.
 `../work/references/`. Installing the `leaf` plugin ships the whole family
 together, so these cross-skill references resolve.
 
-## Angry review plugin
+## Angry Review plugin
 
 This marketplace also serves an optional second plugin, `angry` — a panel of
 blunt, single-axis review personas plus a council that convenes the right ones.

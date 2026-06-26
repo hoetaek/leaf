@@ -18,6 +18,9 @@ minor version instead of moving to `x.0.0`.
 - Plugin skills: released `angry` plugin 0.2.0, dropping the redundant
   `angry-` skill id prefix so calls are `$angry:council`, `$angry:torvalds`,
   and so on.
+- Plugin skills: released `angry` plugin 0.2.1, renaming the Codex display
+  label from "Angry Council" to "Angry Review" so the plugin is distinct from
+  its `council` skill.
 
 ## 0.14.3 - 2026-06-25
 
