@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { getTick, subscribe } from "./pollingClock";
+import { getTick, markChanged, subscribe } from "./pollingClock";
 
 // Re-render this consumer on every shared polling tick, so all mounted
 // resources re-fetch together off one clock.
@@ -39,8 +39,12 @@ export function useJsonResource<T>(path: string | null) {
         // reference identical, so memoized models and the d3 graph simulation
         // do not re-run on a no-op poll (scroll/zoom/panels stay put).
         if (text === lastTextRef.current) return;
+        // A change to already-shown data (not the first load) is a poll-driven
+        // update — signal it so the LiveIndicator can flash on real change only.
+        const wasLoaded = lastTextRef.current !== null;
         lastTextRef.current = text;
         setResource({ data: JSON.parse(text) as T, error: null, path });
+        if (wasLoaded) markChanged();
       })
       .catch((nextError) => {
         if (!alive) return;

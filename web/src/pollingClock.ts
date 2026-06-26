@@ -1,21 +1,40 @@
 // A single shared polling clock for the whole app. One timer drives every
 // mounted `useJsonResource` to re-fetch together (see useJsonResource), and the
-// LiveIndicator subscribes to the same clock for its countdown. The clock is
-// read-only: it only signals "time to re-ask", never touches `.leaf`.
+// LiveIndicator subscribes to the same clock. The clock is read-only: it only
+// signals "time to re-ask", never touches `.leaf`.
 //
-// Lifecycle is ref-counted: the interval starts on the first subscriber and is
-// cleared when the last one leaves, so unmount (and test cleanup) naturally stop
-// the timer rather than leaking a module-global interval.
+// Lifecycle is ref-counted: the interval runs only while there is a subscriber
+// AND auto-refresh is enabled AND the tab is visible, so unmount, the user
+// toggle, and tab-hide each stop the timer rather than leaking it.
 
 export const POLL_INTERVAL_MS = 5000;
 const REFRESH_THROTTLE_MS = 300;
+const ENABLED_KEY = "leaf-live-enabled";
 
 type Listener = () => void;
+
+function readEnabled(): boolean {
+  try {
+    return localStorage.getItem(ENABLED_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+
+function persistEnabled(value: boolean): void {
+  try {
+    localStorage.setItem(ENABLED_KEY, value ? "1" : "0");
+  } catch {
+    // storage unavailable (private mode etc.) — keep working in-memory
+  }
+}
 
 const listeners = new Set<Listener>();
 let tick = 0;
 let lastTickAt = Date.now();
-let paused = false;
+let changeSeq = 0;
+let enabled = readEnabled();
+let paused = false; // tab hidden
 let timerId: ReturnType<typeof setInterval> | null = null;
 let lastRefreshAt = 0;
 let visibilityBound = false;
@@ -30,8 +49,12 @@ function advance(): void {
   emit();
 }
 
+function shouldRun(): boolean {
+  return enabled && !paused && listeners.size > 0;
+}
+
 function startTimer(): void {
-  if (timerId !== null || paused) return;
+  if (timerId !== null || !shouldRun()) return;
   timerId = setInterval(advance, POLL_INTERVAL_MS);
 }
 
@@ -91,12 +114,41 @@ export function getLastTickAt(): number {
   return lastTickAt;
 }
 
-export function isPaused(): boolean {
-  return paused;
+// Bumps when a mounted resource applies a real data change (poll-driven update
+// to already-shown data). The LiveIndicator flashes on this, so motion marks an
+// actual change rather than idle waiting.
+export function getChangeSeq(): number {
+  return changeSeq;
 }
 
-// Force an immediate tick (manual refresh / resume from hidden). Throttled so a
-// rapid burst of clicks can't reset the interval into starvation.
+export function markChanged(): void {
+  changeSeq += 1;
+  emit();
+}
+
+export function isEnabled(): boolean {
+  return enabled;
+}
+
+export function setEnabled(value: boolean): void {
+  if (enabled === value) return;
+  enabled = value;
+  persistEnabled(value);
+  if (value) {
+    startTimer();
+    refreshNow();
+  } else {
+    stopTimer();
+  }
+  emit();
+}
+
+export function toggleEnabled(): void {
+  setEnabled(!enabled);
+}
+
+// Force an immediate tick (toggle-on / resume from hidden). Throttled so a rapid
+// burst can't reset the interval into starvation.
 export function refreshNow(): void {
   const now = Date.now();
   if (now - lastRefreshAt < REFRESH_THROTTLE_MS) return;
@@ -115,6 +167,13 @@ export function __resetPollingClock(): void {
   listeners.clear();
   tick = 0;
   lastTickAt = Date.now();
+  changeSeq = 0;
+  enabled = true;
   paused = false;
   lastRefreshAt = 0;
+  try {
+    localStorage.removeItem(ENABLED_KEY);
+  } catch {
+    // ignore
+  }
 }
