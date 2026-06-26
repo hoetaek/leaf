@@ -251,11 +251,23 @@ themselves; gaps the quiz exposes are fresh threads, so send the relevant scout
 back or point to the reading and re-check rather than resting. Keep it light and
 curious, never an exam.
 
-After the quiz, always ask the user this explicitly:
+After the quiz, show concrete Learn-rest options before asking the user whether
+to continue. Synthesize 3-5 threads from the gathered references, scout
+findings, unchecked assumptions, and quiz gaps. Each option must name a specific
+concept, case, debate, or assumption; do not offer generic categories. Phrase
+each option so the user can feel what judging it would unlock. If no meaningful
+thread remains, say that plainly and offer resting here.
 
-> 알고 싶던 걸 충분히 알게 됐나요? 아직 당신을 끌어당기는 결 — 더 파고 싶은
-> 개념, 보고 싶은 사례, 짚어보고 싶은 논쟁, 확인하지 않은 가정 — 이 남아
-> 있나요?
+Use this shape:
+
+> 더 탐색해볼 만한 결은 이렇게 보입니다:
+> - 개념: <specific concept> — <why it is worth pulling>
+> - 사례: <specific case> — <what it would clarify>
+> - 논쟁: <specific disagreement> — <what fork it exposes>
+> - 가정: <unchecked premise> — <what changes if it fails>
+
+> 알고 싶던 걸 충분히 알게 됐나요? 아직 당신을 끌어당기는 결, 즉 더 파고 싶은
+> 개념, 보고 싶은 사례, 짚어보고 싶은 논쟁, 확인하지 않은 가정이 남아 있나요?
 
 Then lock the triple before resting. Ask each item in turn — propose a draft only
 as a starting point to confirm, and write each into `00-status.md` only after the
