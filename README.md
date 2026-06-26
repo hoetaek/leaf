@@ -18,8 +18,10 @@ repo-local body.
 
 ## Quick Start
 
-Install the Agent Skills as a plugin. The skills ship as one plugin (`leaf`)
-served from this repo as a marketplace for both Claude Code and Codex.
+Install the Agent Skills as a plugin. The LEAF skills ship as the `leaf` plugin,
+served from this repo as a marketplace for both Claude Code and Codex. The same
+marketplace also serves an optional `angry` review plugin (see
+[Angry review plugin](#angry-review-plugin)).
 
 **Claude Code:**
 
@@ -288,6 +290,45 @@ Install the LEAF skills together as a family — they are not independent.
 `work` also read the gate references under `work` through
 `../work/references/`. Installing the `leaf` plugin ships the whole family
 together, so these cross-skill references resolve.
+
+## Angry review plugin
+
+This marketplace also serves an optional second plugin, `angry` — a panel of
+blunt, single-axis review personas plus a council that convenes the right ones.
+It is independent of LEAF: install it on its own or alongside `leaf`.
+
+Each persona reviews through one lens — `angry-torvalds` (code craft),
+`angry-theo` (security), `angry-dijkstra` (correctness), `angry-orwell` (prose),
+`angry-rams` / `angry-jobs` (design / product), and more. `angry-council` triages
+which lenses a diff, PR, design, doc, or plan needs, runs each independently, and
+synthesizes one ranked verdict with the single highest-priority fix.
+
+**Claude Code:**
+
+```bash
+/plugin marketplace add hoetaek/leaf
+/plugin install angry@leaf
+```
+
+The skills appear namespaced as `/angry:angry-council`, `/angry:angry-theo`, … .
+
+**Codex:**
+
+```bash
+codex plugin marketplace add hoetaek/leaf
+codex plugin add angry@leaf
+```
+
+Or enable it in `~/.codex/config.toml`:
+
+```toml
+[plugins."angry@leaf"]
+enabled = true
+```
+
+When the `angry` plugin is installed, LEAF's ⑨ Review gate uses `angry-council`
+as its domain-quality pass over the finished artifact — it augments the
+LEAF-specific checks, never replaces them.
 
 ## Status
 
