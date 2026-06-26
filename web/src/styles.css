@@ -374,6 +374,63 @@ h2 {
   opacity: 0.62;
 }
 
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--paper2);
+  color: var(--mut);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.live-indicator:hover {
+  color: var(--ink);
+  border-color: var(--sage-mid);
+}
+
+.live-indicator.off {
+  opacity: 0.7;
+}
+
+/* Steady status dot: filled (sage) when auto-refresh is on, hollow when off.
+   No idle motion — it only flashes on an actual data change (see .flash). */
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sage-mid);
+}
+
+.live-dot.off {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--mut);
+}
+
+.live-dot.flash {
+  animation: live-flash 0.45s ease;
+}
+
+@keyframes live-flash {
+  0% {
+    transform: scale(1);
+  }
+
+  40% {
+    transform: scale(1.7);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
 .shell .crumb a {
   color: var(--sage);
   text-decoration: none;

@@ -25,13 +25,22 @@ the point; the learning is.
 
 ## Research Tool Check
 
-Before triage or local truth, check whether the current runtime exposes the
+Before triage or local truth, check whether the current runtime exposes
 `insane-search`/`insane-search-codex` and
-`insane-research`/`insane-research-codex` plugins or tools. Use `tool_search`
-when available; otherwise inspect the visible tools, skills, apps, and plugin
-cache. Record the result as checked context, then continue normally. These tools
-are accelerators, not blockers: if they are unavailable, use built-in search,
-fetch, browser, and explicit limitation notes.
+`insane-research`/`insane-research-codex` on two separate surfaces:
+
+1. **Skills/plugins.** Inspect the available skills list and, if needed, the
+   plugin cache. If `insane-search-codex:insane-search` or an
+   `insane-research-codex:*` skill is listed, it is available as a skill; read
+   that skill's `SKILL.md` before using it.
+2. **MCP/tools/apps.** Use `tool_search` only to discover deferred MCP tools or
+   app tools. A `tool_search` miss means only that no matching MCP tool was
+   exposed; it does not mean the skill/plugin is unavailable.
+
+Record the result as checked context with separate entries for skills and MCP
+tools, then continue normally. These capabilities are accelerators, not
+blockers: if neither surface exposes them, use built-in search, fetch, browser,
+and explicit limitation notes.
 
 ## First Read
 
@@ -88,12 +97,13 @@ Read only what the current move needs:
    and a reading map (see Parallel Scouts → Reading map), not an answer. When ②
    changes what the user now understands or the scope of the curiosity, update the
    status overview in the same turn.
-7. **Quiz, then ask the Learn-rest question.** Before resting, invoke `polish`
+7. **Quiz, then offer Learn-rest options.** Before resting, invoke `polish`
    on the Learn/status surface as one report — this is the Learn phase boundary
    (the cumulative whole is just Learn here) — show the gathered references, then quiz
-   the user on the core (see Parallel Scouts → Quiz). Learn need not "finish": if
-   a thread still pulls, keep exploring. This is a resting point, not a gate to
-   clear.
+   the user on the core (see Parallel Scouts → Quiz). Then show concrete
+   curiosity threads the user could keep pulling, not only a generic "anything
+   else?" question. Learn need not "finish": if a thread still pulls, keep
+   exploring. This is a resting point, not a gate to clear.
 8. **Lock the why / what / wireframe before resting.** Mandatory at every Learn
    close: record an explicit, user-approved triple in `00-status.md`'s preamble.
    Run it as a per-item **ask → approve → write** loop — for each of why, what,
@@ -116,11 +126,24 @@ covers. An empty or thin tree is evidence too — name it plainly instead of
 hiding it; "no references were needed because <reason>" must be said, not
 implied.
 
-Learn-rest question (ask after the quiz):
+Learn-rest options + question (ask after the quiz):
 
-> 알고 싶던 걸 충분히 알게 됐나요? 아직 당신을 끌어당기는 결 — 더 파고 싶은
-> 개념, 보고 싶은 사례, 짚어보고 싶은 논쟁, 확인하지 않은 가정 — 이 남아
-> 있나요?
+Before asking, synthesize 3-5 concrete threads from the gathered references,
+scout findings, unchecked assumptions, and quiz gaps. Each option must name a
+specific concept, case, debate, or assumption; do not offer generic categories.
+Phrase each option so the user can feel what judging it would unlock. If no
+meaningful thread remains, say that plainly and offer resting here.
+
+Use this shape:
+
+> 더 탐색해볼 만한 결은 이렇게 보입니다:
+> - 개념: <specific concept> — <why it is worth pulling>
+> - 사례: <specific case> — <what it would clarify>
+> - 논쟁: <specific disagreement> — <what fork it exposes>
+> - 가정: <unchecked premise> — <what changes if it fails>
+
+> 알고 싶던 걸 충분히 알게 됐나요? 아직 당신을 끌어당기는 결, 즉 더 파고 싶은
+> 개념, 보고 싶은 사례, 짚어보고 싶은 논쟁, 확인하지 않은 가정이 남아 있나요?
 
 Then lock the triple (Workflow step 8): ask why / what / wireframe one at a time,
 write each to `00-status.md` only after the user approves its wording.
@@ -166,12 +189,15 @@ Rules for the fan-out:
   judgment.** For broad external research, disputed claims, statistics,
   law/policy/medical/financial facts, or source-heavy synthesis, read
   `references/research-quality.md` and apply its source-rating, verification,
-  citation, and access-path rules. If the current runtime exposes
-  `insane-research`/`insane-research-codex`, use it as a reference-producing
-  scout for deep research. If a public source is blocked and
-  `insane-search`/`insane-search-codex` is exposed, use it as an access fallback.
-  Both are optional accelerators; Learn must continue with built-in search,
-  fetch, browser, and explicit limitation notes when they are unavailable.
+  citation, and access-path rules. If the available skills list exposes
+  `insane-research-codex:*`, invoke that skill as a reference-producing scout
+  for deep research; if an MCP research tool is exposed, use that tool. If a
+  public source is blocked and either `insane-search-codex:insane-search` or an
+  MCP access tool is exposed, use it as an access fallback. Treat skill
+  availability and MCP tool exposure as separate facts; never treat a
+  `tool_search` miss as proof that the skill/plugin is unavailable. These are
+  optional accelerators; Learn must continue with built-in search, fetch,
+  browser, and explicit limitation notes when neither surface exposes them.
 - **Scale honestly.** Skip a scout with nothing to find and name the skip and its
   reason; do not pad references for appearance.
 
