@@ -3,10 +3,11 @@
 **What ② builds: you, the eager learner, come to genuinely understand this — from
 knowing the terms to understanding it well enough to judge it for yourself.**
 Learning runs as a trajectory: from coming to know domain knowledge, conventions,
-related existing work, comparables, prior art, and whether this is even the only
-way, to understanding what any choice would rest on. Both ends matter, and
-neither is in a hurry; depth is welcome here. ② evaluates that understanding; the
-ability to judge is assumed to follow from it, not separately tested.
+local grammar, related existing work, comparables, prior art, and whether this is
+even the only way, to understanding what any choice would rest on. Both ends
+matter, and neither is in a hurry; depth is welcome here. ② evaluates that
+understanding; the ability to judge is assumed to follow from it, not separately
+tested.
 
 Be the explorer-companion. Do not only file the unknowns the user names. First
 map what is worth learning in this topic — domain concepts, history,
@@ -50,8 +51,8 @@ Categorize unknowns along two axes: what kind of knowledge, and from where.
 By kind:
 
 - **Domain concepts**: meanings of core terms used by the audience or judge.
-- **Standards / conventions**: accepted tone, format, structural patterns, and
-  best practices for this output form.
+- **Standards / conventions**: accepted tone, format, structural patterns, local
+  grammar, and best practices for this output form.
 - **Selection criteria**: what to choose between, the trade-offs in play, and the
   principle that decides. This conditional knowledge is what turns learning into
   judgment.
@@ -61,7 +62,8 @@ By source:
 - **External**: comparable cases, prior art, benchmark examples, authoritative
   sources, recent domain changes.
 - **Internal**: what the team already has, such as data, footage, contacts,
-  documents, prior decisions, and forgotten constraints.
+  documents, templates, existing examples, prior decisions, and forgotten
+  constraints.
 
 These axes are gathered by four parallel scout subagents, not one linear sweep
 (see `../SKILL.md` → Parallel Scouts). **A. Terrain** ("what exists") covers the kind
@@ -89,11 +91,11 @@ actors/surfaces, or a reference set large enough that the shape is easy to lose.
 
 The map is a study artifact, not a design artifact. It should show the current
 known topology and problem space: actors, surfaces, components, data/content
-flow, ownership boundaries, external dependencies, preserved constraints, and
-gaps marked `UNKNOWN` or `ASSUMPTION`. It may compare reference models or
-existing alternatives when that helps judgment, but it must not silently choose
-the after architecture; deciding the future structure is a different kind of
-work, not learning.
+flow, ownership boundaries, external dependencies, preserved constraints,
+existing precedents, and gaps marked `UNKNOWN` or `ASSUMPTION`. It may compare
+reference models or existing alternatives when that helps judgment, but it must
+not silently choose the after architecture; deciding the future structure is a
+different kind of work, not learning.
 
 Keep the map cheap and inspectable. ASCII boxes/arrows, a small state-flow, or a
 component table is enough. Summarize the learned facts, split signals, candidate
@@ -113,6 +115,10 @@ access; their absence is not a blocker.
 Ask or infer:
 
 - What term, standard, fact, or internal context would I currently have to guess?
+- What local grammar already exists: names, structure, placement, order, tone,
+  taxonomy, workflow, proof shape, or policy language?
+- Which existing artifact would future work likely copy as the precedent for
+  this one?
 - Which guess, if wrong, would unravel later work?
 - Which unknowns block the next gate, and which are useful-later only?
 
@@ -205,6 +211,9 @@ Gate to continue:
 - The map labels facts, `UNKNOWN`s, and `ASSUMPTION`s clearly enough to expose
   missing context, split signals, and candidate choices without drifting into
   after-design.
+- For work entering an existing system, corpus, product, policy, taxonomy,
+  document set, or visual language, the local grammar and relevant precedents
+  are named, or the reason no local precedent applies is stated.
 - The premises required for each key judgment are listed with a source or cheap
   verification path and one of `FACT`, `VERIFIED`, `ASSUMPTION`, or
   `USER REVIEW NEEDED`.
