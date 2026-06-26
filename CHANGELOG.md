@@ -21,6 +21,9 @@ minor version instead of moving to `x.0.0`.
 - Plugin skills: released `angry` plugin 0.2.1, renaming the Codex display
   label from "Angry Council" to "Angry Review" so the plugin is distinct from
   its `council` skill.
+- Plugin skills: released `angry` plugin 0.2.2 with `using-angry`, an
+  entry/router skill for choosing the right Angry Review persona, council, or
+  review/fix loop.
 
 ## 0.14.3 - 2026-06-25
 

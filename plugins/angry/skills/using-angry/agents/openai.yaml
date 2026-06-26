@@ -1,0 +1,7 @@
+interface:
+  display_name: "Using Angry"
+  short_description: "Entry/router for Angry Review skills"
+  default_prompt: "Use $angry:using-angry to choose the right Angry Review skill before reviewing a diff, PR, design, document, plan, claim, or diagnosis."
+
+policy:
+  allow_implicit_invocation: true
