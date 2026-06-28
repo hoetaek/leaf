@@ -6,6 +6,11 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.15.2 - 2026-06-28
+
+- Bumped `sha2` to 0.11 and hex-encode the update checksum digest directly, so
+  `leaf update` checksum verification keeps compiling across `sha2` versions.
+
 ## 0.15.1 - 2026-06-28
 
 - Fixed `leaf fall` to reject a symlinked source and to roll back the status
