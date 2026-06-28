@@ -954,6 +954,42 @@ fn list_json_outputs_stages_and_degraded_parse_states() {
 }
 
 #[test]
+fn list_json_progress_uses_gate_number_not_completion_words() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+    write_status(
+        &repo,
+        ".leaf/01-sprouts/research-memo/00-status.md",
+        "- stage: sprout\n\
+         - current phase: Learn\n\
+         - current gate: ② Unknowns & Context (Learn 내용 완료 — 트리플 잠금 대기)\n\
+         - first missing gate: ③ Criteria\n\
+         - next action: continue\n",
+    );
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["list", "--json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("valid json");
+    let status = &json["stages"]["sprouts"]["items"][0]["status"];
+
+    assert_eq!(status["progress_done"], 1);
+    assert_eq!(status["progress_current"], 2);
+    assert_eq!(status["progress_label"], "2/10");
+}
+
+#[test]
 fn list_missing_leaf_root_fails_without_bootstrapping() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
@@ -1749,6 +1785,76 @@ fn fall_failed_move_leaves_source_status_unchanged() {
     assert!(stderr.contains("failed to move"), "{stderr}");
     repo.child(".leaf/01-sprouts/research-memo/00-status.md")
         .assert("original status\n");
+    repo.child(".leaf/03-fallen/research-memo")
+        .assert(predicate::path::missing());
+}
+
+#[cfg(unix)]
+#[test]
+fn fall_rolls_back_when_status_write_fails_after_move() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["new", "research-memo"])
+        .assert()
+        .success();
+    let source_status = repo
+        .path()
+        .join(".leaf/01-sprouts/research-memo/00-status.md");
+    fs::write(&source_status, "original status\n").expect("source status");
+    fs::set_permissions(&source_status, fs::Permissions::from_mode(0o444))
+        .expect("lock source status");
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["fall", "research-memo", "--reason", "superseded"])
+        .output()
+        .expect("fall command");
+    if source_status.exists() {
+        fs::set_permissions(&source_status, fs::Permissions::from_mode(0o644))
+            .expect("unlock source status");
+    }
+
+    assert!(!output.status.success(), "fall unexpectedly succeeded");
+    let stderr = String::from_utf8(output.stderr).expect("utf8 stderr");
+    assert!(stderr.contains("rolled back move"), "{stderr}");
+    repo.child(".leaf/01-sprouts/research-memo/00-status.md")
+        .assert("original status\n");
+    repo.child(".leaf/03-fallen/research-memo")
+        .assert(predicate::path::missing());
+}
+
+#[cfg(unix)]
+#[test]
+fn fall_rejects_symlink_source_without_writing_target() {
+    use std::os::unix::fs::symlink;
+
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+    let target = repo.path().join("outside-target");
+    fs::create_dir(&target).expect("target dir");
+    fs::write(target.join("00-status.md"), "outside status\n").expect("target status");
+    symlink(&target, repo.path().join(".leaf/01-sprouts/research-memo")).expect("source symlink");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["fall", "research-memo", "--reason", "superseded"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("symlink"));
+
+    repo.child("outside-target/00-status.md")
+        .assert("outside status\n");
     repo.child(".leaf/03-fallen/research-memo")
         .assert(predicate::path::missing());
 }

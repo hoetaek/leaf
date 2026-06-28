@@ -4,7 +4,7 @@
     "displayName": "LEAF"
   },
   "metadata": {
-    "version": "0.7.2"
+    "version": "0.7.3"
   },
   "plugins": [
     {
@@ -17,7 +17,20 @@
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
-      "version": "0.7.2",
+      "version": "0.7.3",
+      "category": "Productivity"
+    },
+    {
+      "name": "angry",
+      "source": {
+        "source": "local",
+        "path": "./plugins/angry"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "version": "0.2.2",
       "category": "Productivity"
     }
   ]

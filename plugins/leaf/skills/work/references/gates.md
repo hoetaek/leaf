@@ -135,8 +135,8 @@ apply; see `patterns.md` for the web/product forms.
 
 Where ② experiments on the *world* (*is this true?*), this gate experiments on
 your *answer* (*is this answer right?*) — the friction here is a concrete
-instance hitting criteria and contract, and surviving it is what proves the
-answer. When the instance falsifies a criterion, revise ③ using the purpose as
+instance hitting criteria and contract, and surviving it is evidence that the
+answer can hold. When the instance falsifies a criterion, revise ③ using the purpose as
 arbiter; when it exposes a wrong or missing world fact, return to ② and record
 the experiment there.
 
@@ -431,6 +431,17 @@ research or a weaker thesis? Are non-goals respected? Is detail right for the
 audience? Does the wireframe still fit? Did the finished artifact introduce a
 new precedent or break local grammar that ⑤ did not name? Can the changed
 artifact still be described by the responsibility statement ⑤ gave it?
+
+These checks are LEAF-specific — criteria fit, evidence, non-goals, the
+wireframe, the ⑤ responsibility statement — and stay mandatory. Pair them with a
+domain-quality pass over the artifact itself. Check whether the runtime exposes
+a `council` skill, or individual review persona skills; if one is listed, use
+it as that pass: it triages which lenses the artifact needs — code →
+torvalds / dijkstra / theo, prose or docs → orwell, design → rams / jobs, a plan
+or rationale → feynman / pauli — reviews each independently, and synthesizes one
+ranked verdict. It augments the LEAF checks, never replaces them. It is an
+accelerator, not a blocker — if no such skill is exposed, apply those lenses
+yourself against the artifact. Use a harsh tone only if the user asks for it.
 
 Sync rule: if review changes the claim/effect, update criteria; if it changes
 the argument flow or precedent surface, update the design/outline; if it changes

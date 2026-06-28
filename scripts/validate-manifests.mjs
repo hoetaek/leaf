@@ -175,9 +175,11 @@ if (!existsSync(commandsDir)) {
   else console.log(`✓ ${commands.length} commands: ${commands.join(", ")}`);
 }
 
-// --audit: scan every manifest JSON under the plugin/marketplace dirs for a
-// `"version"` field and flag any that drifts from the plugin version. Catches a
-// stray version in a NEW manifest the four hardcoded checks above don't know about.
+// --audit: scan the leaf manifests under the plugin/marketplace dirs for a
+// `"version"` field and flag any that drifts from the leaf plugin version.
+// Catches a stray version in a NEW leaf manifest the four hardcoded checks above
+// don't know about. Other plugins sharing a marketplace own their own version
+// line, so marketplace `plugins[]` entries that are not `leaf` are skipped here.
 if (process.argv.includes("--audit") && pluginVersion) {
   const SEMVER = /^\d+\.\d+\.\d+/;
   const collectJson = (rel) => {
@@ -214,6 +216,11 @@ if (process.argv.includes("--audit") && pluginVersion) {
       json = JSON.parse(readFileSync(join(ROOT, rel), "utf8"));
     } catch {
       continue;
+    }
+    // Guard leaf's version only: a shared marketplace may list other plugins
+    // with their own version line, so scan just the leaf entry (+ metadata).
+    if (Array.isArray(json.plugins)) {
+      json = { ...json, plugins: json.plugins.filter((p) => p.name === "leaf") };
     }
     const found = [];
     findVersions(json, "", found);

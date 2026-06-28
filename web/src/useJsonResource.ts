@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { responseErrorMessage } from "./api";
 import { getTick, markChanged, subscribe } from "./pollingClock";
 
 // Re-render this consumer on every shared polling tick, so all mounted
@@ -32,7 +33,7 @@ export function useJsonResource<T>(path: string | null) {
 
     fetch(path)
       .then(async (response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) throw new Error(await responseErrorMessage(response));
         const text = await response.text();
         if (!alive) return;
         // Unchanged body → skip the state swap entirely. This keeps the data

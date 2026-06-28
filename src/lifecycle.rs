@@ -16,8 +16,8 @@ pub(crate) fn fall_leaf(repo_root: &Path, slug: &str, reason: &str) -> Result<Fa
     let leaf = leaf_root.join(Stage::Leaf.dir_name()).join(slug);
     let destination = leaf_root.join(Stage::Fallen.dir_name()).join(slug);
 
-    let sprout_exists = sprout.is_dir();
-    let leaf_exists = leaf.is_dir();
+    let sprout_exists = real_dir_exists(&sprout)?;
+    let leaf_exists = real_dir_exists(&leaf)?;
     if sprout_exists && leaf_exists {
         bail!(
             "ambiguous leaf slug: {slug} exists in both {} and {}; run leaf doctor and disambiguate",
@@ -37,10 +37,7 @@ pub(crate) fn fall_leaf(repo_root: &Path, slug: &str, reason: &str) -> Result<Fa
             leaf.display()
         );
     };
-    if destination
-        .try_exists()
-        .with_context(|| format!("failed to inspect {}", destination.display()))?
-    {
+    if path_exists(&destination)? {
         bail!("fallen leaf already exists: {slug}");
     }
 
@@ -64,13 +61,55 @@ pub(crate) fn fall_leaf(repo_root: &Path, slug: &str, reason: &str) -> Result<Fa
         )
     })?;
     let status_path = destination.join("00-status.md");
-    fs::write(&status_path, status)
-        .with_context(|| format!("failed to write {}", status_path.display()))?;
+    if let Err(err) = fs::write(&status_path, status) {
+        if let Err(rollback_err) = fs::rename(&destination, &source) {
+            return Err(err).with_context(|| {
+                format!(
+                    "failed to write {}; also failed to roll back {} to {}: {rollback_err}",
+                    status_path.display(),
+                    destination.display(),
+                    source.display()
+                )
+            });
+        }
+        return Err(err).with_context(|| {
+            format!(
+                "failed to write {}; rolled back move to {}",
+                status_path.display(),
+                source.display()
+            )
+        });
+    }
 
     Ok(FallResult {
         source,
         destination,
     })
+}
+
+fn real_dir_exists(path: &Path) -> Result<bool> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) => {
+            let file_type = metadata.file_type();
+            if file_type.is_symlink() {
+                bail!(
+                    "leaf path is a symlink and cannot be moved: {}",
+                    path.display()
+                );
+            }
+            Ok(file_type.is_dir())
+        }
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(err) => Err(err).with_context(|| format!("failed to inspect {}", path.display())),
+    }
+}
+
+fn path_exists(path: &Path) -> Result<bool> {
+    match fs::symlink_metadata(path) {
+        Ok(_) => Ok(true),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(err) => Err(err).with_context(|| format!("failed to inspect {}", path.display())),
+    }
 }
 
 fn read_optional_status(path: &Path) -> Result<Option<String>> {

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Angry Torvalds"
+  short_description: "Harsh maintainer-style code review"
+  default_prompt: "Use $angry:torvalds to review this diff and identify the highest-priority issue to fix first."
+
+policy:
+  allow_implicit_invocation: false

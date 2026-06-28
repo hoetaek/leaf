@@ -1,0 +1,19 @@
+{
+  "name": "angry",
+  "description": "Angry review personas — blunt single-axis reviewers + a council orchestrator",
+  "version": "0.2.2",
+  "author": {
+    "name": "hoetaek",
+    "email": "hoetaek@indischool.com"
+  },
+  "homepage": "https://github.com/hoetaek/leaf",
+  "repository": "https://github.com/hoetaek/leaf",
+  "license": "MIT OR Apache-2.0",
+  "keywords": [
+    "review",
+    "code-review",
+    "angry",
+    "council",
+    "security"
+  ]
+}

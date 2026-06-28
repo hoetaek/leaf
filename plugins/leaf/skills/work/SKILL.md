@@ -2,7 +2,7 @@
 name: work
 description: |
   Use to carry a LEAF sprout after Learn from ③ Example through a shipped result:
-  prove one cheap instance against criteria, design the generator, run the critic,
+  validate one cheap instance against criteria, design the generator, run the critic,
   slice the task graph, draft or execute, and review. Use for documents, essays,
   articles, memos, research papers, proposals, reports, specs, study notes,
   presentations, prototypes, code, or mixed deliverables in a repo-local `.leaf/`

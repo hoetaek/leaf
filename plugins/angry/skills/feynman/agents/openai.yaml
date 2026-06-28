@@ -1,0 +1,7 @@
+interface:
+  display_name: "Angry Feynman"
+  short_description: "First-principles review that hunts faked understanding"
+  default_prompt: "Use $angry:feynman to check whether this explanation is actually understood or just cargo-culted."
+
+policy:
+  allow_implicit_invocation: false

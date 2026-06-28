@@ -15,6 +15,15 @@ minor version instead of moving to `x.0.0`.
   status as fallen before the directory transition succeeds.
 - Plugin skills: released `leaf` plugin 0.7.2 with updated Learn/Work guidance
   for unknowns, gate authoring, design critique, and decision rationale.
+- Plugin skills: released `angry` plugin 0.2.0, dropping the redundant
+  `angry-` skill id prefix so calls are `$angry:council`, `$angry:torvalds`,
+  and so on.
+- Plugin skills: released `angry` plugin 0.2.1, renaming the Codex display
+  label from "Angry Council" to "Angry Review" so the plugin is distinct from
+  its `council` skill.
+- Plugin skills: released `angry` plugin 0.2.2 with `using-angry`, an
+  entry/router skill for choosing the right Angry Review persona, council, or
+  review/fix loop.
 
 ## 0.14.3 - 2026-06-25
 

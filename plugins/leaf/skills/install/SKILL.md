@@ -17,7 +17,7 @@ also expose the same workflow as `/leaf:install`.
    leaf --version
    ```
 
-   If the version is `0.8.0` or newer, report that version and stop. If
+   If the version is `0.12.0` or newer, report that version and stop. If
    `leaf` is missing or older, continue.
 
 2. Determine the current OS. Do not use the current repo, `Cargo.toml`, or
