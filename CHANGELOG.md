@@ -10,6 +10,11 @@ minor version instead of moving to `x.0.0`.
 
 - Bumped `sha2` to 0.11 and hex-encode the update checksum digest directly, so
   `leaf update` checksum verification keeps compiling across `sha2` versions.
+- Plugin skills: released `leaf` plugin 0.7.4 — the web-UI review handoff now
+  fires across LEAF flows (soul plus the work/autopilot/learn phase boundaries),
+  opening the item's port-aware page (`http://127.0.0.1:<port>/#/leaf/<slug>`,
+  port read from the serve started in this repo) instead of only describing the
+  handoff passively.
 
 ## 0.15.1 - 2026-06-28
 
