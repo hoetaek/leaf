@@ -1,6 +1,6 @@
 [package]
 name = "leaf"
-version = "0.15.0"
+version = "0.15.1"
 edition = "2024"
 rust-version = "1.88"
 publish = false
@@ -47,14 +47,14 @@ tempfile = "3"
 # `From` impls with E0119 under fresh resolution (e.g. `cargo install`
 # without --locked). Remove once a fixed time release ships or 0.3.48 is
 # yanked.
-time = { version = ">=0.3.47, <0.3.50", default-features = false }
+time = { version = ">=0.3.47, <0.3.52", default-features = false }
 tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "net"] }
 toml = "1.1.2"
 tower-http = { version = "0.7.0", features = ["fs"] }
 two-face = { version = "0.5", default-features = false, features = ["syntect-default-onig"] }
 unicode-width = "0.2"
 url = "2"
-zip = { version = "2", default-features = false, features = ["deflate"] }
+zip = { version = "8", default-features = false, features = ["deflate"] }
 
 # `leaf update` HTTPS client. rustls (via `ring`) everywhere except Windows,
 # where `ring` fails to cross-compile for `aarch64-pc-windows-msvc` under

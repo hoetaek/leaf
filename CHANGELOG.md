@@ -6,6 +6,18 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.15.1 - 2026-06-28
+
+- Fixed `leaf fall` to reject a symlinked source and to roll back the status
+  write when the directory move fails, so a failed transition no longer leaves
+  the status marked fallen.
+- `leaf list` JSON progress now follows the structured state instead of a
+  substring match on completion words.
+- Web fetch errors now surface the server's JSON error body first.
+- LEAF gate documents soften "prove" wording to "validate"/"evidence".
+- Dependencies: bumped `anyhow` to 1.0.103, `time` to 0.3.51, `zip` to 8.6.0,
+  and `taiki-e/install-action` to 2.82.5.
+
 ## 0.15.0 - 2026-06-26
 
 - `leaf doctor`: added strict validation for local SRP sidecar contracts
