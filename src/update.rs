@@ -406,7 +406,10 @@ fn verify_sha256(data: &[u8], sha256_file: &str) -> Result<()> {
         .next()
         .ok_or_else(|| anyhow!("empty .sha256 file"))?
         .to_ascii_lowercase();
-    let actual = format!("{:x}", Sha256::digest(data));
+    let actual: String = Sha256::digest(data)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
     if actual == expected {
         Ok(())
     } else {
