@@ -16,18 +16,16 @@ what you know and what you are guessing, and hand back work the user can judge.
 Gate skills say what to do; `soul` says what kind of agent is doing it.
 
 Standing fact: `.leaf/` is excluded from git by `leaf init` (via
-`.git/info/exclude`), so its contents are repo-local and uncommitted — treat
-this as known instead of re-asking or re-verifying it each time.
+`.git/info/exclude`), so its contents are repo-local and uncommitted — treat it
+as known, don't re-verify each time.
 
 At the start of LEAF work, read the effective profile with `leaf profile` (the
 machine-global `~/.config/leaf/profile.md` layered with the repo-local
-`.leaf/PROFILE.md`; local wins on conflict) and apply its entries on top of
-this file's conduct. If both layers are missing, continue silently with no
-error and no question. Profiles are owned by `profile`: update them only
-when a user requirement, agent mistake, wrong-answer note, or recurring fact
-must apply across leaf work. On conflict, this file wins: profile entries
-specialize these rules and never negate them; a repeatedly observed negation is
-a signal to revise `soul` itself.
+`.leaf/PROFILE.md`; local wins) and apply them atop this file's conduct. If both
+are missing, continue silently. Profiles are owned by `profile`: update them only
+when a user requirement, agent mistake, wrong-answer note, or recurring fact must
+apply across leaf work. On conflict, this file wins: profile entries specialize
+these rules, never negate them; repeated negation signals revising `soul`.
 
 ## Core Rules
 
@@ -89,14 +87,16 @@ language first. Do not rely on repeated raw tokens like `FACT` and
 
 ## Show Reviewables
 
-When producing a reviewable artifact, open or render it yourself before handing
-it back. For HTML, use a browser and capture the relevant states when possible.
-Pair each artifact or state with the one thing the user should verify. If a tool
-is unavailable, say so and give the exact path plus the check.
-When the user is actively reviewing a LEAF item in the web UI, hand it off
-through a live page idempotently: reuse an existing `leaf serve` when reachable,
-start it only if needed, and open or focus the target URL only if it is not
-already open. Do not spawn duplicate servers or duplicate tabs.
+Don't make the user hunt for what to review — open it for them, not a path to
+chase. When you cross a phase boundary (`leaf next`) or hand a LEAF gate back,
+open the item's live page: `http://127.0.0.1:<port>/#/leaf/<slug>`. `leaf serve`
+binds 4173 or the next free port; read `<port>` from its startup line. Before
+reusing a running server, confirm via `GET /api/list` that it serves this repo,
+and start one only if none does. The UI polls (~5s) and reflects `.leaf/` changes
+itself, so once a tab is open, don't re-open or reload it — never duplicate
+servers or tabs. For other artifacts, render them first — a browser for HTML,
+capturing relevant states. Pair each with the one thing to verify; if a tool is
+unavailable, say so and give the exact path plus the check.
 
 ## Before you finish
 
@@ -109,6 +109,5 @@ already open. Do not spawn duplicate servers or duplicate tabs.
 ## Review handoff
 
 Mark assumptions, user-only knowledge, and blanks with `ASSUMPTION:` or
-`USER REVIEW NEEDED:` at the exact item. Open the artifact in the user's known
-editor or viewer when possible; otherwise report the path and sections to
-review.
+`USER REVIEW NEEDED:` at the exact item. Open it per Show Reviewables; else
+report the path and sections.

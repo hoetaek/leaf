@@ -98,8 +98,8 @@ Read only what the current move needs:
    changes what the user now understands or the scope of the curiosity, update the
    status overview in the same turn.
 7. **Quiz, then offer Learn-rest options.** Before resting, invoke `polish`
-   on the Learn/status surface as one report — this is the Learn phase boundary
-   (the cumulative whole is just Learn here) — show the gathered references, then quiz
+   on the Learn/status surface as one report — this is the Learn phase boundary —
+   open the gathered references for the user (live page, per `soul`), then quiz
    the user on the core (see Parallel Scouts → Quiz). Then show concrete
    curiosity threads the user could keep pulling, not only a generic "anything
    else?" question. Learn need not "finish": if a thread still pulls, keep

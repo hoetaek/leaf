@@ -108,10 +108,6 @@ test("opens the mobile table of contents and follows reader keyboard shortcuts",
   fireEvent.keyDown(window, { key: "l" });
   expect(screen.getByText(/스크롤/)).toBeInTheDocument();
 
-  fireEvent.keyDown(window, { key: "f" });
-  expect(window.location.hash).toBe("#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fa.md");
-  window.location.hash = "#/leaf/web-graph-structure-refactor";
-
   fireEvent.keyDown(window, { key: "h" });
   expect(screen.getByText(/이동/)).toBeInTheDocument();
 
@@ -163,6 +159,33 @@ test("keeps j, k, g, and G as vertical scroll keys on full page references", asy
 
   fireEvent.keyDown(window, { key: "G" });
   expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 2000, behavior: "smooth" });
+});
+
+test("keeps scroll keys after opening a full page reference from the drawer shortcut", async () => {
+  const { rerender } = render(<ReviewReader slug="web-graph-structure-refactor" />);
+  await screen.findByText("그래프 구조를 분리한다.");
+
+  fireEvent.keyDown(window, { key: "R" });
+  expect(screen.getByText("References")).toBeInTheDocument();
+
+  fireEvent.keyDown(window, { key: "f" });
+  expect(window.location.hash).toBe("#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fa.md");
+
+  rerender(<ReviewReader slug="web-graph-structure-refactor" referencePath="01-Learn/02-references/a.md" />);
+  expect(await screen.findByRole("heading", { name: "Alpha" })).toBeInTheDocument();
+
+  fireEvent.keyDown(window, { key: "j" });
+  expect(window.scrollBy).toHaveBeenCalledWith({ top: 90, behavior: "smooth" });
+
+  fireEvent.keyDown(window, { key: "G" });
+  expect(window.scrollTo).toHaveBeenCalledWith({ top: 2000, behavior: "smooth" });
+
+  fireEvent.keyDown(window, { key: "q" });
+  expect(window.location.hash).toBe("#/leaf/web-graph-structure-refactor");
+
+  rerender(<ReviewReader slug="web-graph-structure-refactor" />);
+  await screen.findByText("그래프 구조를 분리한다.");
+  expect(screen.queryByText("References")).not.toBeInTheDocument();
 });
 
 test("moves between full page references with h and l", async () => {

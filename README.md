@@ -171,6 +171,7 @@ not appear in normal `git status` output.
 ```bash
 leaf init
 leaf new <slug>
+leaf keep <slug>
 leaf fall <slug> --reason <reason>
 leaf list [--json]
 leaf tree [--plain] [--demo]
@@ -203,6 +204,18 @@ not exist yet. Both are idempotent: existing files are never overwritten.
 Slug values must be path-safe ASCII strings using letters, digits, `-`, and
 `_`. Existing sprouts are not overwritten. Later phase folders are scaffolded
 by `leaf next <slug>` after the phase being left has been polished.
+
+`leaf keep <slug>` promotes a completed sprout into a leaf: it moves
+`.leaf/01-sprouts/<slug>/` to `.leaf/02-leaves/<slug>/` and rewrites the
+`00-status.md` stage line from `sprout` to `leaf`, leaving every other field and
+gate file intact. It is the mirror of `leaf fall`: where fall prunes an item off
+the tree, keep attaches a finished one to it. It is also the body of the
+close-out "keep" decision, and a leaf must reach this stage before `leaf press`
+can press it. If the sprout has not reached the `Feedback` phase yet, keep prints
+a warning that it may be premature but still proceeds; it refuses when the slug is
+already a leaf, when a sprout and leaf of the same slug collide (pointing you to
+`leaf doctor`), when nothing matches, or when the folder is a symlink, and it
+rolls the move back if the status rewrite fails.
 
 `leaf fall <slug> --reason <reason>` moves a sprout or leaf to
 `.leaf/03-fallen/<slug>/` and writes `fallen reason` plus closure fields into
