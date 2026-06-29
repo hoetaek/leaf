@@ -2,8 +2,8 @@ use super::DoctorFinding;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const SUFFIX: &str = ".leaf.local.toml";
-const SCHEMA: &str = "leaf.srp-sidecar.v1";
+pub(crate) const SUFFIX: &str = ".leaf.local.toml";
+pub(crate) const SCHEMA: &str = "leaf.srp-sidecar.v1";
 pub(crate) const EXCLUDE_LINE: &str = "*.leaf.local.toml";
 const REQUIRED_FIELDS: &[&str] = &[
     "schema",
@@ -32,53 +32,24 @@ pub(super) fn check(
     git_exclude: Option<&Path>,
     findings: &mut Vec<DoctorFinding>,
 ) {
-    let mut sidecars = Vec::new();
-    collect(repo_root, repo_root, &mut sidecars, findings);
+    let scan = collect_sidecar_paths(repo_root);
+    for (directory, err) in &scan.unreadable {
+        findings.push(
+            DoctorFinding::warn(
+                "srp_sidecar_scan_unreadable",
+                format!("failed to scan for SRP sidecars: {err}"),
+            )
+            .with_path(repo_relative_path(repo_root, directory)),
+        );
+    }
 
-    if sidecars.is_empty() {
+    if scan.sidecars.is_empty() {
         return;
     }
 
     check_exclude(repo_root, git_exclude, findings);
-    for sidecar_path in sidecars {
-        check_one(repo_root, &sidecar_path, findings);
-    }
-}
-
-fn collect(
-    repo_root: &Path,
-    directory: &Path,
-    sidecars: &mut Vec<PathBuf>,
-    findings: &mut Vec<DoctorFinding>,
-) {
-    let entries = match fs::read_dir(directory) {
-        Ok(entries) => entries,
-        Err(err) => {
-            findings.push(
-                DoctorFinding::warn(
-                    "srp_sidecar_scan_unreadable",
-                    format!("failed to scan for SRP sidecars: {err}"),
-                )
-                .with_path(repo_relative_path(repo_root, directory)),
-            );
-            return;
-        }
-    };
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        let name = entry.file_name().to_string_lossy().into_owned();
-        let Ok(file_type) = entry.file_type() else {
-            continue;
-        };
-        if file_type.is_dir() {
-            if should_skip_dir(&name) {
-                continue;
-            }
-            collect(repo_root, &path, sidecars, findings);
-        } else if file_type.is_file() && name.ends_with(SUFFIX) {
-            sidecars.push(path);
-        }
+    for sidecar_path in &scan.sidecars {
+        check_one(repo_root, sidecar_path, findings);
     }
 }
 
@@ -271,12 +242,7 @@ fn check_one(repo_root: &Path, sidecar_path: &Path, findings: &mut Vec<DoctorFin
         return;
     }
 
-    if let (Ok(sidecar_metadata), Ok(artifact_metadata)) =
-        (fs::metadata(sidecar_path), fs::metadata(&artifact_path))
-        && let (Ok(sidecar_modified), Ok(artifact_modified)) =
-            (sidecar_metadata.modified(), artifact_metadata.modified())
-        && artifact_modified > sidecar_modified
-    {
+    if is_stale(sidecar_path, &artifact_path) {
         findings.push(
             DoctorFinding::warn(
                 "srp_sidecar_stale",
@@ -315,4 +281,125 @@ fn repo_relative_path(repo_root: &Path, path: &Path) -> String {
         .map(|component| component.as_os_str().to_string_lossy())
         .collect::<Vec<_>>()
         .join("/")
+}
+
+/// Result of a findings-free sidecar scan: the paths found, plus directories
+/// that could not be read. The caller decides whether an unreadable directory
+/// is a finding — `doctor::check` turns it into `srp_sidecar_scan_unreadable`,
+/// `sidecar list` ignores it. This keeps the walk shared without coupling it to
+/// `doctor`'s findings vector.
+pub(crate) struct SidecarScan {
+    pub(crate) sidecars: Vec<PathBuf>,
+    pub(crate) unreadable: Vec<(PathBuf, String)>,
+}
+
+/// Walk `repo_root` and collect every `*.leaf.local.toml` path, skipping the
+/// same build/VCS directories `doctor` skips. Findings-free.
+pub(crate) fn collect_sidecar_paths(repo_root: &Path) -> SidecarScan {
+    let mut scan = SidecarScan {
+        sidecars: Vec::new(),
+        unreadable: Vec::new(),
+    };
+    collect_into(repo_root, &mut scan);
+    scan
+}
+
+fn collect_into(directory: &Path, scan: &mut SidecarScan) {
+    let entries = match fs::read_dir(directory) {
+        Ok(entries) => entries,
+        Err(err) => {
+            scan.unreadable
+                .push((directory.to_path_buf(), err.to_string()));
+            return;
+        }
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let Ok(file_type) = entry.file_type() else {
+            continue;
+        };
+        if file_type.is_dir() {
+            if should_skip_dir(&name) {
+                continue;
+            }
+            collect_into(&path, scan);
+        } else if file_type.is_file() && name.ends_with(SUFFIX) {
+            scan.sidecars.push(path);
+        }
+    }
+}
+
+/// True when the paired artifact is newer than the sidecar, so the
+/// responsibility contract may be out of date. Unreadable mtimes are not stale.
+pub(crate) fn is_stale(sidecar_path: &Path, artifact_path: &Path) -> bool {
+    let sidecar = fs::metadata(sidecar_path).and_then(|meta| meta.modified());
+    let artifact = fs::metadata(artifact_path).and_then(|meta| meta.modified());
+    matches!((sidecar, artifact), (Ok(sidecar), Ok(artifact)) if artifact > sidecar)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use assert_fs::prelude::*;
+    use std::time::Duration;
+
+    #[test]
+    fn is_stale_true_when_artifact_is_newer_than_sidecar() {
+        let dir = assert_fs::TempDir::new().expect("temp dir");
+        dir.child("a.rs.leaf.local.toml")
+            .write_str("sidecar\n")
+            .expect("sidecar");
+        std::thread::sleep(Duration::from_millis(20));
+        dir.child("a.rs").write_str("artifact\n").expect("artifact");
+        assert!(is_stale(
+            &dir.path().join("a.rs.leaf.local.toml"),
+            &dir.path().join("a.rs"),
+        ));
+    }
+
+    #[test]
+    fn is_stale_false_when_sidecar_is_newer_than_artifact() {
+        let dir = assert_fs::TempDir::new().expect("temp dir");
+        dir.child("a.rs").write_str("artifact\n").expect("artifact");
+        std::thread::sleep(Duration::from_millis(20));
+        dir.child("a.rs.leaf.local.toml")
+            .write_str("sidecar\n")
+            .expect("sidecar");
+        assert!(!is_stale(
+            &dir.path().join("a.rs.leaf.local.toml"),
+            &dir.path().join("a.rs"),
+        ));
+    }
+
+    #[test]
+    fn collect_sidecar_paths_finds_nested_and_skips_build_dirs() {
+        let dir = assert_fs::TempDir::new().expect("temp dir");
+        dir.child("src/a.rs.leaf.local.toml")
+            .write_str("x\n")
+            .expect("a");
+        dir.child("src/nested/b.rs.leaf.local.toml")
+            .write_str("x\n")
+            .expect("b");
+        dir.child("target/c.rs.leaf.local.toml")
+            .write_str("x\n")
+            .expect("c");
+        dir.child("src/normal.rs").write_str("x\n").expect("normal");
+
+        let scan = collect_sidecar_paths(dir.path());
+        let mut found: Vec<String> = scan
+            .sidecars
+            .iter()
+            .map(|p| repo_relative_path(dir.path(), p))
+            .collect();
+        found.sort();
+        assert_eq!(
+            found,
+            vec![
+                "src/a.rs.leaf.local.toml".to_string(),
+                "src/nested/b.rs.leaf.local.toml".to_string(),
+            ]
+        );
+        assert!(scan.unreadable.is_empty());
+    }
 }

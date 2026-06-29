@@ -1117,6 +1117,245 @@ responsibility = "Owns LEAF phase ordering."
         .stdout(predicate::str::contains("srp_sidecar_exclude_missing").not());
 }
 
+fn sidecar_repo() -> assert_fs::TempDir {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+    repo
+}
+
+#[test]
+fn sidecar_new_creates_a_doctor_clean_contract() {
+    let repo = sidecar_repo();
+    repo.child("src/widget.rs")
+        .write_str("// widget\n")
+        .expect("artifact");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args([
+            "sidecar",
+            "new",
+            "src/widget.rs",
+            "--responsibility",
+            "Owns the widget.",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "created src/widget.rs.leaf.local.toml",
+        ));
+
+    assert!(repo.path().join("src/widget.rs.leaf.local.toml").exists());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("srp_sidecar").not());
+}
+
+#[test]
+fn sidecar_new_refuses_overwrite_and_missing_artifact() {
+    let repo = sidecar_repo();
+    repo.child("src/widget.rs")
+        .write_str("// widget\n")
+        .expect("artifact");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "new", "src/widget.rs"])
+        .assert()
+        .success();
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "new", "src/widget.rs"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("already exists"));
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "new", "src/nope.rs"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("does not exist"));
+}
+
+#[test]
+fn sidecar_verify_rewrites_last_verified_and_clears_stale() {
+    let repo = sidecar_repo();
+    repo.child("src/widget.rs")
+        .write_str("// v1\n")
+        .expect("artifact");
+    repo.child("src/widget.rs.leaf.local.toml")
+        .write_str(
+            "schema = \"leaf.srp-sidecar.v1\"\n\
+             artifact = \"src/widget.rs\"\n\
+             status = \"advisory\"\n\
+             last_verified = \"2000-01-01\"\n\
+             responsibility = \"Owns the widget.\"\n",
+        )
+        .expect("sidecar");
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    repo.child("src/widget.rs")
+        .write_str("// v2 newer\n")
+        .expect("artifact update");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("srp_sidecar_stale"));
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "verify", "src/widget.rs"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("재확인"));
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("srp_sidecar_stale").not());
+
+    let content = fs::read_to_string(repo.path().join("src/widget.rs.leaf.local.toml"))
+        .expect("read sidecar");
+    assert!(!content.contains("2000-01-01"));
+    assert!(content.contains("last_verified = "));
+}
+
+#[test]
+fn sidecar_verify_bails_without_a_sidecar() {
+    let repo = sidecar_repo();
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "verify", "src/none.rs"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("no sidecar"));
+}
+
+#[test]
+fn sidecar_list_reports_states_and_empty() {
+    let repo = sidecar_repo();
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("no sidecars found"));
+
+    repo.child("src/a.rs")
+        .write_str("// a\n")
+        .expect("artifact");
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "new", "src/a.rs", "--responsibility", "Owns a."])
+        .assert()
+        .success();
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "list"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("src/a.rs"))
+        .stdout(predicate::str::contains("fresh"));
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "list", "--json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"state\""));
+}
+
+#[test]
+fn sidecar_new_normalizes_dotslash_artifact_to_stay_doctor_clean() {
+    let repo = sidecar_repo();
+    repo.child("src/a.rs")
+        .write_str("// a\n")
+        .expect("artifact");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args([
+            "sidecar",
+            "new",
+            "./src/a.rs",
+            "--responsibility",
+            "Owns a.",
+        ])
+        .assert()
+        .success();
+
+    assert!(repo.path().join("src/a.rs.leaf.local.toml").exists());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("srp_sidecar").not());
+}
+
+#[test]
+fn sidecar_new_writes_valid_toml_for_multiline_responsibility() {
+    let repo = sidecar_repo();
+    repo.child("src/a.rs")
+        .write_str("// a\n")
+        .expect("artifact");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args([
+            "sidecar",
+            "new",
+            "src/a.rs",
+            "--responsibility",
+            "line1\nline2",
+        ])
+        .assert()
+        .success();
+
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("srp_sidecar_invalid_toml").not());
+}
+
+#[test]
+fn sidecar_verify_bails_on_invalid_toml() {
+    let repo = sidecar_repo();
+    repo.child("src/a.rs")
+        .write_str("// a\n")
+        .expect("artifact");
+    repo.child("src/a.rs.leaf.local.toml")
+        .write_str("last_verified = \"2000-01-01\"\nbroken = [\n")
+        .expect("invalid sidecar");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "verify", "src/a.rs"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("not valid"));
+}
+
 #[test]
 fn doctor_warning_only_workspace_exits_zero_with_warning_result() {
     let repo = assert_fs::TempDir::new().expect("temp repo");

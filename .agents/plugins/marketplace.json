@@ -4,7 +4,7 @@
     "displayName": "LEAF"
   },
   "metadata": {
-    "version": "0.7.5"
+    "version": "0.7.6"
   },
   "plugins": [
     {
@@ -17,7 +17,7 @@
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
-      "version": "0.7.5",
+      "version": "0.7.6",
       "category": "Productivity"
     },
     {

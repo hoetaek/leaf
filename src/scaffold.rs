@@ -170,7 +170,7 @@ pub(crate) fn scaffold_phase(sprout: &Path, phase: Phase) -> Result<()> {
     Ok(())
 }
 
-fn write_new_file(path: &Path, body: &str) -> Result<()> {
+pub(crate) fn write_new_file(path: &Path, body: &str) -> Result<()> {
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)

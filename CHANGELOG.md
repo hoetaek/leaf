@@ -8,6 +8,21 @@ minor version instead of moving to `x.0.0`.
 
 ## 0.15.3 - 2026-06-29
 
+- Added `leaf sidecar` to author and maintain SRP sidecar contracts
+  (`*.leaf.local.toml`), closing the gap where `leaf doctor` could validate them
+  but nothing helped create them. Three nested subcommands — the CLI's first
+  nested command group:
+  - `leaf sidecar new <artifact> [--responsibility "…"]` scaffolds a valid v1
+    contract next to an existing artifact, refusing to overwrite an existing
+    sidecar or to point at a missing or out-of-repo artifact, and ensuring the
+    `*.leaf.local.toml` rule is in `.git/info/exclude`.
+  - `leaf sidecar verify <artifact>` re-records `last_verified` to today; that
+    write bumps the file's mtime past the artifact, clearing the stale warning.
+  - `leaf sidecar list [--json]` reports every sidecar with its freshness
+    (`fresh` / `stale` / `missing` / `broken`).
+  Validation stays solely in `leaf doctor`; the staleness check and a
+  findings-free sidecar collector were extracted as shared helpers so `doctor`
+  and `sidecar` agree on what is stale.
 - Added `leaf keep <slug>` to promote a completed sprout into a leaf — the mirror
   of `leaf fall`. It moves `.leaf/01-sprouts/<slug>/` to `.leaf/02-leaves/<slug>/`
   and rewrites the status stage line, warning (but not blocking) when the sprout
@@ -18,6 +33,13 @@ minor version instead of moving to `x.0.0`.
 - Plugin skills: released `leaf` plugin 0.7.5 — the soul review handoff now notes
   the web UI self-polls, so an already-open page is left as is rather than
   re-opened or reloaded.
+- Plugin skills: released `leaf` plugin 0.7.6 — the Learn closing quiz is now
+  multiple-choice, with plausible-but-wrong options so a correct pick takes
+  understanding rather than keyword recall, and Learn's parallel scouts are now
+  told in-prompt to search via the insane skills (`insane-research` for deep or
+  source-heavy research, `insane-search` for blocked sources), with the
+  availability and fallback logic consolidated into the single Research Tool
+  Check.
 
 ## 0.15.2 - 2026-06-28
 

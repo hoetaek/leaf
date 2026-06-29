@@ -181,23 +181,18 @@ Rules for the fan-out:
   a fifth scout for it. It targets teaching at the gap and is the baseline the
   closing knowledge quiz measures against; note too where the user is likely to be
   misled.
-- **Search the web actively.** Terrain and Method scouts search the web for
-  conventions, prior art, comparable cases, and recent domain changes when the
-  domain can shift over time, saving each find under `01-Learn/02-references/`.
-  The full contract is in `references/gate-02-unknowns-context.md`.
+- **Scouts search actively, via the insane skills.** Terrain and Method scouts
+  search the web for conventions, prior art, comparable cases, and recent domain
+  changes, saving each find under `01-Learn/02-references/`. Write each scout's
+  prompt to use the insane capability the Research Tool Check confirmed (skill or
+  MCP tool) — `insane-research` for deep or source-heavy research, `insane-search`
+  for blocked sources — falling back to built-in search, fetch, and browser when
+  neither is exposed. Full web-search contract:
+  `references/gate-02-unknowns-context.md`.
 - **Default to high-quality research when external facts can change the
-  judgment.** For broad external research, disputed claims, statistics,
-  law/policy/medical/financial facts, or source-heavy synthesis, read
-  `references/research-quality.md` and apply its source-rating, verification,
-  citation, and access-path rules. If the available skills list exposes
-  `insane-research-codex:*`, invoke that skill as a reference-producing scout
-  for deep research; if an MCP research tool is exposed, use that tool. If a
-  public source is blocked and either `insane-search-codex:insane-search` or an
-  MCP access tool is exposed, use it as an access fallback. Treat skill
-  availability and MCP tool exposure as separate facts; never treat a
-  `tool_search` miss as proof that the skill/plugin is unavailable. These are
-  optional accelerators; Learn must continue with built-in search, fetch,
-  browser, and explicit limitation notes when neither surface exposes them.
+  judgment.** For disputed claims, statistics, law/policy/medical/financial
+  facts, or source-heavy synthesis, follow `references/research-quality.md` for
+  its source-rating, verification, citation, and access-path rules.
 - **Scale honestly.** Skip a scout with nothing to find and name the skip and its
   reason; do not pad references for appearance.
 
@@ -211,15 +206,20 @@ into `02-unknowns.md` so later work does not have to re-read every file.
 ### Quiz
 
 Handing over references is not the same as the user learning them. Before resting
-Learn, pose a few short questions that check the user understands the core
-knowledge — the key concepts, why it is the way it is, the trade-offs and where
-the topic forks — as understanding they can put in their own words, not trivia
-recall. **Evaluate knowledge, not judgment:** once the knowledge a decision rests
-on has been investigated and understood, the ability to judge is assumed to
-follow, so do not quiz the user on what to choose. The point is the user
-generating the understanding themselves, not proving they read the files. Treat
-gaps the quiz reveals as fresh threads: send the relevant scout back or point to
-the reading, then re-check. Keep it light and curious, never an exam.
+Learn, pose a few short **multiple-choice** questions that check the user
+understands the core knowledge — the key concepts, why it is the way it is, the
+trade-offs and where the topic forks. Give each question 3–4 options whose wrong
+answers are plausible-but-wrong (common misconceptions or near-misses), so
+picking the right one takes understanding the concept, not recognizing a
+keyword — this keeps it a check of understanding, not trivia recall, and the
+point stays surfacing real understanding, not proving the files were read. After
+the user answers, briefly confirm why the right option is right and the others
+wrong, so the understanding is generated, not just selected. **Evaluate
+knowledge, not judgment:** once the knowledge a decision rests on has been
+investigated and understood, the ability to judge is assumed to follow, so do not
+quiz the user on what to choose. Treat gaps the quiz reveals as fresh threads:
+send the relevant scout back or point to the reading, then re-check. Keep it
+light and curious, never an exam.
 
 ## Status Overview
 
