@@ -201,7 +201,7 @@ fn utc_timestamp(time: SystemTime) -> Result<String> {
     let total_hours = total_minutes / 60;
     let hour = total_hours % 24;
     let days = (total_hours / 24) as i64;
-    let (year, month, day) = civil_from_days(days);
+    let (year, month, day) = crate::date::civil_from_days(days);
     Ok(format!(
         "{:02}{:02}{:02}-{:02}{:02}",
         year.rem_euclid(100),
@@ -210,21 +210,6 @@ fn utc_timestamp(time: SystemTime) -> Result<String> {
         hour,
         minute
     ))
-}
-
-fn civil_from_days(days_since_epoch: i64) -> (i32, u32, u32) {
-    let z = days_since_epoch + 719_468;
-    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
-    let day_of_era = z - era * 146_097;
-    let year_of_era =
-        (day_of_era - day_of_era / 1_460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
-    let year = year_of_era + era * 400;
-    let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
-    let month_prime = (5 * day_of_year + 2) / 153;
-    let day = day_of_year - (153 * month_prime + 2) / 5 + 1;
-    let month = month_prime + if month_prime < 10 { 3 } else { -9 };
-    let year = year + if month <= 2 { 1 } else { 0 };
-    (year as i32, month as u32, day as u32)
 }
 
 impl GateSpec {

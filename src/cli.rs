@@ -36,6 +36,11 @@ enum Commands {
         /// Path-safe sprout slug to keep as a leaf.
         slug: String,
     },
+    /// Author and maintain SRP sidecar contracts (validation stays in `leaf doctor`).
+    Sidecar {
+        #[command(subcommand)]
+        command: crate::sidecar::SidecarCommand,
+    },
     /// List .leaf workspace items.
     List {
         /// Write machine-readable JSON.
@@ -223,6 +228,11 @@ fn execute(cli: Cli) -> Result<ExitCode> {
                 repo_relative(&paths.root, &result.source),
                 repo_relative(&paths.root, &result.destination)
             );
+            Ok(ExitCode::SUCCESS)
+        }
+        Commands::Sidecar { command } => {
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            crate::sidecar::run(command, &paths, std::time::SystemTime::now())?;
             Ok(ExitCode::SUCCESS)
         }
         Commands::List { json } => {

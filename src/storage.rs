@@ -57,7 +57,7 @@ fn ensure_profile_file(leaf_root: &Path) -> Result<bool> {
     }
 }
 
-fn ensure_exclude_lines(path: &Path) -> Result<bool> {
+pub(crate) fn ensure_exclude_lines(path: &Path) -> Result<bool> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .with_context(|| format!("failed to create directory {}", parent.display()))?;

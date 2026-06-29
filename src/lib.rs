@@ -1,6 +1,7 @@
 mod checkpoint;
 mod cli;
 mod codex_config;
+mod date;
 mod doctor;
 mod doctor_output;
 mod fs_ext;
@@ -16,6 +17,7 @@ mod profile;
 mod review;
 mod scaffold;
 mod serve;
+mod sidecar;
 mod slug;
 mod storage;
 mod syntax;
