@@ -1357,6 +1357,80 @@ fn sidecar_verify_bails_on_invalid_toml() {
 }
 
 #[test]
+fn sidecar_new_refuses_artifact_under_scanner_skipped_dir() {
+    let repo = sidecar_repo();
+    repo.child("dist/app.js")
+        .write_str("// built\n")
+        .expect("artifact");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "new", "dist/app.js"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("which leaf doctor/list skip"));
+
+    assert!(!repo.path().join("dist/app.js.leaf.local.toml").exists());
+}
+
+#[test]
+fn sidecar_verify_refuses_when_artifact_is_missing() {
+    let repo = sidecar_repo();
+    repo.child("src/gone.rs")
+        .write_str("// gone\n")
+        .expect("artifact");
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "new", "src/gone.rs"])
+        .assert()
+        .success();
+    std::fs::remove_file(repo.path().join("src/gone.rs")).expect("delete artifact");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "verify", "src/gone.rs"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("does not exist"));
+}
+
+#[test]
+fn sidecar_verify_rejects_path_that_escapes_the_repo() {
+    let repo = sidecar_repo();
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "verify", "../escape.rs"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("inside the repo"));
+}
+
+#[test]
+fn sidecar_verify_refreshes_single_quoted_date() {
+    let repo = sidecar_repo();
+    repo.child("src/a.rs")
+        .write_str("// a\n")
+        .expect("artifact");
+    // A hand-written, doctor-clean contract using TOML literal-string quotes.
+    repo.child("src/a.rs.leaf.local.toml")
+        .write_str(
+            "schema = 'leaf.srp-sidecar.v1'\nartifact = 'src/a.rs'\nstatus = 'advisory'\nlast_verified = '2000-01-01'\nresponsibility = 'Owns a.'\n",
+        )
+        .expect("sidecar");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["sidecar", "verify", "src/a.rs"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("재확인"));
+
+    let updated = std::fs::read_to_string(repo.path().join("src/a.rs.leaf.local.toml"))
+        .expect("read sidecar");
+    assert!(!updated.contains("2000-01-01"));
+}
+
+#[test]
 fn doctor_warning_only_workspace_exits_zero_with_warning_result() {
     let repo = assert_fs::TempDir::new().expect("temp repo");
     git_init(repo.path());
