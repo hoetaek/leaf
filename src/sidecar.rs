@@ -7,6 +7,7 @@ use std::fs;
 use std::io::Write;
 use std::path::{Component, Path};
 use std::time::SystemTime;
+use unicode_width::UnicodeWidthStr;
 
 /// Author and maintain SRP sidecar contracts (`*.leaf.local.toml`). Validation
 /// stays in `leaf doctor`; this command only creates and refreshes the files.
@@ -106,6 +107,7 @@ fn verify(paths: &RepoPaths, artifact: &str, now: SystemTime) -> Result<()> {
         .with_context(|| format!("failed to write sidecar {sidecar_rel}"))?;
 
     println!("✓ 재확인: last_verified → {today} (stale 해소)");
+    eprintln!("  계약 내용이 v1에 맞는지는 leaf doctor로 확인하세요 — verify는 검증기가 아닙니다.");
     Ok(())
 }
 
@@ -139,18 +141,26 @@ fn list(paths: &RepoPaths, json: bool) -> Result<()> {
         return Ok(());
     }
 
+    // Pad by display width, not byte or char count: multibyte artifact paths
+    // (e.g. Korean) render two columns per glyph, so `{:<width$}` alone — which
+    // counts chars — would misalign the table.
     let width = rows
         .iter()
-        .map(|row| row.artifact.len())
+        .map(|row| row.artifact.width())
         .max()
         .unwrap_or(0)
-        .max("ARTIFACT".len());
-    println!("{:<width$}  {:<13}  STATE", "ARTIFACT", "LAST_VERIFIED");
+        .max("ARTIFACT".width());
+    println!(
+        "{}  {:<13}  STATE",
+        pad_display("ARTIFACT", width),
+        "LAST_VERIFIED"
+    );
     for row in &rows {
         let last_verified = row.last_verified.as_deref().unwrap_or("-");
         println!(
-            "{:<width$}  {last_verified:<13}  {}",
-            row.artifact, row.state
+            "{}  {last_verified:<13}  {}",
+            pad_display(&row.artifact, width),
+            row.state
         );
     }
 
@@ -164,6 +174,13 @@ fn list(paths: &RepoPaths, json: bool) -> Result<()> {
     }
     println!("{summary}");
     Ok(())
+}
+
+/// Left-pad `text` with spaces to occupy `width` terminal columns, measuring by
+/// display width so multibyte glyphs (which render two columns) line up.
+fn pad_display(text: &str, width: usize) -> String {
+    let pad = width.saturating_sub(text.width());
+    format!("{text}{}", " ".repeat(pad))
 }
 
 fn classify(root: &Path, sidecar_path: &Path) -> SidecarRow {
@@ -206,16 +223,29 @@ fn classify(root: &Path, sidecar_path: &Path) -> SidecarRow {
     }
 }
 
+/// v1 SRP contract, fields ordered for a human reader (schema first). Serde
+/// emits struct fields in declaration order, unlike a `toml::Table` (BTreeMap),
+/// which would sort them alphabetically.
+#[derive(Serialize)]
+struct ScaffoldContract<'a> {
+    schema: &'a str,
+    artifact: &'a str,
+    status: &'a str,
+    last_verified: &'a str,
+    responsibility: &'a str,
+}
+
 fn scaffold_body(artifact: &str, responsibility: &str, today: &str) -> String {
     // Serialize through the `toml` crate so every value is correctly escaped
     // (control chars, quotes, backslashes) — a hand-rolled formatter is not.
-    let mut table = toml::Table::new();
-    table.insert("schema".into(), srp_sidecar::SCHEMA.into());
-    table.insert("artifact".into(), artifact.into());
-    table.insert("status".into(), "advisory".into());
-    table.insert("last_verified".into(), today.into());
-    table.insert("responsibility".into(), responsibility.into());
-    toml::to_string(&table).expect("sidecar scaffold serializes to TOML")
+    let contract = ScaffoldContract {
+        schema: srp_sidecar::SCHEMA,
+        artifact,
+        status: "advisory",
+        last_verified: today,
+        responsibility,
+    };
+    toml::to_string(&contract).expect("sidecar scaffold serializes to TOML")
 }
 
 /// Rewrite the single `last_verified = "..."` line to `today`, preserving the
@@ -291,6 +321,29 @@ mod tests {
         assert!(body.contains("last_verified = \"2026-06-29\""));
         assert!(body.contains("responsibility = \"Owns foo.\""));
         let _: toml::Value = toml::from_str(&body).expect("scaffold is valid TOML");
+        // Fields keep declaration order (schema first), not alphabetical order.
+        let positions: Vec<usize> = [
+            "schema",
+            "artifact",
+            "status",
+            "last_verified",
+            "responsibility",
+        ]
+        .into_iter()
+        .map(|key| body.find(key).expect("field present"))
+        .collect();
+        assert!(
+            positions.windows(2).all(|pair| pair[0] < pair[1]),
+            "scaffold fields must stay in declaration order: {body}"
+        );
+    }
+
+    #[test]
+    fn pad_display_accounts_for_wide_glyphs() {
+        // A 2-column Korean glyph plus padding to width 4 yields no extra space;
+        // an ASCII char to the same width gets three trailing spaces.
+        assert_eq!(pad_display("가", 4).width(), 4);
+        assert_eq!(pad_display("a", 4), "a   ");
     }
 
     #[test]
