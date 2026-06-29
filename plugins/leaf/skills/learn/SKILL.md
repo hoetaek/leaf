@@ -181,23 +181,18 @@ Rules for the fan-out:
   a fifth scout for it. It targets teaching at the gap and is the baseline the
   closing knowledge quiz measures against; note too where the user is likely to be
   misled.
-- **Search the web actively.** Terrain and Method scouts search the web for
-  conventions, prior art, comparable cases, and recent domain changes when the
-  domain can shift over time, saving each find under `01-Learn/02-references/`.
-  The full contract is in `references/gate-02-unknowns-context.md`.
+- **Scouts search actively, via the insane skills.** Terrain and Method scouts
+  search the web for conventions, prior art, comparable cases, and recent domain
+  changes, saving each find under `01-Learn/02-references/`. Write each scout's
+  prompt to use the insane capability the Research Tool Check confirmed (skill or
+  MCP tool) — `insane-research` for deep or source-heavy research, `insane-search`
+  for blocked sources — falling back to built-in search, fetch, and browser when
+  neither is exposed. Full web-search contract:
+  `references/gate-02-unknowns-context.md`.
 - **Default to high-quality research when external facts can change the
-  judgment.** For broad external research, disputed claims, statistics,
-  law/policy/medical/financial facts, or source-heavy synthesis, read
-  `references/research-quality.md` and apply its source-rating, verification,
-  citation, and access-path rules. If the available skills list exposes
-  `insane-research-codex:*`, invoke that skill as a reference-producing scout
-  for deep research; if an MCP research tool is exposed, use that tool. If a
-  public source is blocked and either `insane-search-codex:insane-search` or an
-  MCP access tool is exposed, use it as an access fallback. Treat skill
-  availability and MCP tool exposure as separate facts; never treat a
-  `tool_search` miss as proof that the skill/plugin is unavailable. These are
-  optional accelerators; Learn must continue with built-in search, fetch,
-  browser, and explicit limitation notes when neither surface exposes them.
+  judgment.** For disputed claims, statistics, law/policy/medical/financial
+  facts, or source-heavy synthesis, follow `references/research-quality.md` for
+  its source-rating, verification, citation, and access-path rules.
 - **Scale honestly.** Skip a scout with nothing to find and name the skip and its
   reason; do not pad references for appearance.
 
