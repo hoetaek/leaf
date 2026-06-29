@@ -89,14 +89,14 @@ language first. Do not rely on repeated raw tokens like `FACT` and
 
 Don't make the user hunt for what to review — open it for them, not a path to
 chase. When you cross a phase boundary (`leaf next`) or hand a LEAF gate back,
-open the item's live page: `http://127.0.0.1:<port>/#/leaf/<slug>`. The port is
-not fixed — `leaf serve` takes 4173 or the next free port (4174, 4175…) and
-serves the folder it launched from. So get `<port>` from the `leaf serve` you
-start in this repo (its startup line), and before reusing a running one, confirm
-via `GET /api/list` that it serves this repo; start one only if none does, never
-duplicating servers or tabs. For other artifacts, render them first — a browser
-for HTML, capturing relevant states. Pair each with the one thing to verify; if a
-tool is unavailable, say so and give the exact path plus the check.
+open the item's live page: `http://127.0.0.1:<port>/#/leaf/<slug>`. `leaf serve`
+binds 4173 or the next free port; read `<port>` from its startup line. Before
+reusing a running server, confirm via `GET /api/list` that it serves this repo,
+and start one only if none does. The UI polls (~5s) and reflects `.leaf/` changes
+itself, so once a tab is open, don't re-open or reload it — never duplicate
+servers or tabs. For other artifacts, render them first — a browser for HTML,
+capturing relevant states. Pair each with the one thing to verify; if a tool is
+unavailable, say so and give the exact path plus the check.
 
 ## Before you finish
 
