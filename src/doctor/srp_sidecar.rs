@@ -53,7 +53,7 @@ pub(super) fn check(
     }
 }
 
-fn should_skip_dir(name: &str) -> bool {
+pub(crate) fn should_skip_dir(name: &str) -> bool {
     matches!(
         name,
         ".git" | "target" | "node_modules" | ".next" | "dist" | "coverage"

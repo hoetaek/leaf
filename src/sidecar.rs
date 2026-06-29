@@ -57,6 +57,15 @@ fn new(
     if !paths.root.join(&artifact).exists() {
         bail!("artifact does not exist: {artifact}");
     }
+    // A sidecar under a directory the scanner skips (target, node_modules, …)
+    // would never appear in `leaf sidecar list` or be validated by `leaf
+    // doctor`. Refuse to create an invisible contract.
+    if let Some(skipped) = artifact
+        .split('/')
+        .find(|segment| srp_sidecar::should_skip_dir(segment))
+    {
+        bail!("artifact is under {skipped:?}, which leaf doctor/list skip: {artifact}");
+    }
     let sidecar_rel = format!("{artifact}{}", srp_sidecar::SUFFIX);
     let sidecar_path = paths.root.join(&sidecar_rel);
     if sidecar_path.exists() {
@@ -88,10 +97,18 @@ fn new(
 }
 
 fn verify(paths: &RepoPaths, artifact: &str, now: SystemTime) -> Result<()> {
+    // Normalize like `new` so `verify ../x` can never reach a file outside the
+    // repo, and so the sidecar pairing matches what `doctor` derives.
+    let artifact = normalize_artifact(artifact)?;
     let sidecar_rel = format!("{artifact}{}", srp_sidecar::SUFFIX);
     let sidecar_path = paths.root.join(&sidecar_rel);
     if !sidecar_path.exists() {
         bail!("no sidecar at {sidecar_rel}");
+    }
+    // Refuse to report success for a contract whose artifact is gone; `doctor`
+    // would still flag srp_sidecar_artifact_missing, and `new` refuses it too.
+    if !paths.root.join(&artifact).exists() {
+        bail!("artifact does not exist: {artifact} (run leaf doctor)");
     }
 
     let content = fs::read_to_string(&sidecar_path)
@@ -206,7 +223,16 @@ fn classify(root: &Path, sidecar_path: &Path) -> SidecarRow {
         .get("last_verified")
         .and_then(toml::Value::as_str)
         .map(str::to_string);
-    let artifact_path = root.join(&artifact_rel);
+    // Resolve freshness against the contract's declared `artifact`, the same
+    // field `doctor` uses — not the filename — so the two never disagree when a
+    // hand-written sidecar's `artifact` differs from its filename. Fall back to
+    // the filename-derived path when the field is absent.
+    let declared_artifact = document
+        .get("artifact")
+        .and_then(toml::Value::as_str)
+        .map(str::to_string)
+        .unwrap_or_else(|| artifact_rel.clone());
+    let artifact_path = root.join(&declared_artifact);
     let state = if !artifact_path.exists() {
         "missing"
     } else if srp_sidecar::is_stale(sidecar_path, &artifact_path) {
@@ -216,7 +242,7 @@ fn classify(root: &Path, sidecar_path: &Path) -> SidecarRow {
     };
 
     SidecarRow {
-        artifact: artifact_rel,
+        artifact: declared_artifact,
         sidecar: sidecar_rel,
         last_verified,
         state,
@@ -248,15 +274,26 @@ fn scaffold_body(artifact: &str, responsibility: &str, today: &str) -> String {
     toml::to_string(&contract).expect("sidecar scaffold serializes to TOML")
 }
 
-/// Rewrite the single `last_verified = "..."` line to `today`, preserving the
-/// indentation and anything trailing (e.g. a comment). Bails when no such line
-/// exists — `verify` is not a validator, so it routes malformed files to
-/// `leaf doctor` instead of guessing.
+/// Rewrite the top-level `last_verified` value to `today`, preserving the
+/// indentation and anything trailing (e.g. a comment). Only the v1 top-level
+/// key is touched — a `last_verified` nested under a `[table]` is skipped, since
+/// `doctor` validates the top-level field. Bails when no such line exists —
+/// `verify` is not a validator, so it routes malformed files to `leaf doctor`
+/// instead of guessing.
 fn replace_last_verified(content: &str, today: &str) -> Result<String> {
     let mut out = String::with_capacity(content.len());
     let mut replaced = false;
+    let mut in_top_level_table = true;
     for line in content.split_inclusive('\n') {
-        if !replaced && let Some(rewritten) = rewrite_last_verified_line(line, today) {
+        // A `[section]` or `[[array]]` header leaves the top-level table; every
+        // key after it is nested and must not be mistaken for the v1 field.
+        if line.trim_start().starts_with('[') {
+            in_top_level_table = false;
+        }
+        if !replaced
+            && in_top_level_table
+            && let Some(rewritten) = rewrite_last_verified_line(line, today)
+        {
             out.push_str(&rewritten);
             replaced = true;
         } else {
@@ -274,10 +311,13 @@ fn rewrite_last_verified_line(line: &str, today: &str) -> Option<String> {
     let indent = &line[..line.len() - trimmed.len()];
     let rest = trimmed.strip_prefix("last_verified")?.trim_start();
     let rest = rest.strip_prefix('=')?.trim_start();
-    let rest = rest.strip_prefix('"')?;
-    // First `"` closes the value; v1 `last_verified` is a date with no inner quotes.
-    let close = rest.find('"')?;
-    let after = &rest[close + 1..];
+    // v1 `last_verified` is a quoted string; doctor accepts both TOML string
+    // quote styles, so match whichever opens the value. The same char closes it
+    // (a date has no inner quote).
+    let quote = rest.chars().next().filter(|c| *c == '"' || *c == '\'')?;
+    let rest = &rest[quote.len_utf8()..];
+    let close = rest.find(quote)?;
+    let after = &rest[close + quote.len_utf8()..];
     Some(format!("{indent}last_verified = \"{today}\"{after}"))
 }
 
@@ -360,6 +400,34 @@ mod tests {
     #[test]
     fn replace_last_verified_bails_when_line_absent() {
         let original = "schema = \"x\"\nresponsibility = \"y\"\n";
+        assert!(replace_last_verified(original, "2026-06-29").is_err());
+    }
+
+    #[test]
+    fn replace_last_verified_accepts_single_quoted_value() {
+        // A literal-string date is valid TOML and doctor-clean; verify must
+        // refresh it rather than reject it.
+        let original = "last_verified = '2000-01-01'\n";
+        let updated = replace_last_verified(original, "2026-06-29").expect("replaced");
+        assert!(updated.contains("last_verified = \"2026-06-29\""));
+        assert!(!updated.contains("2000-01-01"));
+    }
+
+    #[test]
+    fn replace_last_verified_ignores_nested_key_and_rewrites_top_level() {
+        // A `last_verified` under a [table] is not the v1 field; only the
+        // top-level key may be rewritten.
+        let original = "last_verified = \"2000-01-01\"\n\n[meta]\nlast_verified = \"1999-01-01\"\n";
+        let updated = replace_last_verified(original, "2026-06-29").expect("replaced");
+        assert!(updated.contains("last_verified = \"2026-06-29\""));
+        assert!(updated.contains("[meta]\nlast_verified = \"1999-01-01\""));
+    }
+
+    #[test]
+    fn replace_last_verified_bails_when_only_nested_key_present() {
+        // Top-level field missing (doctor-invalid); refuse instead of touching
+        // the nested one and falsely reporting success.
+        let original = "schema = \"x\"\n\n[meta]\nlast_verified = \"1999-01-01\"\n";
         assert!(replace_last_verified(original, "2026-06-29").is_err());
     }
 
