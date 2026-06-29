@@ -38,6 +38,7 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
     : -1;
   const openSelectedReference = useCallback(() => {
     if (!data || !selectedReference) return;
+    setShowRefs(false);
     openReference(data.slug, selectedReference.relative_path);
   }, [data, selectedReference]);
   const openFullPageReferenceByStep = useCallback(
@@ -58,6 +59,7 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
   );
   const openNextFullPageReference = useCallback(() => openFullPageReferenceByStep(1), [openFullPageReferenceByStep]);
   const backToReview = useCallback(() => {
+    setShowRefs(false);
     window.location.hash = leafHref(slug);
   }, [slug]);
 
@@ -72,7 +74,7 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
     setRefFocus,
     setRefSel,
     setShowRefs,
-    showRefs,
+    showRefs: referencePath ? false : showRefs,
   });
 
   if (!slug) {
