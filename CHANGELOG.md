@@ -6,6 +6,22 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.15.5 - 2026-06-29
+
+- Fixed `leaf sidecar` to agree with `leaf doctor` in the cases an automated
+  review surfaced:
+  - `verify` now normalizes its artifact path (rejecting `..`/absolute paths,
+    so it can never rewrite a file outside the repo) and refuses when the paired
+    artifact is missing, matching `new`.
+  - `verify` refreshes `last_verified` whether it is written with double or
+    single quotes (both are doctor-clean TOML strings), and only rewrites the
+    top-level key — a `last_verified` nested under a `[table]` is left alone.
+  - `new` refuses an artifact under a directory the scanner skips (`target`,
+    `node_modules`, `.git`, `.next`, `dist`, `coverage`), which would otherwise
+    create a sidecar invisible to `list` and `doctor`.
+  - `list` resolves freshness against the contract's declared `artifact` field
+    (as `doctor` does), not the filename, so the two never disagree.
+
 ## 0.15.4 - 2026-06-29
 
 - Added `leaf sidecar` to author and maintain SRP sidecar contracts
