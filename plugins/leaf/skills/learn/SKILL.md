@@ -211,15 +211,20 @@ into `02-unknowns.md` so later work does not have to re-read every file.
 ### Quiz
 
 Handing over references is not the same as the user learning them. Before resting
-Learn, pose a few short questions that check the user understands the core
-knowledge — the key concepts, why it is the way it is, the trade-offs and where
-the topic forks — as understanding they can put in their own words, not trivia
-recall. **Evaluate knowledge, not judgment:** once the knowledge a decision rests
-on has been investigated and understood, the ability to judge is assumed to
-follow, so do not quiz the user on what to choose. The point is the user
-generating the understanding themselves, not proving they read the files. Treat
-gaps the quiz reveals as fresh threads: send the relevant scout back or point to
-the reading, then re-check. Keep it light and curious, never an exam.
+Learn, pose a few short **multiple-choice** questions that check the user
+understands the core knowledge — the key concepts, why it is the way it is, the
+trade-offs and where the topic forks. Give each question 3–4 options whose wrong
+answers are plausible-but-wrong (common misconceptions or near-misses), so
+picking the right one takes understanding the concept, not recognizing a
+keyword — this keeps it a check of understanding, not trivia recall, and the
+point stays surfacing real understanding, not proving the files were read. After
+the user answers, briefly confirm why the right option is right and the others
+wrong, so the understanding is generated, not just selected. **Evaluate
+knowledge, not judgment:** once the knowledge a decision rests on has been
+investigated and understood, the ability to judge is assumed to follow, so do not
+quiz the user on what to choose. Treat gaps the quiz reveals as fresh threads:
+send the relevant scout back or point to the reading, then re-check. Keep it
+light and curious, never an exam.
 
 ## Status Overview
 
