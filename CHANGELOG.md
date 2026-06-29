@@ -18,6 +18,13 @@ minor version instead of moving to `x.0.0`.
 - Plugin skills: released `leaf` plugin 0.7.5 — the soul review handoff now notes
   the web UI self-polls, so an already-open page is left as is rather than
   re-opened or reloaded.
+- Plugin skills: released `leaf` plugin 0.7.6 — the Learn closing quiz is now
+  multiple-choice, with plausible-but-wrong options so a correct pick takes
+  understanding rather than keyword recall, and Learn's parallel scouts are now
+  told in-prompt to search via the insane skills (`insane-research` for deep or
+  source-heavy research, `insane-search` for blocked sources), with the
+  availability and fallback logic consolidated into the single Research Tool
+  Check.
 
 ## 0.15.2 - 2026-06-28
 
