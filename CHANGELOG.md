@@ -6,6 +6,19 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.15.3 - 2026-06-29
+
+- Added `leaf keep <slug>` to promote a completed sprout into a leaf — the mirror
+  of `leaf fall`. It moves `.leaf/01-sprouts/<slug>/` to `.leaf/02-leaves/<slug>/`
+  and rewrites the status stage line, warning (but not blocking) when the sprout
+  has not reached the Feedback phase, refusing when the slug is already a leaf, is
+  missing, or is a symlink, and rolling the move back if the status write fails.
+  It is the body of the close-out "keep" step and a prerequisite for `leaf press`.
+- Fixed reference-detail keyboard scrolling in the `leaf serve` web UI.
+- Plugin skills: released `leaf` plugin 0.7.5 — the soul review handoff now notes
+  the web UI self-polls, so an already-open page is left as is rather than
+  re-opened or reloaded.
+
 ## 0.15.2 - 2026-06-28
 
 - Bumped `sha2` to 0.11 and hex-encode the update checksum digest directly, so
