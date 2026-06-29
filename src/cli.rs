@@ -31,6 +31,11 @@ enum Commands {
         #[arg(long)]
         reason: String,
     },
+    /// Promote a completed sprout into a leaf (keep it on the tree).
+    Keep {
+        /// Path-safe sprout slug to keep as a leaf.
+        slug: String,
+    },
     /// List .leaf workspace items.
     List {
         /// Write machine-readable JSON.
@@ -197,6 +202,24 @@ fn execute(cli: Cli) -> Result<ExitCode> {
             let result = crate::lifecycle::fall_leaf(&paths.root, &slug, &reason)?;
             println!(
                 "moved {}/ to {}/",
+                repo_relative(&paths.root, &result.source),
+                repo_relative(&paths.root, &result.destination)
+            );
+            Ok(ExitCode::SUCCESS)
+        }
+        Commands::Keep { slug } => {
+            let slug = crate::slug::validate(&slug)?;
+            let paths = crate::git::repo_paths(std::env::current_dir()?)?;
+            crate::storage::ensure_leaf_root(&paths)?;
+            let result = crate::lifecycle::keep_leaf(&paths.root, &slug)?;
+            if let Some(phase) = &result.premature {
+                eprintln!(
+                    "⚠ {slug}는 아직 Feedback에 도달하지 않았습니다 (current phase: {phase}). \
+                     완료 전 keep일 수 있습니다 — 그래도 진행합니다."
+                );
+            }
+            println!(
+                "✓ {slug}: sprout → leaf\n  {}/ → {}/\n  stage: sprout → leaf",
                 repo_relative(&paths.root, &result.source),
                 repo_relative(&paths.root, &result.destination)
             );

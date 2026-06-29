@@ -1899,6 +1899,231 @@ fn fall_rejects_blank_reason() {
 }
 
 #[test]
+fn keep_moves_sprout_to_leaf_and_rewrites_stage_and_title() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    repo.child(".leaf/01-sprouts/research-memo/00-status.md")
+        .write_str(
+            "# Sprout Status\n\n\
+             - stage: sprout\n\
+             - current phase: Feedback\n\
+             - current gate: ⑩ Retrospect\n\
+             - first missing gate: -\n\
+             - next action: keep\n",
+        )
+        .expect("status");
+    repo.child(".leaf/01-sprouts/research-memo/01-Learn/01-intent.md")
+        .write_str("preserve this intent\n")
+        .expect("intent");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["keep", "research-memo"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("✓ research-memo: sprout → leaf"))
+        .stdout(predicate::str::contains(
+            ".leaf/01-sprouts/research-memo/ → .leaf/02-leaves/research-memo/",
+        ))
+        .stdout(predicate::str::contains("stage: sprout → leaf"))
+        .stderr(predicate::str::contains("⚠").not());
+
+    repo.child(".leaf/01-sprouts/research-memo")
+        .assert(predicate::path::missing());
+    repo.child(".leaf/02-leaves/research-memo/01-Learn/01-intent.md")
+        .assert("preserve this intent\n");
+
+    let status = fs::read_to_string(
+        repo.path()
+            .join(".leaf/02-leaves/research-memo/00-status.md"),
+    )
+    .expect("leaf status");
+    assert!(status.contains("# Leaf Status"), "{status}");
+    assert!(!status.contains("# Sprout Status"), "{status}");
+    assert!(status.contains("- stage: leaf"), "{status}");
+    assert!(!status.contains("- stage: sprout"), "{status}");
+    // Every other field is preserved verbatim.
+    assert!(status.contains("- current phase: Feedback"), "{status}");
+    assert!(status.contains("- next action: keep"), "{status}");
+}
+
+#[test]
+fn keep_warns_before_feedback_but_still_proceeds() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_sprout_status(&repo, "research-memo"); // current phase: Learn
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["keep", "research-memo"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("✓ research-memo: sprout → leaf"))
+        .stderr(predicate::str::contains("아직 Feedback"))
+        .stderr(predicate::str::contains("current phase: Learn"));
+
+    repo.child(".leaf/01-sprouts/research-memo")
+        .assert(predicate::path::missing());
+    repo.child(".leaf/02-leaves/research-memo/00-status.md")
+        .assert(predicate::path::is_file());
+}
+
+#[test]
+fn keep_rejects_when_already_a_leaf_without_change() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_leaf_status(&repo, "research-memo", false);
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["keep", "research-memo"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("already a leaf"));
+
+    repo.child(".leaf/02-leaves/research-memo/00-status.md")
+        .assert(predicate::path::is_file());
+}
+
+#[test]
+fn keep_rejects_when_sprout_and_leaf_collide_without_moving_either() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    write_sprout_status(&repo, "research-memo");
+    write_leaf_status(&repo, "research-memo", false);
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["keep", "research-memo"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("ambiguous slug"))
+        .stderr(predicate::str::contains("run leaf doctor"));
+
+    repo.child(".leaf/01-sprouts/research-memo/00-status.md")
+        .assert(predicate::path::is_file());
+    repo.child(".leaf/02-leaves/research-memo/00-status.md")
+        .assert(predicate::path::is_file());
+}
+
+#[test]
+fn keep_rejects_missing_sprout_without_creating_dirs() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["keep", "ghost"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("sprout does not exist"));
+
+    repo.child(".leaf/02-leaves/ghost")
+        .assert(predicate::path::missing());
+    repo.child(".leaf/01-sprouts/ghost")
+        .assert(predicate::path::missing());
+}
+
+#[test]
+fn keep_leaves_workspace_clean_for_doctor() {
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    repo.child(".leaf/01-sprouts/research-memo/00-status.md")
+        .write_str(
+            "# Sprout Status\n\n\
+             - why: keep the tree honest\n\
+             - what: a thing\n\
+             - wireframe: a sketch\n\
+             - stage: sprout\n\
+             - current phase: Feedback\n\
+             - current gate: ⑩ Retrospect\n\
+             - first missing gate: -\n\
+             - next action: keep\n",
+        )
+        .expect("status");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["keep", "research-memo"])
+        .assert()
+        .success();
+
+    // No errors (exit 0) means no `stage_dir_mismatch`; the moved leaf agrees
+    // with its `- stage: leaf` field.
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("stage_dir_mismatch").not());
+}
+
+#[cfg(unix)]
+#[test]
+fn keep_rejects_symlink_source_without_writing_target() {
+    use std::os::unix::fs::symlink;
+
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    leaf_command()
+        .current_dir(repo.path())
+        .arg("init")
+        .assert()
+        .success();
+    let target = repo.path().join("outside-target");
+    fs::create_dir(&target).expect("target dir");
+    fs::write(target.join("00-status.md"), "outside status\n").expect("target status");
+    symlink(&target, repo.path().join(".leaf/01-sprouts/research-memo")).expect("source symlink");
+
+    leaf_command()
+        .current_dir(repo.path())
+        .args(["keep", "research-memo"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("symlink"));
+
+    repo.child("outside-target/00-status.md")
+        .assert("outside status\n");
+    repo.child(".leaf/02-leaves/research-memo")
+        .assert(predicate::path::missing());
+}
+
+#[cfg(unix)]
+#[test]
+fn keep_rolls_back_when_status_write_fails_after_move() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let repo = assert_fs::TempDir::new().expect("temp repo");
+    git_init(repo.path());
+    let source_status = repo
+        .path()
+        .join(".leaf/01-sprouts/research-memo/00-status.md");
+    repo.child(".leaf/01-sprouts/research-memo/00-status.md")
+        .write_str("# Sprout Status\n\n- stage: sprout\n- current phase: Feedback\n")
+        .expect("source status");
+    fs::set_permissions(&source_status, fs::Permissions::from_mode(0o444))
+        .expect("lock source status");
+
+    let output = leaf_command()
+        .current_dir(repo.path())
+        .args(["keep", "research-memo"])
+        .output()
+        .expect("keep command");
+    if source_status.exists() {
+        fs::set_permissions(&source_status, fs::Permissions::from_mode(0o644))
+            .expect("unlock source status");
+    }
+
+    assert!(!output.status.success(), "keep unexpectedly succeeded");
+    let stderr = String::from_utf8(output.stderr).expect("utf8 stderr");
+    assert!(stderr.contains("rolled back move"), "{stderr}");
+    repo.child(".leaf/01-sprouts/research-memo/00-status.md")
+        .assert(predicate::path::is_file());
+    repo.child(".leaf/02-leaves/research-memo")
+        .assert(predicate::path::missing());
+}
+
+#[test]
 fn init_creates_stage_dirs() {
     let repo = assert_fs::TempDir::new().expect("tempdir");
     git_init(repo.path());
