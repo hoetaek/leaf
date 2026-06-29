@@ -6,7 +6,7 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
-## 0.15.3 - 2026-06-29
+## 0.15.4 - 2026-06-29
 
 - Added `leaf sidecar` to author and maintain SRP sidecar contracts
   (`*.leaf.local.toml`), closing the gap where `leaf doctor` could validate them
@@ -18,11 +18,17 @@ minor version instead of moving to `x.0.0`.
     `*.leaf.local.toml` rule is in `.git/info/exclude`.
   - `leaf sidecar verify <artifact>` re-records `last_verified` to today; that
     write bumps the file's mtime past the artifact, clearing the stale warning.
+    On success it points at `leaf doctor` for contract validation, since
+    `verify` only refreshes the timestamp.
   - `leaf sidecar list [--json]` reports every sidecar with its freshness
-    (`fresh` / `stale` / `missing` / `broken`).
+    (`fresh` / `stale` / `missing` / `broken`), aligning the table by display
+    width so multibyte artifact paths stay in columns.
   Validation stays solely in `leaf doctor`; the staleness check and a
   findings-free sidecar collector were extracted as shared helpers so `doctor`
   and `sidecar` agree on what is stale.
+
+## 0.15.3 - 2026-06-29
+
 - Added `leaf keep <slug>` to promote a completed sprout into a leaf — the mirror
   of `leaf fall`. It moves `.leaf/01-sprouts/<slug>/` to `.leaf/02-leaves/<slug>/`
   and rewrites the status stage line, warning (but not blocking) when the sprout
