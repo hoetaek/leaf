@@ -37,6 +37,7 @@ the full artifact.
 | **press** | `$leaf:press` | Turns reference-worthy work into a citable digest. |
 | **profile** | LEAF preferences | Reads or updates global and repo-local LEAF profile entries. |
 | **tend** | `$leaf:tend`, pressed docs drift | Checks pressed digests against current code. |
+| **sidecar** | `$leaf:sidecar <artifact>` | Authors or refreshes an SRP single-responsibility `*.leaf.toml` contract for an artifact. |
 | **install** | `$leaf:install` | Installs or updates the `leaf` CLI, then verifies `leaf --version`. |
 | **help** | `$leaf:help`, `/leaf:help` | This card. |
 
