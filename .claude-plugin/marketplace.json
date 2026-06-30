@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "LEAF workflow skills — Claude Code + Codex plugin marketplace",
-    "version": "0.7.6"
+    "version": "0.7.7"
   },
   "plugins": [
     {
       "name": "leaf",
       "source": "./plugins/leaf",
-      "description": "LEAF: Learn·Example·Architect·Feedback collaboration workflow skills (12 skills)",
-      "version": "0.7.6"
+      "description": "LEAF: Learn·Example·Architect·Feedback collaboration workflow skills (13 skills)",
+      "version": "0.7.7"
     },
     {
       "name": "angry",

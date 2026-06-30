@@ -6,6 +6,28 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.16.0 - 2026-06-30
+
+- Plugin skills: released `leaf` plugin 0.7.7 — added the **sidecar** skill
+  (`/leaf:sidecar <artifact>` / `$leaf:sidecar`), a user-facing workflow that
+  walks through authoring or refreshing an SRP single-responsibility sidecar
+  contract: it drafts the one-sentence responsibility (applying the
+  Responsibility Statement Test and surfacing a split when the file mixes jobs),
+  scaffolds with `leaf sidecar new`, and confirms via `leaf sidecar list` /
+  `leaf doctor`. Listed in `$leaf:help`.
+- **Breaking:** shortened the SRP sidecar filename suffix from `.leaf.local.toml`
+  to `.leaf.toml`, so a sidecar for `src/cli.rs` is now `src/cli.rs.leaf.toml`
+  instead of `src/cli.rs.leaf.local.toml`. The artifact's own extension is still
+  kept (unambiguous 1:1 pairing), and `leaf` still namespaces the file and
+  `.toml` still names the format; only the `.local` segment is dropped. The file
+  stays git-local — `leaf init`, `leaf sidecar new`, and `leaf doctor` now keep
+  `*.leaf.toml` in `.git/info/exclude` instead of `*.leaf.local.toml`.
+  - Migration: rename any existing `*.leaf.local.toml` files to `*.leaf.toml`
+    and replace the `*.leaf.local.toml` line in `.git/info/exclude` with
+    `*.leaf.toml` (or re-run `leaf sidecar new` / `leaf init`, which add the new
+    line). `leaf doctor` and `leaf sidecar list` no longer see files that keep
+    the old suffix.
+
 ## 0.15.5 - 2026-06-29
 
 - Fixed `leaf sidecar` to agree with `leaf doctor` in the cases an automated

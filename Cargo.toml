@@ -1,6 +1,6 @@
 [package]
 name = "leaf"
-version = "0.15.5"
+version = "0.16.0"
 edition = "2024"
 rust-version = "1.88"
 publish = false
