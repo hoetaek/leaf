@@ -9,11 +9,11 @@ use std::path::{Component, Path};
 use std::time::SystemTime;
 use unicode_width::UnicodeWidthStr;
 
-/// Author and maintain SRP sidecar contracts (`*.leaf.local.toml`). Validation
+/// Author and maintain SRP sidecar contracts (`*.leaf.toml`). Validation
 /// stays in `leaf doctor`; this command only creates and refreshes the files.
 #[derive(Debug, clap::Subcommand)]
 pub(crate) enum SidecarCommand {
-    /// Scaffold <artifact>.leaf.local.toml next to an existing artifact.
+    /// Scaffold <artifact>.leaf.toml next to an existing artifact.
     New {
         /// Repo-relative path to the artifact the sidecar documents.
         artifact: String,

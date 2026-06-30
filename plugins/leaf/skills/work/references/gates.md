@@ -253,7 +253,7 @@ the design is probably mixing responsibilities. Split, rename, or move the work
 until the sentence is honest.
 
 When a responsibility statement must live next to a concrete artifact as a
-local, opt-in contract, prefer `<artifact>.leaf.local.toml` over free-form
+local, opt-in contract, prefer `<artifact>.leaf.toml` over free-form
 Markdown. Keep it narrow: `schema = "leaf.srp-sidecar.v1"`, `artifact`,
 `status = "advisory"`, `last_verified`, `responsibility`, and optional string
 arrays such as `does_not_own`, `contracts`, and `split_signals`. Arbitrary notes

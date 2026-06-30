@@ -563,7 +563,7 @@ fn init_creates_stage_dirs_and_exclude_line() {
     assert_eq!(
         exclude_contents(repo.path())
             .lines()
-            .filter(|line| *line == "*.leaf.local.toml")
+            .filter(|line| *line == "*.leaf.toml")
             .count(),
         1
     );
@@ -595,7 +595,7 @@ fn init_is_idempotent() {
     assert_eq!(
         exclude_contents(repo.path())
             .lines()
-            .filter(|line| *line == "*.leaf.local.toml")
+            .filter(|line| *line == "*.leaf.toml")
             .count(),
         1
     );
@@ -684,7 +684,7 @@ fn init_preserves_exclude_without_trailing_newline() {
 
     assert_eq!(
         exclude_contents(repo.path()),
-        "existing\n/.leaf\n*.leaf.local.toml\n"
+        "existing\n/.leaf\n*.leaf.toml\n"
     );
 }
 
@@ -1093,7 +1093,7 @@ fn doctor_warns_for_invalid_srp_sidecar_contract() {
     repo.child("src/phase.rs")
         .write_str("// phase\n")
         .expect("artifact");
-    repo.child("src/phase.rs.leaf.local.toml")
+    repo.child("src/phase.rs.leaf.toml")
         .write_str(
             r#"
 schema = "leaf.srp-sidecar.v1"
@@ -1112,7 +1112,7 @@ responsibility = "Owns LEAF phase ordering."
         .success()
         .stdout(predicate::str::contains("WARN srp_sidecar_invalid_status"))
         .stdout(predicate::str::contains(
-            "path    src/phase.rs.leaf.local.toml",
+            "path    src/phase.rs.leaf.toml",
         ))
         .stdout(predicate::str::contains("srp_sidecar_exclude_missing").not());
 }
@@ -1147,10 +1147,10 @@ fn sidecar_new_creates_a_doctor_clean_contract() {
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "created src/widget.rs.leaf.local.toml",
+            "created src/widget.rs.leaf.toml",
         ));
 
-    assert!(repo.path().join("src/widget.rs.leaf.local.toml").exists());
+    assert!(repo.path().join("src/widget.rs.leaf.toml").exists());
 
     leaf_command()
         .current_dir(repo.path())
@@ -1194,7 +1194,7 @@ fn sidecar_verify_rewrites_last_verified_and_clears_stale() {
     repo.child("src/widget.rs")
         .write_str("// v1\n")
         .expect("artifact");
-    repo.child("src/widget.rs.leaf.local.toml")
+    repo.child("src/widget.rs.leaf.toml")
         .write_str(
             "schema = \"leaf.srp-sidecar.v1\"\n\
              artifact = \"src/widget.rs\"\n\
@@ -1229,7 +1229,7 @@ fn sidecar_verify_rewrites_last_verified_and_clears_stale() {
         .success()
         .stdout(predicate::str::contains("srp_sidecar_stale").not());
 
-    let content = fs::read_to_string(repo.path().join("src/widget.rs.leaf.local.toml"))
+    let content = fs::read_to_string(repo.path().join("src/widget.rs.leaf.toml"))
         .expect("read sidecar");
     assert!(!content.contains("2000-01-01"));
     assert!(content.contains("last_verified = "));
@@ -1301,7 +1301,7 @@ fn sidecar_new_normalizes_dotslash_artifact_to_stay_doctor_clean() {
         .assert()
         .success();
 
-    assert!(repo.path().join("src/a.rs.leaf.local.toml").exists());
+    assert!(repo.path().join("src/a.rs.leaf.toml").exists());
 
     leaf_command()
         .current_dir(repo.path())
@@ -1344,7 +1344,7 @@ fn sidecar_verify_bails_on_invalid_toml() {
     repo.child("src/a.rs")
         .write_str("// a\n")
         .expect("artifact");
-    repo.child("src/a.rs.leaf.local.toml")
+    repo.child("src/a.rs.leaf.toml")
         .write_str("last_verified = \"2000-01-01\"\nbroken = [\n")
         .expect("invalid sidecar");
 
@@ -1370,7 +1370,7 @@ fn sidecar_new_refuses_artifact_under_scanner_skipped_dir() {
         .failure()
         .stderr(predicate::str::contains("which leaf doctor/list skip"));
 
-    assert!(!repo.path().join("dist/app.js.leaf.local.toml").exists());
+    assert!(!repo.path().join("dist/app.js.leaf.toml").exists());
 }
 
 #[test]
@@ -1412,7 +1412,7 @@ fn sidecar_verify_refreshes_single_quoted_date() {
         .write_str("// a\n")
         .expect("artifact");
     // A hand-written, doctor-clean contract using TOML literal-string quotes.
-    repo.child("src/a.rs.leaf.local.toml")
+    repo.child("src/a.rs.leaf.toml")
         .write_str(
             "schema = 'leaf.srp-sidecar.v1'\nartifact = 'src/a.rs'\nstatus = 'advisory'\nlast_verified = '2000-01-01'\nresponsibility = 'Owns a.'\n",
         )
@@ -1425,7 +1425,7 @@ fn sidecar_verify_refreshes_single_quoted_date() {
         .success()
         .stdout(predicate::str::contains("재확인"));
 
-    let updated = std::fs::read_to_string(repo.path().join("src/a.rs.leaf.local.toml"))
+    let updated = std::fs::read_to_string(repo.path().join("src/a.rs.leaf.toml"))
         .expect("read sidecar");
     assert!(!updated.contains("2000-01-01"));
 }
@@ -1598,7 +1598,7 @@ fn new_creates_sprout_skeleton_and_bootstraps_repo() {
     assert_eq!(
         exclude_contents(repo.path())
             .lines()
-            .filter(|line| *line == "*.leaf.local.toml")
+            .filter(|line| *line == "*.leaf.toml")
             .count(),
         1
     );
