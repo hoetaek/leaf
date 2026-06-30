@@ -81,21 +81,6 @@ Use this shape unless the answer is trivial:
 3. **Verify / Decide** — facts to confirm, assumptions, open choices, or blockers.
 4. **Detail** — evidence and artifacts, organized for drilling in.
 
-Use a table when comparison helps; do not force a table for one point or nuanced
-prose. Pick the shape by the material:
-
-| Layout | Use when | Shape |
-|---|---|---|
-| Horizontal record | Many items share fields. | item, status, evidence, next check |
-| Vertical key-value table | One item needs close reading. | field, value |
-| Transposed table | Few items have many fields. | field, item A, item B |
-| Comparison | Options share criteria. | criterion, option A, option B |
-| Matrix | Two dimensions intersect. | row axis x column axis |
-| Change / diff | Current becomes proposed. | surface, current, proposed, impact |
-| Grouped | Mixed statuses would blur together. | section per status, then small table |
-| Checklist / status | Pass/fail or done/not-done matters. | check, result, evidence, blocker |
-| Timeline | Order or date changes meaning. | order/date, event, consequence |
-
 For mixed facts, assumptions, and review items, group sections in the user's
 language first. Do not rely on repeated raw tokens like `FACT` and
 `ASSUMPTION:` as the only visual distinction.
