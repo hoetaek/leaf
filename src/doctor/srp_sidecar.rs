@@ -375,9 +375,7 @@ mod tests {
     #[test]
     fn collect_sidecar_paths_finds_nested_and_skips_build_dirs() {
         let dir = assert_fs::TempDir::new().expect("temp dir");
-        dir.child("src/a.rs.leaf.toml")
-            .write_str("x\n")
-            .expect("a");
+        dir.child("src/a.rs.leaf.toml").write_str("x\n").expect("a");
         dir.child("src/nested/b.rs.leaf.toml")
             .write_str("x\n")
             .expect("b");

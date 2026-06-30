@@ -1111,9 +1111,7 @@ responsibility = "Owns LEAF phase ordering."
         .assert()
         .success()
         .stdout(predicate::str::contains("WARN srp_sidecar_invalid_status"))
-        .stdout(predicate::str::contains(
-            "path    src/phase.rs.leaf.toml",
-        ))
+        .stdout(predicate::str::contains("path    src/phase.rs.leaf.toml"))
         .stdout(predicate::str::contains("srp_sidecar_exclude_missing").not());
 }
 
@@ -1146,9 +1144,7 @@ fn sidecar_new_creates_a_doctor_clean_contract() {
         ])
         .assert()
         .success()
-        .stdout(predicate::str::contains(
-            "created src/widget.rs.leaf.toml",
-        ));
+        .stdout(predicate::str::contains("created src/widget.rs.leaf.toml"));
 
     assert!(repo.path().join("src/widget.rs.leaf.toml").exists());
 
@@ -1229,8 +1225,8 @@ fn sidecar_verify_rewrites_last_verified_and_clears_stale() {
         .success()
         .stdout(predicate::str::contains("srp_sidecar_stale").not());
 
-    let content = fs::read_to_string(repo.path().join("src/widget.rs.leaf.toml"))
-        .expect("read sidecar");
+    let content =
+        fs::read_to_string(repo.path().join("src/widget.rs.leaf.toml")).expect("read sidecar");
     assert!(!content.contains("2000-01-01"));
     assert!(content.contains("last_verified = "));
 }
@@ -1425,8 +1421,8 @@ fn sidecar_verify_refreshes_single_quoted_date() {
         .success()
         .stdout(predicate::str::contains("재확인"));
 
-    let updated = std::fs::read_to_string(repo.path().join("src/a.rs.leaf.toml"))
-        .expect("read sidecar");
+    let updated =
+        std::fs::read_to_string(repo.path().join("src/a.rs.leaf.toml")).expect("read sidecar");
     assert!(!updated.contains("2000-01-01"));
 }
 
