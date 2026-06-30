@@ -2,9 +2,9 @@ use super::DoctorFinding;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub(crate) const SUFFIX: &str = ".leaf.local.toml";
+pub(crate) const SUFFIX: &str = ".leaf.toml";
 pub(crate) const SCHEMA: &str = "leaf.srp-sidecar.v1";
-pub(crate) const EXCLUDE_LINE: &str = "*.leaf.local.toml";
+pub(crate) const EXCLUDE_LINE: &str = "*.leaf.toml";
 const REQUIRED_FIELDS: &[&str] = &[
     "schema",
     "artifact",
@@ -24,7 +24,7 @@ const ALLOWED_FIELDS: &[&str] = &[
     "split_signals",
 ];
 
-/// Validate strict SRP sidecar contracts (`*.leaf.local.toml`) kept next to
+/// Validate strict SRP sidecar contracts (`*.leaf.toml`) kept next to
 /// artifacts. These are local advisory files, but choosing TOML means `doctor`
 /// can at least keep the contract shaped and paired with the current artifact.
 pub(super) fn check(
@@ -293,7 +293,7 @@ pub(crate) struct SidecarScan {
     pub(crate) unreadable: Vec<(PathBuf, String)>,
 }
 
-/// Walk `repo_root` and collect every `*.leaf.local.toml` path, skipping the
+/// Walk `repo_root` and collect every `*.leaf.toml` path, skipping the
 /// same build/VCS directories `doctor` skips. Findings-free.
 pub(crate) fn collect_sidecar_paths(repo_root: &Path) -> SidecarScan {
     let mut scan = SidecarScan {
@@ -347,13 +347,13 @@ mod tests {
     #[test]
     fn is_stale_true_when_artifact_is_newer_than_sidecar() {
         let dir = assert_fs::TempDir::new().expect("temp dir");
-        dir.child("a.rs.leaf.local.toml")
+        dir.child("a.rs.leaf.toml")
             .write_str("sidecar\n")
             .expect("sidecar");
         std::thread::sleep(Duration::from_millis(20));
         dir.child("a.rs").write_str("artifact\n").expect("artifact");
         assert!(is_stale(
-            &dir.path().join("a.rs.leaf.local.toml"),
+            &dir.path().join("a.rs.leaf.toml"),
             &dir.path().join("a.rs"),
         ));
     }
@@ -363,11 +363,11 @@ mod tests {
         let dir = assert_fs::TempDir::new().expect("temp dir");
         dir.child("a.rs").write_str("artifact\n").expect("artifact");
         std::thread::sleep(Duration::from_millis(20));
-        dir.child("a.rs.leaf.local.toml")
+        dir.child("a.rs.leaf.toml")
             .write_str("sidecar\n")
             .expect("sidecar");
         assert!(!is_stale(
-            &dir.path().join("a.rs.leaf.local.toml"),
+            &dir.path().join("a.rs.leaf.toml"),
             &dir.path().join("a.rs"),
         ));
     }
@@ -375,13 +375,11 @@ mod tests {
     #[test]
     fn collect_sidecar_paths_finds_nested_and_skips_build_dirs() {
         let dir = assert_fs::TempDir::new().expect("temp dir");
-        dir.child("src/a.rs.leaf.local.toml")
-            .write_str("x\n")
-            .expect("a");
-        dir.child("src/nested/b.rs.leaf.local.toml")
+        dir.child("src/a.rs.leaf.toml").write_str("x\n").expect("a");
+        dir.child("src/nested/b.rs.leaf.toml")
             .write_str("x\n")
             .expect("b");
-        dir.child("target/c.rs.leaf.local.toml")
+        dir.child("target/c.rs.leaf.toml")
             .write_str("x\n")
             .expect("c");
         dir.child("src/normal.rs").write_str("x\n").expect("normal");
@@ -396,8 +394,8 @@ mod tests {
         assert_eq!(
             found,
             vec![
-                "src/a.rs.leaf.local.toml".to_string(),
-                "src/nested/b.rs.leaf.local.toml".to_string(),
+                "src/a.rs.leaf.toml".to_string(),
+                "src/nested/b.rs.leaf.toml".to_string(),
             ]
         );
         assert!(scan.unreadable.is_empty());

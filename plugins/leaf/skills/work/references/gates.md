@@ -253,13 +253,17 @@ the design is probably mixing responsibilities. Split, rename, or move the work
 until the sentence is honest.
 
 When a responsibility statement must live next to a concrete artifact as a
-local, opt-in contract, prefer `<artifact>.leaf.local.toml` over free-form
+local, opt-in contract, prefer `<artifact>.leaf.toml` over free-form
 Markdown. Keep it narrow: `schema = "leaf.srp-sidecar.v1"`, `artifact`,
 `status = "advisory"`, `last_verified`, `responsibility`, and optional string
 arrays such as `does_not_own`, `contracts`, and `split_signals`. Arbitrary notes
 or extra keys do not belong in the sidecar; put working context in the gate
 files. `leaf doctor` validates the v1 field set, artifact pairing, stale
-sidecars, and the local `.git/info/exclude` pattern. Use sidecars only for
+sidecars, and the local `.git/info/exclude` pattern. Scaffold and maintain the
+files with the `leaf sidecar` commands — `new <artifact>` writes a fresh
+contract, `verify <artifact>` refreshes `last_verified` to clear the stale
+warning, and `list` reports each sidecar's freshness; authoring lives in
+`leaf sidecar`, validation in `leaf doctor`. Use sidecars only for
 load-bearing artifacts whose responsibility future work is likely to copy or
 accidentally broaden; ordinary gate prose is enough otherwise.
 

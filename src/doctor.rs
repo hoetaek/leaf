@@ -846,7 +846,7 @@ mod tests {
         root.child("src/phase.rs")
             .write_str("// phase\n")
             .expect("artifact");
-        root.child("src/phase.rs.leaf.local.toml")
+        root.child("src/phase.rs.leaf.toml")
             .write_str(
                 r#"
 schema = "leaf.srp-sidecar.v1"
@@ -882,7 +882,7 @@ split_signals = ["If this starts creating files, move that to src/scaffold.rs."]
         root.child("src/phase.rs")
             .write_str("// phase\n")
             .expect("artifact");
-        root.child("src/phase.rs.leaf.local.toml")
+        root.child("src/phase.rs.leaf.toml")
             .write_str(
                 r#"
 schema = "leaf.srp-sidecar.v1"
@@ -900,7 +900,7 @@ status = "advisory"
             &report,
             Severity::Warn,
             "srp_sidecar_missing_field",
-            Some(Location::Path("src/phase.rs.leaf.local.toml".into())),
+            Some(Location::Path("src/phase.rs.leaf.toml".into())),
         );
         assert!(
             finding.message.contains("last_verified") || finding.message.contains("responsibility")
@@ -914,7 +914,7 @@ status = "advisory"
         root.child("src/phase.rs")
             .write_str("// phase\n")
             .expect("artifact");
-        root.child("src/phase.rs.leaf.local.toml")
+        root.child("src/phase.rs.leaf.toml")
             .write_str(
                 r#"
 schema = "leaf.srp-sidecar.v1"
@@ -945,7 +945,7 @@ responsibility = "Owns LEAF phase ordering."
         root.child("src/phase.rs")
             .write_str("// phase v1\n")
             .expect("artifact");
-        root.child("src/phase.rs.leaf.local.toml")
+        root.child("src/phase.rs.leaf.toml")
             .write_str(
                 r#"
 schema = "leaf.srp-sidecar.v1"
@@ -969,7 +969,7 @@ responsibility = "Owns LEAF phase ordering."
             &report,
             Severity::Warn,
             "srp_sidecar_stale",
-            Some(Location::Path("src/phase.rs.leaf.local.toml".into())),
+            Some(Location::Path("src/phase.rs.leaf.toml".into())),
         );
     }
 
@@ -980,7 +980,7 @@ responsibility = "Owns LEAF phase ordering."
         root.child("src/phase.rs")
             .write_str("// phase\n")
             .expect("artifact");
-        root.child("src/phase.rs.leaf.local.toml")
+        root.child("src/phase.rs.leaf.toml")
             .write_str(
                 r#"
 schema = "leaf.srp-sidecar.v0"
@@ -1001,13 +1001,13 @@ notes = "This is where sidecars become junk drawers."
             &report,
             Severity::Warn,
             "srp_sidecar_invalid_schema",
-            Some(Location::Path("src/phase.rs.leaf.local.toml".into())),
+            Some(Location::Path("src/phase.rs.leaf.toml".into())),
         );
         assert_finding(
             &report,
             Severity::Warn,
             "srp_sidecar_unknown_field",
-            Some(Location::Path("src/phase.rs.leaf.local.toml".into())),
+            Some(Location::Path("src/phase.rs.leaf.toml".into())),
         );
     }
 
