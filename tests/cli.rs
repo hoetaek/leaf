@@ -1563,10 +1563,14 @@ fn new_creates_sprout_skeleton_and_bootstraps_repo() {
         ".leaf/01-sprouts/research-memo/00-status.md",
         ".leaf/01-sprouts/research-memo/01-Learn/01-intent.md",
         ".leaf/01-sprouts/research-memo/01-Learn/02-unknowns.md",
-        ".leaf/01-sprouts/research-memo/01-Learn/02-references/README.md",
     ] {
         repo.child(path).assert(predicate::path::is_file());
     }
+    // The references folder is scaffolded but left empty — no seeded README.
+    repo.child(".leaf/01-sprouts/research-memo/01-Learn/02-references")
+        .assert(predicate::path::is_dir());
+    repo.child(".leaf/01-sprouts/research-memo/01-Learn/02-references/README.md")
+        .assert(predicate::path::missing());
     for path in [
         ".leaf/01-sprouts/research-memo/02-Example",
         ".leaf/01-sprouts/research-memo/03-Architect",

@@ -17,47 +17,9 @@ const STATUS_TEMPLATE: &str = "# Sprout Status\n\n\
      - next action: draft the one-sentence intent in 01-Learn/01-intent.md\n\n\
      ## Overview\n\n\
      - request: TODO capture the user's request in the user's words\n\
-     - current scope: TODO state what is included, excluded, split, or still undecided\n\
-     - consistency rule: update why / what / wireframe and this overview whenever intent, scope, output, or gate files change what this LEAF is doing\n\n\
-     ## Document Map\n\n\
-     - ① Intent: `01-Learn/01-intent.md`\n\
-     - ② Unknowns & Context: `01-Learn/02-unknowns.md`\n\
-     - ③ Criteria: `02-Example/03-criteria.md`\n\
-     - ④ Wireframe: `02-Example/04-wireframe.md`\n\
-     - ⑤ Design / ⑦ Tasks: `03-Architect/05-design.md`, `03-Architect/07-tasks.md`\n\
-     - ⑨ Review / ⑩ Retrospect: `04-Feedback/`\n";
+     - current scope: TODO state what is included, excluded, split, or still undecided\n";
 
-const UNKNOWNS_BODY: &str = "# Unknowns And Context\n\n\
-     ② is gathered by four parallel scouts; keep what each finds under the\n\
-     matching heading, then summarize the load-bearing answers here with their\n\
-     source.\n\n\
-     ## A. Terrain — what exists (refs, concepts, internal assets, tools)\n\n\
-     ## B. Method — how it's done (best practice, cases, anti-patterns)\n\n\
-     ## C. Judgment — where it forks (trade-offs, debates, hidden premises)\n\n\
-     ## D. Context — why it's this way (history, recent change, analogies, stakeholders)\n";
-
-const REFERENCES_BODY: &str = "# References\n\n\
-     Learn always builds context here — this is not a lazy, fill-when-stuck\n\
-     folder. ② runs as four parallel scouts, each writing what it finds to this\n\
-     folder, one file per topic named for what it covers:\n\n\
-     - A. Terrain — what exists: external refs (comparable cases, prior art,\n\
-       authoritative sources), domain concepts, internal assets (your own\n\
-       documents, data, prior decisions), tools.\n\
-     - B. Method — how it's done: best practices, real cases/benchmarks,\n\
-       failure cases and anti-patterns.\n\
-     - C. Judgment — where it forks: trade-offs and selection criteria, live\n\
-       debates, hidden premises. Never skip this one — it is what turns\n\
-       collected material into a decision.\n\
-     - D. Context — why it's this way: history, recent changes, analogies from\n\
-       adjacent fields, stakeholders.\n\n\
-     Each scout returns grounds (what it found and where), not a verdict. Then\n\
-     summarize only what the work truly needs out into ../02-unknowns.md, with\n\
-     its source, as a reading map rather than an answer.\n";
-
-const FEEDBACK_BODY: &str = "# Feedback\n\n\
-     이 phase의 exit는 close-out이다. ⑩ Retrospect 후 keep/press/fall 결정 전에, 누적 전체\n\
-     (Learn→Feedback)를 하나의 보고서로 `leaf:polish`하여 최종 산출물이 draft 상태로\n\
-     마감되지 않게 한다. ⑨ Review는 `09-review.md`, ⑩ Retrospect는 `10-retrospect.md`에 쓴다.\n";
+const UNKNOWNS_BODY: &str = "# Unknowns And Context\n";
 
 /// Directories created when a phase is scaffolded, relative to the sprout root.
 fn phase_dirs(phase: Phase) -> &'static [&'static str] {
@@ -75,34 +37,23 @@ fn phase_dirs(phase: Phase) -> &'static [&'static str] {
 fn phase_files(phase: Phase) -> &'static [(&'static str, &'static str)] {
     match phase {
         Phase::Learn => &[
-            (
-                "01-Learn/01-intent.md",
-                "# Intent\n\nCapture the raw idea and the current one-sentence intent here.\n",
-            ),
+            ("01-Learn/01-intent.md", "# Intent\n"),
             ("01-Learn/02-unknowns.md", UNKNOWNS_BODY),
-            ("01-Learn/02-references/README.md", REFERENCES_BODY),
         ],
         Phase::Example => &[
-            (
-                "02-Example/03-criteria.md",
-                "# Criteria\n\nState purpose, constraints, and observable acceptance checks here.\n",
-            ),
-            (
-                "02-Example/04-wireframe.md",
-                "# Wireframe\n\nUse a concrete text-first example before generalizing the work.\n",
-            ),
+            ("02-Example/03-criteria.md", "# Criteria\n"),
+            ("02-Example/04-wireframe.md", "# Wireframe\n"),
         ],
         Phase::Architect => &[
-            (
-                "03-Architect/05-design.md",
-                "# Design\n\nRecord the implementation-facing design after the concrete example holds.\n",
-            ),
-            (
-                "03-Architect/07-tasks.md",
-                "# Tasks\n\nBreak the work into reviewable implementation slices.\n",
-            ),
+            ("03-Architect/05-design.md", "# Design\n"),
+            ("03-Architect/06-critic.md", "# Critic\n"),
+            ("03-Architect/07-tasks.md", "# Tasks\n"),
+            ("03-Architect/08-execution.md", "# Execution\n"),
         ],
-        Phase::Feedback => &[("04-Feedback/README.md", FEEDBACK_BODY)],
+        Phase::Feedback => &[
+            ("04-Feedback/09-review.md", "# Review\n"),
+            ("04-Feedback/10-retrospect.md", "# Retrospect\n"),
+        ],
     }
 }
 
@@ -216,14 +167,14 @@ mod tests {
             "overview should preserve the user's request at status level"
         );
         assert!(
+            STATUS_TEMPLATE.contains("- current scope:"),
+            "overview should state what is included, excluded, split, or undecided"
+        );
+        assert!(
             STATUS_TEMPLATE.contains("- why:")
                 && STATUS_TEMPLATE.contains("- what:")
                 && STATUS_TEMPLATE.contains("- wireframe:"),
             "status should carry the locked why / what / wireframe triple"
-        );
-        assert!(
-            STATUS_TEMPLATE.contains("- consistency rule:"),
-            "overview should remind agents to keep status and gate docs aligned"
         );
     }
 
@@ -259,8 +210,12 @@ mod tests {
         assert!(sprout.join("00-status.md").is_file());
         assert!(sprout.join("01-Learn/01-intent.md").is_file());
         assert!(
-            sprout.join("01-Learn/02-references/README.md").is_file(),
+            sprout.join("01-Learn/02-references").is_dir(),
             "Learn references folder is scaffolded"
+        );
+        assert!(
+            !sprout.join("01-Learn/02-references/README.md").exists(),
+            "the references folder is created empty — no seeded README"
         );
         // Lazy: later phases do not exist yet.
         assert!(!sprout.join("02-Example").exists(), "Example is lazy");
@@ -307,6 +262,47 @@ mod tests {
         let after =
             fs::read_to_string(sprout.join("02-Example/03-criteria.md")).expect("read criteria");
         assert_eq!(after, "edited", "existing gate file is left untouched");
+    }
+
+    /// Every phase scaffolds its full set of gate files, and the marker rides
+    /// the phase's first file only. Architect grows ⑤⑥⑦⑧ and Feedback grows
+    /// ⑨⑩, matching the 10-gate model `review` and `checkpoint` already know.
+    #[test]
+    fn scaffold_phase_creates_all_gate_files_per_phase() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let repo_root = temp.path();
+        fs::create_dir(repo_root.join(".leaf")).expect(".leaf");
+        fs::create_dir(repo_root.join(".leaf/01-sprouts")).expect("sprouts dir");
+        let sprout = create_sprout(repo_root, "demo").expect("create sprout");
+
+        scaffold_phase(&sprout, Phase::Architect).expect("scaffold architect");
+        for gate in [
+            "03-Architect/05-design.md",
+            "03-Architect/06-critic.md",
+            "03-Architect/07-tasks.md",
+            "03-Architect/08-execution.md",
+        ] {
+            assert!(sprout.join(gate).is_file(), "{gate} is scaffolded");
+        }
+        // The marker rides ⑤ Design (Architect's first file), not the rest.
+        let design =
+            fs::read_to_string(sprout.join("03-Architect/05-design.md")).expect("read design");
+        assert!(design.contains(POLISH_PENDING_TOKEN_LINE));
+        let critic =
+            fs::read_to_string(sprout.join("03-Architect/06-critic.md")).expect("read critic");
+        assert!(!critic.contains(POLISH_PENDING_TOKEN_LINE));
+
+        scaffold_phase(&sprout, Phase::Feedback).expect("scaffold feedback");
+        for gate in ["04-Feedback/09-review.md", "04-Feedback/10-retrospect.md"] {
+            assert!(sprout.join(gate).is_file(), "{gate} is scaffolded");
+        }
+        // The marker rides ⑨ Review (Feedback's first file), not ⑩ Retrospect.
+        let review =
+            fs::read_to_string(sprout.join("04-Feedback/09-review.md")).expect("read review");
+        assert!(review.contains(POLISH_PENDING_TOKEN_LINE));
+        let retrospect = fs::read_to_string(sprout.join("04-Feedback/10-retrospect.md"))
+            .expect("read retrospect");
+        assert!(!retrospect.contains(POLISH_PENDING_TOKEN_LINE));
     }
 
     const POLISH_PENDING_TOKEN_LINE: &str = crate::phase::POLISH_PENDING_TOKEN;
