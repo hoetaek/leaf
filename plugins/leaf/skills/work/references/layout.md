@@ -58,7 +58,7 @@ instead of creating a duplicate.
 │
 ├── 03-Architect/
 │   ├── 05-design.md                          ⑤ Design
-│   ├── 06-critic.md                          ⑥ Critic, lazy when depth/risk warrants
+│   ├── 06-critic.md                          ⑥ Critic (always present; depth scales with risk)
 │   ├── 07-tasks.md                           ⑦ Task graph
 │   └── 08-execution.md                       ⑧ execution log / handoff
 │

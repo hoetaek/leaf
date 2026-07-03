@@ -250,9 +250,11 @@ flagged; fallen and pressed are exempt).
 The `## Overview` section below the preamble keeps the rest:
 
 - `request`: the user's request in the user's words;
-- `current scope`: what is included, excluded, split, or still undecided;
-- `consistency rule`: why / what / wireframe and this overview change when the
-  sprout changes.
+- `current scope`: what is included, excluded, split, or still undecided.
+
+Keep the triple and this overview aligned with the gate files whenever the
+sprout changes — the rule lives here, not as a boilerplate line in every
+status file.
 
 Do not let `00-status.md` become stale. Whenever `01-intent.md`,
 `02-unknowns.md`, split decisions, the locked triple, Learn-rest status, or a

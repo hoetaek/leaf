@@ -2,10 +2,10 @@
 
 The ledger names the five dimensions of intent that downstream gates depend on,
 so you can aim at the **weakest row** instead of the next topic that happened to
-come up — conversation order is rarely the right order. Its home is ① and ③: ①
-locks the Intent row, and ③ Criteria scores the full set before locking
-criteria. During ② it is only a *lens* — glance at the weakest row to aim
-learning, never to force a decision there.
+come up — conversation order is rarely the right order. It is a lens for aiming
+work at every gate it touches: ① locks the Intent row, ③ aims its checks at
+the weakest rows, and ② glances at the weakest row to aim learning — never to
+force a decision there. It is never a required score sheet.
 
 A row is stable not when the agent knows it, but when the *user* has learned it
 well enough to judge it — to choose, in their own words, and defend the choice;
@@ -133,9 +133,10 @@ They are three different deliverables with three different audiences.
 - ② Unknowns uses the ledger only as a lens: glance at the weakest row to aim
   learning (which domain/standards/external/internal study would close it),
   never to force the row closed.
-- ③ Criteria is where the ledger is scored and locked — Intent becomes Purpose;
-  Topology, Success, Constraints, and Output form become Requirements. A row that
-  cannot be locked is carried as an explicit risk or assumption.
+- ③ Criteria is where the ledger's dimensions get their teeth — Intent becomes
+  Purpose; Topology, Success, Constraints, and Output form inform Requirements.
+  A row that cannot be pinned down is carried as an explicit risk or
+  assumption, not silently dropped.
 - ④ Wireframe locks the contract for the chosen Topology and Output form.
 
 The ledger is not a separate artifact to maintain — during ② it is a lens for
