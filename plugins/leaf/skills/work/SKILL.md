@@ -114,7 +114,7 @@ disagreement must stay visible. When entering ③–⑤, read `references/engine
 | `references/gate-authoring.md` | when drafting, grilling, revising, or presenting a gate artifact for review or approval |
 | `references/engine.md` | you are inside ③–⑤ and need the full contract / variation point / generator mechanics + diagram |
 | `references/loop-contract.md` | a gate needs repeated passes and you must decide whether it is actually loop-shaped, then define observe/choose/act/verify/record/stop behavior |
-| `references/clarity-ledger.md` | you are scoring criteria dimensions at ③ — or using it as a lens in ① / ② to aim the next question or learning gap |
+| `references/clarity-ledger.md` | you want the five-dimension lens for aiming ③ checks or a ① / ② question at the weakest row |
 | `references/experiment-log.md` | a gate's question needs an experiment — an independent, cheap probe that turns a guess into a fact you can't doubt: ② probing the world ("is this true?"), ④ probing one instance of the answer; gives the core, the fact/guess boundary, the fact ladder, and the technique repertoire |
 | `references/decision-rationale.md` | you are inside ⑤ and a non-obvious choice needs durable rationale |
 | `references/design-critic.md` | you are at ⑥ — every design gets at least a quick self-pass; read this for critic depth, output shape, or a durable critic pass |

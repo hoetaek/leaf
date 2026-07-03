@@ -33,37 +33,28 @@ and records gate readiness; `polish` performs the simplicity pass.
 
 ## Grill Foci
 
-- ① Intent: raw wording preserved, why followed to its real endpoint, core noun
-  stable, topology named or explicitly deferred.
-- ② Unknowns: weakest clarity-ledger row used only to aim learning, unknowns
-  grouped, local grammar and relevant precedents named when an existing corpus
-  or system is involved, blocking items resolved or carried as explicit
-  assumptions, fact vs assumption boundary visible.
-- ③ Criteria: purpose states the desired effect, every ledger row is locked or
-  carried as explicit risk, precedent constraints are explicit when they matter,
-  success checks can reject a bad instance.
-- ④ Wireframe: text-first instance uses realistic data, every placeholder has a
-  contract and variation point, the intended user can walk through it. For
-  user-facing, ambiguous, or high-risk wireframes, record a cold/blind reader
-  check: from the wireframe, mock data, labels, and visible sequence alone,
-  the reader can infer the actor, purpose, expected outcome, next action, and
-  important states.
-- ⑤ Design: consumes the validated ④ contract, generalizes across variation
-  points, names alternatives and rationale for non-obvious choices, and records
-  Precedent Fit for new names, structures, locations, formats, taxonomies,
-  workflows, or policy language that future work may copy. Main artifacts have
-  one-sentence responsibility statements.
-- ⑥ Critic: verdict is `APPROVE`, `ITERATE`, or `REJECT`, precedent risk is
-  checked when relevant, responsibility statements are challenged when complex,
-  and revisions route back to the smallest affected gate.
-- ⑦ Tasks: slices are reviewable, dependency claims are real, each task has a
-  check that proves it helped, and convention-following or exception rationale
-  is assigned to the task that creates the precedent.
+- ① Intent: raw wording preserved, locked intent stated separately, why
+  followed to its real endpoint, provisional what still allowed to change.
+- ② Unknowns: blocking items resolved or carried as explicit assumptions,
+  fact vs assumption boundary visible, triple locked at Learn close.
+- ③ Criteria: purpose states the desired effect, success checks can reject a
+  bad instance, non-goals and topology named or explicitly deferred.
+- ④ Wireframe: text-first instance uses realistic data, the intended user can
+  walk through it, every placeholder traces to a declared contract.
+- ⑤ Design: consumes the validated ④ contract, generalizes across each
+  variation point's full range, records Precedent Fit and one-sentence
+  responsibility statements (⑤ is the sole owner of that concern), and
+  cheap-checks brownfield claims against the actual system.
+- ⑥ Critic: verdict is `APPROVE`, `ITERATE`, or `REJECT`; the design is
+  checked against ①'s why, not only the drafted criteria; even a self-pass
+  leaves a one-line record.
+- ⑦ Tasks: slices are reviewable (sized against the tripwires), dependency
+  claims are real, each task has a check that proves it helped.
 - ⑧ Execution: result or handoff can be reviewed against criteria; placeholders
   and next inputs are visible.
 - ⑨ Review/sync: criteria, design, and task graph stay true after feedback.
-- ⑩ Retrospect: established claims, unresolved limits, and reusable process
-  lessons are separated.
+- ⑩ Retrospect: established claims with their limits, and reusable process
+  lessons, are separated and feed the next ②.
 
 ## Review Surface
 
