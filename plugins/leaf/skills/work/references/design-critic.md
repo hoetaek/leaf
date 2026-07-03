@@ -10,8 +10,8 @@ human, another agent, or a subagent.
 ## How deep to go
 
 Every design gets at least a quick self-pass. A low-risk quick self-pass still
-leaves a one-line record of what was checked — preferably in
-`03-Architect/05-design.md` when no `06-critic.md` file is created. Go deep —
+leaves a one-line record of what was checked in `03-Architect/06-critic.md`
+(scaffolded for every sprout). Go deep —
 external reviewer, multiple lenses, recorded rationale — when the design
 involves any of:
 
@@ -102,5 +102,8 @@ The critic pass reads, but does not produce, these artifacts:
   and drivers, Fair alternatives, and Steelman antithesis review checks above
   correspond one-to-one to the RALPLAN-DR fields.
 
-A design that lacks RALPLAN-DR for a non-obvious choice is usually an
-automatic `ITERATE` — the critic cannot assess what was not recorded.
+A non-obvious choice whose rationale is not recorded — in any form that
+names the drivers, at least one fair alternative, and the strongest
+counter-argument — is usually an `ITERATE`: the critic cannot assess what was
+not recorded. RALPLAN-DR is the default shape for that record, not a required
+format.

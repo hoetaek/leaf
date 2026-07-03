@@ -6,6 +6,34 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## 0.17.0 - 2026-07-03
+
+- Plugin skills: released `leaf` plugin 0.8.0 — rewrote the gate contracts to
+  essence only. `gates.md` (532→225 lines), `gate-01-intent.md` (126→36), and
+  `gate-02-unknowns-context.md` (298→37) now carry 36 pass/fail checks total
+  (down from 70): every remaining check derives from its gate's one-sentence
+  essence, cross-gate duplicates were collapsed to a single owner (Precedent
+  and responsibility → ⑤, topology → ③, Clarity Ledger unified as a lens),
+  and format prescriptions moved out of gate conditions — homeless formats
+  (EARS table, Premise Inventory) into a new `patterns.md` `## Formats`
+  section, the rest to their existing owner files. A re-accretion guard now
+  applies: adding a check requires recording, next to it, the actual failure
+  it prevents, and promoting a default into a condition counts as adding a
+  check (the `gates.md` Anti-Patterns section is the failure ledger). Parallel
+  norms (`gate-authoring.md` grill foci, `design-critic.md`,
+  `clarity-ledger.md`, `work`/`learn` SKILL.md, `layout.md`) were aligned so
+  they no longer re-impose the removed checks.
+- Scaffold: gate files are now scaffolded uniformly for all ten gates —
+  `06-critic.md`, `08-execution.md`, `09-review.md`, and `10-retrospect.md`
+  are created alongside the existing six (title-only bodies; the Feedback
+  polish marker moves to `09-review.md`, replacing the removed README).
+  Process instructions no longer ship inside workspace files: the status
+  template drops the static `## Document Map` and `consistency rule` lines,
+  `02-unknowns.md` drops the scout-section headings, and the
+  `02-references/README.md` and `04-Feedback/README.md` instruction files are
+  no longer written (the `02-references/` directory itself is still created).
+  Existing leaves are untouched; `leaf doctor` checks are unchanged.
+
 ## 0.16.0 - 2026-06-30
 
 - Plugin skills: released `leaf` plugin 0.7.7 — added the **sidecar** skill

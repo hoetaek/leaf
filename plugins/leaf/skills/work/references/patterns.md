@@ -119,3 +119,50 @@ become the ④ artifact-specific wireframe — see
 expected output and failure cases, or representative request/response examples
 plus an error/state table. The contract is usually declarative (schema, types,
 enums, exit codes) — lock it explicitly in ④ so ⑤ never invents it.
+
+## Formats — defaults, never conditions
+
+Reusable shapes gates may point at. Using them is never a pass/fail
+condition; promoting one into a condition counts as adding a check (record
+the failure it prevents).
+
+### EARS acceptance checks (③)
+
+Two-column form when raw EARS would be hard to scan — the left side stays
+readable by the reviewer, the right side stays testable:
+
+```markdown
+| Plain check | EARS |
+|---|---|
+| <reader-friendly acceptance check> | WHEN <trigger>, THE SYSTEM SHALL <observable behavior>. |
+```
+
+Core EARS forms:
+
+```text
+WHEN <trigger>, THE SYSTEM SHALL <observable behavior>.
+WHEN <condition>, THE SYSTEM SHALL CONTINUE TO <preserved behavior>.   (regression-sensitive)
+GIVEN <precondition>, WHEN <trigger>, THE SYSTEM SHALL <response>.     (compound)
+```
+
+Writing-friendly equivalents:
+
+```text
+WHEN a reader finishes the document, THEY SHOULD be able to <understanding/action>.
+THE DRAFT SHALL support <claim> with <evidence type>.
+THE DOCUMENT SHALL NOT cover <non-goal>.
+```
+
+### Premise Inventory (②)
+
+Table form for surfacing the premises a judgment leans on:
+
+```markdown
+| Judgment | Required premise | Evidence / Source | Status | If false, what changes |
+|---|---|---|---|---|
+| ... | ... | ... | FACT / VERIFIED / ASSUMPTION / USER REVIEW NEEDED | ... |
+```
+
+Status labels: `FACT` (already confirmed by an available source), `VERIFIED`
+(directly checked during this pass), `ASSUMPTION` (reasonable, unverified),
+`USER REVIEW NEEDED` (only the user can confirm or decide).

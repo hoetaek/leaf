@@ -1,0 +1,7 @@
+[advisories]
+# RUSTSEC-2026-0194 / RUSTSEC-2026-0195: quadratic parsing in quick-xml
+# 0.39.4, fixed in >=0.41.0. Transitive via syntect -> plist 1.9.0, which is
+# the latest plist and still pins quick-xml 0.39 — no upgrade path exists yet.
+# leaf only parses bundled syntax/theme assets with it, never untrusted XML.
+# Remove these ignores once plist releases against quick-xml >=0.41.
+ignore = ["RUSTSEC-2026-0194", "RUSTSEC-2026-0195"]
