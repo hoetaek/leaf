@@ -83,6 +83,12 @@ Context. It carries the same sprout from ③ through ⑧, moves passed work to
   folder from `.leaf/01-sprouts/` to `.leaf/02-leaves/`, update status, and run
   `leaf doctor`. After ⑩ passes, follow `using-leaf` ("Ending a leaf") to
   keep, press, or fall.
+- **Fold a gate with no uncertainty to close.** A gate always runs, but when
+  ④/⑤/⑦ has no uncertainty left to close, pass it with a one-line `folded:`
+  record (naming a concrete noun) instead of a full artifact — after the human approves the fold (at ③'s end interactively, or
+  pre-approved at the triple under `autopilot`). ⑨ audits the folds. Full
+  rules — which gates fold, the record schema, and the unfold path — live in
+  `references/gates.md` → Gate folding.
 - **Use `references/layout.md` before writing files.** It owns folder layout,
   gate filenames, status values, and file-vs-folder rules.
 
