@@ -154,6 +154,17 @@ test("respects reduced motion when opening the table of contents and jumping to 
   expect(sections[1]?.scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
 });
 
+test("falls back to smooth scrolling when matchMedia is unavailable", async () => {
+  vi.stubGlobal("matchMedia", undefined);
+  const { container } = render(<ReviewReader slug="web-graph-structure-refactor" />);
+  await screen.findByText("그래프 구조를 분리한다.");
+
+  const toc = container.querySelector(".reader-toc") as HTMLDetailsElement;
+  fireEvent.click(screen.getByRole("button", { name: /① Intent.*목차/ }));
+
+  expect(toc.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+});
+
 test("renders a selected reference as a full page", async () => {
   render(<ReviewReader slug="web-graph-structure-refactor" referencePath="01-Learn/02-references/b.md" />);
 

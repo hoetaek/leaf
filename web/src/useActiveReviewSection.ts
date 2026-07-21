@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReviewResponse } from "./types";
 
 export function reviewScrollBehavior(): ScrollBehavior {
-  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return "smooth";
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
 }
 
 export function useActiveReviewSection(data: ReviewResponse | null) {
