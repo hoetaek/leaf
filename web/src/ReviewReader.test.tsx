@@ -86,14 +86,23 @@ test("renders review gates, markdown, missing gate states, and reference drawer"
   expect(window.location.hash).toBe("#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fb.md");
 });
 
-test("opens the mobile table of contents and follows reader keyboard shortcuts", async () => {
+test("opens the responsive table of contents and follows reader keyboard shortcuts", async () => {
   const { container } = render(<ReviewReader slug="web-graph-structure-refactor" />);
   await screen.findByText("그래프 구조를 분리한다.");
 
+  const toc = container.querySelector(".reader-toc") as HTMLDetailsElement;
+  const sections = container.querySelectorAll<HTMLElement>(".report section");
+  expect(toc.open).toBe(false);
+
   fireEvent.click(screen.getByRole("button", { name: /① Intent.*목차/ }));
-  expect(screen.getByText("Gates")).toBeInTheDocument();
-  fireEvent.click(within(container.querySelector(".toc-overlay")!).getByText("② Unknowns"));
-  await waitFor(() => expect(screen.queryByText("Gates")).not.toBeInTheDocument());
+  expect(toc.open).toBe(true);
+  expect(within(toc).getByText("목차").closest("summary")).toHaveFocus();
+  expect(toc.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+
+  fireEvent.click(within(toc).getByRole("button", { name: /② Unknowns/ }));
+  expect(toc.open).toBe(false);
+  expect(sections[1]).toHaveFocus();
+  expect(sections[1]?.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
 
   fireEvent.keyDown(window, { key: "R" });
   expect(screen.getByText("References")).toBeInTheDocument();

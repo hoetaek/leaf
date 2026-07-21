@@ -24,7 +24,11 @@ export function useActiveReviewSection(data: ReviewResponse | null) {
   }, [data]);
 
   const jump = useCallback((index: number) => {
-    sectionRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const section = sectionRefs.current[index];
+    if (!section) return;
+
+    section.focus({ preventScroll: true });
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
   return { active, sectionRefs, jump };

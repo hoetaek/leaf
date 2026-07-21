@@ -6,7 +6,6 @@ import {
   MobileReaderActions,
   ReferenceFullPage,
   ReferencesDrawer,
-  TocOverlay,
 } from "./ReviewReaderParts";
 import { nextReferenceIndex, progressWidth, reviewResourcePath, REVIEW_REF_FOCUS } from "./reviewReaderModel";
 import { leafHref, openReference } from "./routes";
@@ -26,8 +25,8 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
   const [showRefs, setShowRefs] = useState(false);
   const [refSel, setRefSel] = useState(0);
   const [refFocus, setRefFocus] = useState<ReviewRefFocus>(REVIEW_REF_FOCUS.LIST);
-  const [showToc, setShowToc] = useState(false);
   const reportRef = useRef<HTMLElement | null>(null);
+  const tocRef = useRef<HTMLDetailsElement | null>(null);
   const refReadRef = useRef<HTMLDivElement | null>(null);
   const { active, sectionRefs, jump } = useActiveReviewSection(data);
   const progress = useReadingProgress(data, reportRef);
@@ -92,6 +91,14 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
     setRefSel(0);
     setRefFocus(REVIEW_REF_FOCUS.CONTENT);
   };
+  const openToc = () => {
+    const toc = tocRef.current;
+    if (!toc) return;
+
+    toc.open = true;
+    toc.querySelector("summary")?.focus({ preventScroll: true });
+    toc.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const selectReference = (index: number) => {
     setRefSel(index);
     setRefFocus(REVIEW_REF_FOCUS.CONTENT);
@@ -122,7 +129,7 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
         activeGate={data.sources[active]?.gate}
         progress={progress}
         references={references}
-        onOpenToc={() => setShowToc(true)}
+        onOpenToc={openToc}
         onOpenReferences={openReferences}
       />
       <DetailHeader data={data} />
@@ -132,6 +139,21 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
           <GateNav sources={data.sources} active={active} onSelect={jump} />
         </aside>
 
+        <details className="reader-toc" ref={tocRef}>
+          <summary className="reader-toc-summary">
+            <span className="reader-toc-gate">{data.sources[active]?.gate || "목차"}</span>
+            <span className="reader-toc-label">목차</span>
+          </summary>
+          <GateNav
+            sources={data.sources}
+            active={active}
+            onSelect={(index) => {
+              if (tocRef.current) tocRef.current.open = false;
+              jump(index);
+            }}
+          />
+        </details>
+
         <article className="report" ref={reportRef}>
           <div className="rprog">
             <i style={{ width: progressWidth(progress) }} />
@@ -140,6 +162,7 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
             <section
               key={i}
               data-idx={i}
+              tabIndex={-1}
               ref={(el) => {
                 sectionRefs.current[i] = el;
               }}
@@ -159,11 +182,6 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
           ))}
         </article>
       </div>
-
-      {/* mobile: collapsed TOC (desktop uses the sticky rail) */}
-      {showToc && (
-        <TocOverlay sources={data.sources} active={active} onSelect={jump} onClose={() => setShowToc(false)} />
-      )}
 
       {showRefs && (
         <ReferencesDrawer
