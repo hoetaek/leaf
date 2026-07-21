@@ -76,6 +76,7 @@ export function GateNav({
           type="button"
           key={index}
           className={`gnav-item${index === active ? " on" : source.present ? "" : " empty"}`}
+          aria-current={index === active ? "location" : undefined}
           onClick={() => onSelect(index)}
         >
           {source.gate}

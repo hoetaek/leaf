@@ -93,6 +93,7 @@ test("opens the responsive table of contents and follows reader keyboard shortcu
   const toc = container.querySelector(".reader-toc") as HTMLDetailsElement;
   const sections = container.querySelectorAll<HTMLElement>(".report section");
   expect(toc.open).toBe(false);
+  expect(within(toc).getByRole("button", { name: /① Intent/ })).toHaveAttribute("aria-current", "location");
 
   fireEvent.click(screen.getByRole("button", { name: /① Intent.*목차/ }));
   expect(toc.open).toBe(true);

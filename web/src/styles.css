@@ -226,6 +226,10 @@ h2 {
   display: none;
 }
 
+.reader-toc-summary::marker {
+  content: "";
+}
+
 .reader-toc-summary::after {
   content: "▾";
   color: var(--mut);
