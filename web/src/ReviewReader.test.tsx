@@ -42,6 +42,7 @@ class MockIntersectionObserver implements IntersectionObserver {
 beforeEach(() => {
   vi.stubGlobal("fetch", mockJsonFetch({ "/api/review/web-graph-structure-refactor": reviewData }));
   vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
   vi.spyOn(window, "scrollBy").mockImplementation(() => undefined);
   vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
   Object.defineProperty(document.documentElement, "scrollHeight", {
@@ -136,6 +137,21 @@ test("does not treat browser refresh shortcuts as reference drawer shortcuts", a
   fireEvent.keyDown(window, { key: "r", ctrlKey: true });
 
   expect(screen.queryByText("References")).not.toBeInTheDocument();
+});
+
+test("respects reduced motion when opening the table of contents and jumping to a gate", async () => {
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
+  const { container } = render(<ReviewReader slug="web-graph-structure-refactor" />);
+  await screen.findByText("그래프 구조를 분리한다.");
+
+  const toc = container.querySelector(".reader-toc") as HTMLDetailsElement;
+  const sections = container.querySelectorAll<HTMLElement>(".report section");
+
+  fireEvent.click(screen.getByRole("button", { name: /① Intent.*목차/ }));
+  expect(toc.scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
+
+  fireEvent.click(within(toc).getByRole("button", { name: /② Unknowns/ }));
+  expect(sections[1]?.scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
 });
 
 test("renders a selected reference as a full page", async () => {

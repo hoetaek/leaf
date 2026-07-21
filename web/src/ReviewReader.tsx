@@ -9,7 +9,7 @@ import {
 } from "./ReviewReaderParts";
 import { nextReferenceIndex, progressWidth, reviewResourcePath, REVIEW_REF_FOCUS } from "./reviewReaderModel";
 import { leafHref, openReference } from "./routes";
-import { useActiveReviewSection } from "./useActiveReviewSection";
+import { reviewScrollBehavior, useActiveReviewSection } from "./useActiveReviewSection";
 import { useJsonResource } from "./useJsonResource";
 import { useReadingProgress } from "./useReadingProgress";
 import { useReviewKeyboardShortcuts } from "./useReviewKeyboardShortcuts";
@@ -97,7 +97,7 @@ export default function ReviewReader({ referencePath, slug }: ReviewReaderProps)
 
     toc.open = true;
     toc.querySelector("summary")?.focus({ preventScroll: true });
-    toc.scrollIntoView({ behavior: "smooth", block: "start" });
+    toc.scrollIntoView({ behavior: reviewScrollBehavior(), block: "start" });
   };
   const selectReference = (index: number) => {
     setRefSel(index);
