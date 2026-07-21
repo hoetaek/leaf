@@ -42,6 +42,7 @@ class MockIntersectionObserver implements IntersectionObserver {
 beforeEach(() => {
   vi.stubGlobal("fetch", mockJsonFetch({ "/api/review/web-graph-structure-refactor": reviewData }));
   vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
   vi.spyOn(window, "scrollBy").mockImplementation(() => undefined);
   vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
   Object.defineProperty(document.documentElement, "scrollHeight", {
@@ -86,14 +87,24 @@ test("renders review gates, markdown, missing gate states, and reference drawer"
   expect(window.location.hash).toBe("#/leaf/web-graph-structure-refactor/ref/01-Learn%2F02-references%2Fb.md");
 });
 
-test("opens the mobile table of contents and follows reader keyboard shortcuts", async () => {
+test("opens the responsive table of contents and follows reader keyboard shortcuts", async () => {
   const { container } = render(<ReviewReader slug="web-graph-structure-refactor" />);
   await screen.findByText("그래프 구조를 분리한다.");
 
+  const toc = container.querySelector(".reader-toc") as HTMLDetailsElement;
+  const sections = container.querySelectorAll<HTMLElement>(".report section");
+  expect(toc.open).toBe(false);
+  expect(within(toc).getByRole("button", { name: /① Intent/ })).toHaveAttribute("aria-current", "location");
+
   fireEvent.click(screen.getByRole("button", { name: /① Intent.*목차/ }));
-  expect(screen.getByText("Gates")).toBeInTheDocument();
-  fireEvent.click(within(container.querySelector(".toc-overlay")!).getByText("② Unknowns"));
-  await waitFor(() => expect(screen.queryByText("Gates")).not.toBeInTheDocument());
+  expect(toc.open).toBe(true);
+  expect(within(toc).getByText("목차").closest("summary")).toHaveFocus();
+  expect(toc.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+
+  fireEvent.click(within(toc).getByRole("button", { name: /② Unknowns/ }));
+  expect(toc.open).toBe(false);
+  expect(sections[1]).toHaveFocus();
+  expect(sections[1]?.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
 
   fireEvent.keyDown(window, { key: "R" });
   expect(screen.getByText("References")).toBeInTheDocument();
@@ -126,6 +137,32 @@ test("does not treat browser refresh shortcuts as reference drawer shortcuts", a
   fireEvent.keyDown(window, { key: "r", ctrlKey: true });
 
   expect(screen.queryByText("References")).not.toBeInTheDocument();
+});
+
+test("respects reduced motion when opening the table of contents and jumping to a gate", async () => {
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
+  const { container } = render(<ReviewReader slug="web-graph-structure-refactor" />);
+  await screen.findByText("그래프 구조를 분리한다.");
+
+  const toc = container.querySelector(".reader-toc") as HTMLDetailsElement;
+  const sections = container.querySelectorAll<HTMLElement>(".report section");
+
+  fireEvent.click(screen.getByRole("button", { name: /① Intent.*목차/ }));
+  expect(toc.scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
+
+  fireEvent.click(within(toc).getByRole("button", { name: /② Unknowns/ }));
+  expect(sections[1]?.scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
+});
+
+test("falls back to smooth scrolling when matchMedia is unavailable", async () => {
+  vi.stubGlobal("matchMedia", undefined);
+  const { container } = render(<ReviewReader slug="web-graph-structure-refactor" />);
+  await screen.findByText("그래프 구조를 분리한다.");
+
+  const toc = container.querySelector(".reader-toc") as HTMLDetailsElement;
+  fireEvent.click(screen.getByRole("button", { name: /① Intent.*목차/ }));
+
+  expect(toc.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
 });
 
 test("renders a selected reference as a full page", async () => {

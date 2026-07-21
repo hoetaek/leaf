@@ -68,6 +68,18 @@ Use the nearest durable surface:
 - `03-Architect/08-execution.md` for execution sessions;
 - `04-Feedback/09-review.md` and `10-retrospect.md` for close-out findings.
 
+## Gate Folding Under Autopilot
+
+Gate folding (passing ④/⑤/⑦ with a one-line `folded:` record when the work has
+no uncertainty to close) is defined in `../../work/references/gates.md` → Gate
+folding; this policy does not restate its rules. Its human-approval point is
+normally at ③'s end, which autopilot removes — so **fold eligibility is a
+triple-lock decision**: autopilot may fold only when the human, at triple
+review, pre-approved this work for short-loop folding. Without that
+pre-approval, autopilot runs the full loop. Either way ⑨ runs the fold audit.
+This keeps folding inside layer 1 (the ownership boundary), not layer 2's
+automatic discretion.
+
 ## Return Rule
 
 If an automatic gate finds that the locked triple is wrong, return to Learn. Do

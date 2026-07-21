@@ -20,6 +20,58 @@ the end is the failure ledger those records live in.
 
 ---
 
+## Gate folding (short loop)
+
+**A gate always runs; what scales with the work is how much it produces.** ⑥
+Critic already works this way — "always runs; only the depth scales." Fold
+generalizes that grammar to ④, ⑤, and ⑦: when the uncertainty a gate exists to
+close is already absent for *this* work, the gate is passed with a one-line
+`folded:` record instead of a full artifact. **The floor is a one-line
+judgment, never zero — folding shrinks the gate's output, not its judgment.**
+So a folded gate is depth-minimal, not skipped; the file stays, its body
+becomes one line. This is what makes work cost track problem size (the failure
+it prevents: forcing eight full gate artifacts onto a one-word change).
+
+**Which gates fold, and the "no uncertainty" condition each:**
+
+| Gate | Folds when | The one line still carries |
+|---|---|---|
+| ④ Wireframe | instance = artifact — there is no separate cheap instance to validate (building one would make the deliverable twice) | the real asset/file inspected (≥1 concrete noun) |
+| ⑤ Design | there is no variation axis to generalize (one value / one string swapped) | a one-line precedent declaration if a precedent surface exists, else `없음` |
+| ⑥ Critic | *(no new clause — already depth-scaling)* | the existing quick self-pass line |
+| ⑦ Tasks | one review unit (small on the `task-pr-size-guidance.md` tripwire) | the single task + its verification command |
+
+**Never fold** ③ (it produces the fold judgment), ⑧ (the work itself), ⑨ (it
+runs the fold audit), or ⑩ (it only gets shorter). ③–⑤ files still never merge
+(`engine.md`); folding shortens a file, it does not delete or combine gate
+files.
+
+**Deciding, recording, and unfolding:**
+
+- **Decide (not pure self-assessment).** ③'s end is the *earliest* fold
+  proposal; each gate re-affirms its own fold on arrival (true per-gate depth,
+  not one central switch). The agent proposes; a human approves. In
+  interactive work that approval is at ③'s end. Under `autopilot` there is no
+  ③-end pause, so fold eligibility is pre-approved at the triple lock (the
+  approval point moves forward, like Shape Up's appetite fixed at intake);
+  without that pre-approval autopilot runs the full loop.
+- **Record (falsifiable).** `folded: <reason — ≥1 concrete noun: the file,
+  asset, or rejected alternative> [+ one line of remaining judgment]`. A line
+  that would copy-paste onto any task ("simple, so skipped") fails this and is
+  not a fold.
+- **Audit (post-hoc, in ⑨).** ⑨ adds a fold-audit line: does the actual
+  diff/artifact match ③'s fold reason (e.g. "one review unit")? ⑨ also
+  inherits any check a folded ④ deferred — the artifact against the real
+  asset's constraints. A mismatch unfolds the gate.
+- **Unfold (a normal path, not a failure).** When a fold reason breaks, expand
+  that gate and record the return, following the existing return grammar: a
+  surfaced **variation axis → unfold ④ first** (declare the contract), then ⑤
+  if needed — never let ⑤ invent the contract; **size over one review unit →
+  unfold ⑦**. Unfolding is the ordinary falsification of an assumption the
+  fold consumed.
+
+---
+
 ## ① Intent
 
 ① belongs to `learn`; its contract is
@@ -67,6 +119,9 @@ instance can falsify a criterion, and every placeholder in it must trace to a
 declared contract.** This is the answer probe: ② experiments on the world
 ("is this true?"), ④ experiments on your answer ("is this answer right?").
 
+Folds when the instance *is* the artifact (see Gate folding); the folded line
+still names the real asset inspected.
+
 Gate to continue:
 
 - The text-first wireframe passed before any artifact-specific wireframe or
@@ -90,6 +145,9 @@ reviewer cannot find their way — and record the return.
 **Generalize the validated instance into the rules that produce every valid
 instance the ④ contract allows — consuming that contract, never rediscovering
 it.**
+
+Folds when there is no variation axis to generalize (see Gate folding); the
+folded line still declares any precedent surface the change sets.
 
 Gate to continue:
 
@@ -138,6 +196,9 @@ Full review criteria and depth triggers: `design-critic.md`.
 **Slice the work into reviewable units whose dependencies are real, not
 conversational.**
 
+Folds when the work is one review unit (see Gate folding); the folded line
+still names the single task and its verification.
+
 Gate to continue:
 
 - Each slice is independently reviewable — size labeled against the tripwires
@@ -181,6 +242,10 @@ Gate to continue:
   flow or precedent surface updates the design (including the precedent and
   responsibility statements ⑤ left); changed workload updates the task graph.
   No stale planning notes remain beside a changed draft.
+- Fold audit (only when a gate folded): the actual diff/artifact matches each
+  `folded:` reason (e.g. "one review unit"), and any check a folded ④ deferred
+  — the artifact against the real asset's constraints — has been paid here. A
+  mismatch unfolds that gate and records the return.
 
 Domain-quality lenses (council or persona skills, when exposed) augment these
 checks; they never replace them.
@@ -223,3 +288,6 @@ failure here or next to the check itself.
 - Starting ⑨ Review while the passed work is still under `.leaf/01-sprouts/`.
 - Stopping after the retrospect file is written, leaving the leaf without a
   keep/press/fall decision.
+- Forcing full gate artifacts onto work with no uncertainty to close — the cost
+  a fold prevents. (And its inverse: folding a gate whose uncertainty is real,
+  or with a copy-paste reason that names no concrete noun.)

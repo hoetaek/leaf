@@ -72,14 +72,16 @@ export function GateNav({
   return (
     <nav className="gnav">
       {sources.map((source, index) => (
-        <a
+        <button
+          type="button"
           key={index}
-          className={index === active ? "on" : source.present ? "" : "empty"}
+          className={`gnav-item${index === active ? " on" : source.present ? "" : " empty"}`}
+          aria-current={index === active ? "location" : undefined}
           onClick={() => onSelect(index)}
         >
           {source.gate}
-          <span>{source.present ? "✓" : "·"}</span>
-        </a>
+          <span className="gnav-status">{source.present ? "✓" : "·"}</span>
+        </button>
       ))}
     </nav>
   );
@@ -112,39 +114,6 @@ export function MobileReaderActions({
           Refs <span>{count}</span>
         </button>
       )}
-    </div>
-  );
-}
-
-export function TocOverlay({
-  sources,
-  active,
-  onSelect,
-  onClose,
-}: {
-  sources: ReviewSource[];
-  active: number;
-  onSelect: (index: number) => void;
-  onClose: () => void;
-}) {
-  return (
-    <div className="toc-overlay" onClick={onClose}>
-      <div className="toc-sheet" onClick={(event) => event.stopPropagation()}>
-        <div className="toc-sheethead">
-          <b>Gates</b>
-          <button className="refclose" onClick={onClose}>
-            ✕
-          </button>
-        </div>
-        <GateNav
-          sources={sources}
-          active={active}
-          onSelect={(index) => {
-            onSelect(index);
-            onClose();
-          }}
-        />
-      </div>
     </div>
   );
 }

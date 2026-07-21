@@ -6,6 +6,28 @@ This project follows pre-1.0 SemVer. Until the CLI and persisted state model
 are stable enough for 1.0, breaking user-facing changes bump the `0.x.0`
 minor version instead of moving to `x.0.0`.
 
+## Unreleased
+
+## 0.18.0 - 2026-07-21
+
+- Review reader: the table of contents no longer narrows the document. Wide
+  viewports place it in a sticky rail beside a report up to 900px wide, while
+  narrower viewports render a native collapsible outline in the document flow.
+  The navigation also exposes its active and expanded state to assistive
+  technology and respects reduced-motion preferences.
+- Dependencies: updated `crossbeam-epoch` to 0.9.20, resolving
+  RUSTSEC-2026-0204.
+- Plugin skills: released `leaf` plugin 0.9.0 — added gate folding (short loop)
+  to `work`. A gate always runs, but when ④/⑤/⑦ has no uncertainty left to
+  close, it is passed with a one-line `folded:` record (naming a concrete noun)
+  instead of a full artifact, so work cost tracks problem size. The floor is a
+  one-line judgment, never zero — folding shrinks a gate's output, not its
+  judgment, generalizing ⑥'s "always runs; only the depth scales". Rules live
+  in one place (`gates.md` → Gate folding); `engine.md` clarifies a merge ban
+  is not a fold ban; `work`/`autopilot`/`learn` point to it. Folding is
+  human-approved (at ③'s end, or pre-approved at the triple under `autopilot`)
+  and audited at ⑨, never pure self-assessment.
+
 ## 0.17.0 - 2026-07-03
 
 - Plugin skills: released `leaf` plugin 0.8.0 — rewrote the gate contracts to

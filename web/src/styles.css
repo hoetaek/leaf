@@ -163,34 +163,102 @@ h2 {
   gap: 1px;
 }
 
-.gnav a {
+.gnav-item {
   display: flex;
   justify-content: space-between;
+  width: 100%;
+  border: 0;
+  background: transparent;
   cursor: pointer;
   color: var(--body);
   padding: 7px 10px;
   border-radius: var(--r-sm);
+  font: inherit;
   font-size: 13px;
+  text-align: left;
 }
 
-.gnav a:hover {
+.gnav-item:hover {
   background: var(--paper);
 }
 
-.gnav a.on {
+.gnav-item.on {
   background: var(--sage-soft);
   color: var(--sage);
   font-weight: 600;
 }
 
-.gnav a span {
+.gnav-status {
   font-family: ui-monospace;
   font-size: 11px;
   color: var(--sage);
 }
 
-.gnav a.empty span {
+.gnav-item.empty .gnav-status {
   color: var(--dim);
+}
+
+.reader-toc {
+  display: none;
+  width: 100%;
+  max-width: 900px;
+  justify-self: center;
+  scroll-margin-top: 108px;
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+
+.reader-toc-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.reader-toc-summary::-webkit-details-marker {
+  display: none;
+}
+
+.reader-toc-summary::marker {
+  content: "";
+}
+
+.reader-toc-summary::after {
+  content: "▾";
+  color: var(--mut);
+}
+
+.reader-toc[open] .reader-toc-summary {
+  border-bottom: 1px solid var(--line2);
+}
+
+.reader-toc[open] .reader-toc-summary::after {
+  content: "▴";
+}
+
+.reader-toc-gate {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-toc-label {
+  color: var(--sage);
+  font-weight: 700;
+}
+
+.reader-toc .gnav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  padding: 8px;
 }
 
 .report {
@@ -1582,10 +1650,6 @@ h2 {
   display: none;
 }
 
-.toc-overlay {
-  display: none;
-}
-
 /* ===== detail header (.dhead) — v2 information hierarchy ===== */
 .dhead {
   background: var(--card);
@@ -1749,6 +1813,24 @@ h2 {
     scroll-behavior: auto !important;
     transition: none !important;
     animation: none !important;
+  }
+}
+
+@media (width <= 1165px) {
+  .reader {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reader > .rail {
+    display: none;
+  }
+
+  .reader-toc {
+    display: block;
+  }
+
+  .report {
+    justify-self: center;
   }
 }
 
@@ -1946,16 +2028,6 @@ h2 {
     padding-top: 12px;
   }
 
-  /* review reader: hide the stacked rail, surface a compact sticky TOC */
-  .reader {
-    grid-template-columns: 1fr;
-  }
-
-  .dbody .rail,
-  .reader > .rail {
-    display: none;
-  }
-
   .mobile-reader-actions {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -2042,45 +2114,6 @@ h2 {
     font-size: 11px;
   }
 
-  .toc-overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgb(22 24 29 / 32%);
-    z-index: 75;
-    cursor: pointer;
-  }
-
-  .toc-sheet {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--card);
-    border-radius: 18px 18px 0 0;
-    padding: 14px 18px calc(18px + env(safe-area-inset-bottom));
-    max-height: 72vh;
-    overflow: auto;
-    box-shadow: 0 -16px 40px -20px rgb(22 24 29 / 50%);
-    cursor: default;
-  }
-
-  .toc-sheethead {
-    display: flex;
-    align-items: center;
-    font-family: "Cabinet Grotesk", sans-serif;
-    font-size: 17px;
-    margin-bottom: 10px;
-  }
-
-  .toc-sheethead .refclose {
-    margin-left: auto;
-  }
-
-  .toc-sheet .gnav a {
-    padding: 11px 10px;
-  }
-
   .refoverlay {
     display: block;
     background: rgb(22 24 29 / 32%);
@@ -2110,7 +2143,6 @@ h2 {
     font-size: 20px;
   }
 
-  .toc-sheethead .refclose,
   .refdrawer .refclose,
   .refdrawer .reficon {
     width: 40px;

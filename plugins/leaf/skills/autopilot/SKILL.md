@@ -30,6 +30,11 @@ reviews, hard stops, and evidence.
   (멈칫)** and `leaf doctor` flags `boundary_unpolished`. Treat that pause as a
   polish signal; don't bypass it by hand-creating the next phase. Don't let an
   un-polished draft reach review or close-out.
+- **Fold only when pre-approved.** Gate folding (passing ④/⑤/⑦ as a one-line
+  `folded:` record; see `../work/references/gates.md`) needs a human approval
+  autopilot removes, so autopilot may fold only when the triple review
+  pre-approved this work for short-loop folding — otherwise run the full loop.
+  Details: `references/approval-policy.md` → Gate Folding Under Autopilot.
 - **Do not duplicate LEAF.** Invoke and follow `leaf:work`, `leaf:polish`,
   `leaf:press`, `leaf:profile`, `leaf:soul`, and `leaf:using-leaf` when their
   contracts apply. This skill orchestrates them; it does not rewrite their gate

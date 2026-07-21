@@ -113,7 +113,10 @@ Read only what the current move needs:
    `none — <reason>` is a valid approved answer (understanding-only, killed, or
    deferred sprouts). The lock is a **return-condition lock**: work consumes
    it, and ④/⑧/⑨ falsifying it reopens it via a recorded return. Contract:
-   `references/gate-02-unknowns-context.md`.
+   `references/gate-02-unknowns-context.md`. If the work looks simple enough to
+   short-loop and the user intends `autopilot`, this is also where they may
+   pre-approve gate folding (see `../work/references/gates.md` → Gate folding);
+   otherwise autopilot runs the full loop.
 
 Show the gathered references as a file tree first:
 
