@@ -5,6 +5,11 @@ description: Use when capturing, triaging, or deeply learning a sprout through L
 
 # LEAF Learn
 
+Before starting Learn for an implementation request, use `using-leaf` to check
+whether it is execution-ready. That path makes first execution evidence before
+this document flow; Learn remains the route for discovery-heavy work, document
+outputs, and any request with a blocking unknown.
+
 `learn` owns **Learn**: ① Intent and ② Unknowns & Context. Learn is where an
 eager learner goes to *understand a topic for its own sake*. ① locks the why (the
 problem definition) and the what (what the output is); ② explores the terrain —

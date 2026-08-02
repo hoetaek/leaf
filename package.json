@@ -4,6 +4,7 @@
   "description": "Manifest tooling for the leaf Claude Code + Codex plugin marketplace",
   "type": "module",
   "scripts": {
-    "validate": "node scripts/validate-manifests.mjs"
+    "validate": "node scripts/validate-manifests.mjs",
+    "eval:execution-ready": "node scripts/eval-execution-ready.mjs"
   }
 }

@@ -1,27 +1,33 @@
 ---
 name: autopilot
-description: Use after a LEAF sprout's why / what / wireframe triple has been explicitly reviewed by the user, when the user wants the remaining LEAF gates to proceed automatically through Example, Architect, Execution, Review, and Retrospect. Trigger on "$leaf:autopilot", "LEAF autopilot", "triple is approved, continue automatically", "run the rest of LEAF without asking", or "after this lock, handle the rest". Do not use before the triple is reviewed, for unclear intent, for destructive/external/credential/cost/security/privacy-sensitive work without explicit pre-authorization, or when the user wants normal per-gate approval.
+description: Use after a LEAF sprout's why / what / wireframe triple has been explicitly reviewed by the user, or for an execution-ready implementation with an explicit user request, when the user wants the remaining work to proceed automatically. Trigger on "$leaf:autopilot", "LEAF autopilot", "triple is approved, continue automatically", "run the rest of LEAF without asking", or "after this lock, handle the rest". Do not use for unclear intent, destructive/external/credential/cost/security/privacy-sensitive work without explicit pre-authorization, or when the user wants normal per-gate approval.
 ---
 
 # LEAF Autopilot
 
 `autopilot` carries a LEAF sprout after the human-reviewed `why / what /
-wireframe` triple. It does not remove LEAF's judgment boundary; it moves the
-boundary to the triple lock, then runs the remaining gates with automatic
-reviews, hard stops, and evidence.
+wireframe` triple. For execution-ready implementation it instead consumes the
+five-condition routing judgment and explicit implementation request, then makes
+the first evidence before normal gate records. It does not remove LEAF's
+judgment boundary; it keeps automatic reviews, hard stops, and evidence.
 
 ## Core Contract
 
-- **Triple first.** Do not start unless `00-status.md` has human-reviewed `why`,
-  `what`, and `wireframe` values. If they are missing, provisional, stale, or
-  marked `USER REVIEW NEEDED` / `LOCK CANDIDATE`, return to `learn`.
+- **Triple first outside execution-ready.** Do not start ordinary autopilot
+  unless `00-status.md` has human-reviewed `why`, `what`, and `wireframe`
+  values. If they are missing, provisional, stale, or marked `USER REVIEW
+  NEEDED` / `LOCK CANDIDATE`, return to `learn`. execution-ready work may start
+  its first evidence from the explicit implementation request and records its
+  contract afterward.
 - **Autopilot after the lock.** Once the triple is locked, proceed through
   `work` gates automatically: ③ Criteria, ④ Wireframe, ⑤ Design, ⑥ Critic,
-  ⑦ Tasks, ⑧ Artifact / Execution, ⑨ Review / Sync, and ⑩ Retrospect.
+  ⑦ Tasks, ⑧ Artifact / Execution, ⑨ Review / Sync, and ⑩ Retrospect. An
+  execution-ready 분기는 `work`의 최초 실행 증거부터 시작하며, 완전한 ③–⑦
+  문서 순서를 먼저 요구하지 않는다.
 - **Review still happens.** Gate reviews are automatic unless a hard stop or
   pre-authorization gap appears. Leave the review evidence in the gate file,
   `08-execution.md`, or `09-review.md`.
-- **Polish at every phase boundary, gated by `leaf next`.** Because autopilot
+- **Polish at every formal phase boundary, gated by `leaf next`.** Because autopilot
   removes the human pause that triggers it, invoke `leaf:polish` on the cumulative
   whole at the end of each phase and before close-out, then cross the boundary
   with `leaf next <slug>` — and open each result for the user per `soul` (live
@@ -29,11 +35,14 @@ reviews, hard stops, and evidence.
   `<!-- leaf:polish-pending -->` marker; if still present, `leaf next` **pauses
   (멈칫)** and `leaf doctor` flags `boundary_unpolished`. Treat that pause as a
   polish signal; don't bypass it by hand-creating the next phase. Don't let an
-  un-polished draft reach review or close-out.
-- **Fold only when pre-approved.** Gate folding (passing ④/⑤/⑦ as a one-line
+  un-polished draft reach review or close-out. 최초 실행 증거 전에는 이 규칙이
+  polish, 문서 검토, live UI를 요구하지 않는다.
+- **Fold with normal approval or an execution-ready judgment.** Gate folding (passing ④/⑤/⑦ as a one-line
   `folded:` record; see `../work/references/gates.md`) needs a human approval
   autopilot removes, so autopilot may fold only when the triple review
   pre-approved this work for short-loop folding — otherwise run the full loop.
+  execution-ready 분기에서는 readiness 판단이 ④·⑤·⑦을 별도 사람 승인 없이 자동 fold하도록 허용한다.
+  ⑨ audit과 일반 unfold 규칙은 그대로 적용한다.
   Details: `references/approval-policy.md` → Gate Folding Under Autopilot.
 - **Do not duplicate LEAF.** Invoke and follow `leaf:work`, `leaf:polish`,
   `leaf:press`, `leaf:profile`, `leaf:soul`, and `leaf:using-leaf` when their
@@ -48,10 +57,13 @@ Before doing work:
 
 1. Read `../soul/SKILL.md` and apply its conduct rules.
 2. Read `../using-leaf/SKILL.md` for close-out rules and routing boundaries.
-3. Run `git status --short --branch` and `leaf doctor`.
+3. Run `git status --short --branch`. Run `leaf doctor` once a `.leaf/`
+   workspace exists; execution-ready first evidence does not wait for it.
 4. Read the sprout's `00-status.md`, `01-Learn/01-intent.md`, and
-   `01-Learn/02-unknowns.md`.
-5. Verify the triple is human-reviewed and internally consistent.
+   `01-Learn/02-unknowns.md` when they exist; execution-ready work instead
+   reads the request and current repository state.
+5. Verify the triple is human-reviewed and internally consistent, or verify all
+   five execution-ready conditions and the explicit implementation request.
 6. Read `references/approval-policy.md` when the request involves execution,
    external side effects, credentials, cost, security, privacy, or ambiguity
    about what autopilot may decide.
@@ -63,8 +75,10 @@ If any start check fails, stop with the smallest needed repair or user question.
 1. **Consume Learn.** Treat the locked triple as the current contract. If ③ or
    later reveals the triple is wrong, return to `learn`, record the return, and
    do not continue on the old contract.
-2. **Run Example.** Use `leaf:work` gates ③ and ④. Write criteria that can reject
-   a bad instance, then build the cheap wireframe promised by `wireframe`.
+2. **Run Example.** For execution-ready work, first make the evidence prescribed
+   by `work` and then record criteria/folds from it. Otherwise use `leaf:work`
+   gates ③ and ④: write criteria that can reject a bad instance, then build the
+   cheap wireframe promised by `wireframe`.
 3. **Run Architect.** Use gates ⑤, ⑥, and ⑦. Design the generator, run at least a
    quick critic pass, and slice reviewable tasks.
 4. **Execute only inside the delegated lane.** Gate ⑧ may start without asking
@@ -85,7 +99,9 @@ If any start check fails, stop with the smallest needed repair or user question.
 Stop and ask for explicit user direction when any of these appear without prior
 authorization:
 
-- the triple is missing, stale, contradicted, or not human-reviewed;
+- an ordinary-work triple is missing, stale, contradicted, or not
+  human-reviewed; execution-ready work lacks one of its five conditions or an
+  explicit implementation request;
 - destructive or hard-to-revert changes;
 - credentials, secrets, external accounts, production systems, deployment, or
   cost-incurring actions;
@@ -101,7 +117,7 @@ authorization:
 
 Before reporting completion, show:
 
-- the locked triple consumed;
+- consumed locked triple or execution-ready routing judgment;
 - the current LEAF path and stage;
 - gates completed and evidence paths;
 - commands run, including `leaf doctor` and any tests/build/lint;
@@ -116,7 +132,8 @@ human-approved, say where the delegation was recorded.
 
 ## Anti-Patterns
 
-- Starting before the triple is locked.
+- Starting ordinary work before the triple is locked, or execution-ready work
+  before the five-condition check.
 - Treating "no human approval" as "no review".
 - Consuming a stale gate because the next file already exists.
 - Rewriting LEAF gate contracts inside this skill.
