@@ -7,8 +7,10 @@ asking the user.
 
 `autopilot` uses three layers:
 
-1. **Human-reviewed triple** — `why`, `what`, and `wireframe` are reviewed before
-   autopilot starts. This is the ownership boundary.
+1. **Human-reviewed triple or execution-ready routing judgment** — normal work
+   locks `why`, `what`, and `wireframe` before autopilot. An execution-ready
+   implementation instead has the five routing conditions plus an explicit user
+   request; its ownership boundary is the first local reversible evidence.
 2. **Automatic gate review** — after the triple, the agent may draft, grill,
    revise, test, and review LEAF gates without asking at every gate.
 3. **Hard stops** — when risk or ownership exceeds the pre-authorized lane, stop
@@ -26,6 +28,10 @@ Continue without asking when all are true:
 - the required evidence can be gathered locally;
 - the next gate can consume the previous gate without inventing a new why, what,
   wireframe, core noun, or scope.
+
+For execution-ready work, the first action may be a failing test, reproduction,
+measurement, or minimum prototype before any gate document exists. It must
+remain local, reversible, and within the stated scope.
 
 Examples:
 
@@ -76,9 +82,10 @@ folding; this policy does not restate its rules. Its human-approval point is
 normally at ③'s end, which autopilot removes — so **fold eligibility is a
 triple-lock decision**: autopilot may fold only when the human, at triple
 review, pre-approved this work for short-loop folding. Without that
-pre-approval, autopilot runs the full loop. Either way ⑨ runs the fold audit.
-This keeps folding inside layer 1 (the ownership boundary), not layer 2's
-automatic discretion.
+pre-approval, autopilot runs the full loop. For execution-ready work, the
+five-condition routing judgment replaces this separate fold approval for
+④/⑤/⑦ only; ⑨ still audits every fold and a mismatch unfolds it. This keeps
+the safety boundary while removing a redundant approval.
 
 ## Return Rule
 

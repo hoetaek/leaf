@@ -1,0 +1,29 @@
+# Execution-ready regression scenario
+
+## Given
+
+- 기존 UI 회귀를 재현할 수 있다.
+- 수정 뒤 성공 조건을 테스트로 관찰할 수 있다.
+- 수정 범위와 제외 범위가 정해져 있다.
+- 첫 행동은 작고 되돌릴 수 있는 실패 회귀 테스트다.
+- 데이터·보안·권한·공개 계약·대규모 구조에 영향을 주는 미결정 사항이 없다.
+
+## Expected trace
+
+1. 기존 요구와 저장소 상태를 한 번 확인한다.
+2. 문서 gate보다 먼저 실패 회귀 테스트를 실행해 최초 실행 증거를 만든다.
+3. 작은 구현과 검증을 반복한다.
+4. 구현 중 실제로 생긴 결정·위험·부채만 압축 기록한다.
+5. 최종 검증과 필요한 review/retrospect를 수행한다.
+
+## Before the first execution evidence, do not require
+
+- phase gate 파일 작성
+- 누적 polish
+- 독립 문서 검토
+- live UI 열기
+
+## Safety boundary
+
+보안·권한·비가역 변경·외부 공유·비용·배포·공개 계약·대규모 구조 미결정이 드러나면
+execution-ready 경로를 멈추고 기존 Learn/Work hard stop으로 돌아간다.

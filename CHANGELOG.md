@@ -8,6 +8,17 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+- Plugin skills: released `leaf` plugin 0.10.0 — added the execution-ready implementation lane. When current
+  state and success are observable, scope is known, a first reversible
+  experiment is available, and no high-risk decision remains, `using-leaf` /
+  `work` now make first execution evidence before LEAF gate files, cumulative
+  polish, document review, or live UI. The existing Learn-first route and hard
+  stops remain for discovery-heavy, document-output, security/privacy/permission,
+  irreversible, external, costly, public-contract, and large-structure work.
+  `autopilot` may auto-fold ④/⑤/⑦ in that lane; ⑨ audit and unfold still apply.
+  Added an execution-ready scenario and contract eval to prevent the ordering
+  from regressing.
+
 ## 0.18.0 - 2026-07-21
 
 - Review reader: the table of contents no longer narrows the document. Wide
@@ -17,6 +28,7 @@ minor version instead of moving to `x.0.0`.
   technology and respects reduced-motion preferences.
 - Dependencies: updated `crossbeam-epoch` to 0.9.20, resolving
   RUSTSEC-2026-0204.
+
 - Plugin skills: released `leaf` plugin 0.9.0 — added gate folding (short loop)
   to `work`. A gate always runs, but when ④/⑤/⑦ has no uncertainty left to
   close, it is passed with a one-line `folded:` record (naming a concrete noun)
@@ -26,7 +38,9 @@ minor version instead of moving to `x.0.0`.
   in one place (`gates.md` → Gate folding); `engine.md` clarifies a merge ban
   is not a fold ban; `work`/`autopilot`/`learn` point to it. Folding is
   human-approved (at ③'s end, or pre-approved at the triple under `autopilot`)
-  and audited at ⑨, never pure self-assessment.
+  and audited at ⑨, never pure self-assessment. The later execution-ready lane
+  is the narrow exception: its five-condition routing judgment replaces the
+  separate fold approval while retaining the ⑨ audit/unfold check.
 
 ## 0.17.0 - 2026-07-03
 

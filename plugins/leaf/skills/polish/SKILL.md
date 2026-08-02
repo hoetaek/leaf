@@ -26,6 +26,13 @@ Use that sentence as the quality bar. More words are not higher quality. The
 best document is the one that leaves nothing important hidden and nothing
 unnecessary in the way.
 
+## 최초 실행 증거의 경계
+
+execution-ready 구현의 최초 실행 증거 전에는 polish를 호출하거나 기다리지
+않는다. 누적 polish, 독립 문서 검토, live UI는 문서 경계를 실제로 넘길 때의
+후속 품질 작업이며, 실패 테스트·재현·측정·최소 prototype을 만드는 실행을 막지 않는다.
+증거 뒤 필요한 gate 기록이 생기면 이 skill의 일반 규칙을 적용한다.
+
 ## Polish Unit — phase 경계의 누적 전체
 
 polish의 기본 단위는 단일 파일이 아니라 **하나의 phase 경계에서 그때까지 쌓인 전체

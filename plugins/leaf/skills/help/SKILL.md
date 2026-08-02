@@ -23,6 +23,11 @@ write gate files, run `leaf next`, or persist anything.
 Core rule: leaf before tree. Validate one inspectable instance before growing
 the full artifact.
 
+For an execution-ready implementation, validate the first real instance before
+the LEAF document flow: after one repository-state check, make a failing test,
+reproduction, measurement, or minimum prototype. Unknown, high-risk, and
+document-output work still starts with Learn.
+
 ## Skills
 
 | Skill | Trigger | What it does |
