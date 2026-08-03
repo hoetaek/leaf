@@ -8,16 +8,15 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
-- Plugin skills: released `leaf` plugin 0.10.0 — added the execution-ready implementation lane. When current
-  state and success are observable, scope is known, a first reversible
-  experiment is available, and no high-risk decision remains, `using-leaf` /
-  `work` now make first execution evidence before LEAF gate files, cumulative
-  polish, document review, or live UI. The existing Learn-first route and hard
-  stops remain for discovery-heavy, document-output, security/privacy/permission,
-  irreversible, external, costly, public-contract, and large-structure work.
-  `autopilot` may auto-fold ④/⑤/⑦ in that lane; ⑨ audit and unfold still apply.
-  Added an execution-ready scenario and contract eval to prevent the ordering
-  from regressing.
+- Plugin skills: released `leaf` plugin 0.10.1 — bounded maintenance and
+  execution-ready implementation now exit LEAF routing and work directly.
+  Verified work with no durable unresolved decision finishes without scaffold,
+  gates, phase transitions, cumulative polish, independent document review, or
+  live UI; completed implementation is never reconstructed as ③–⑩ afterward.
+  Work escalates to the normal Learn-first lifecycle only when unresolved
+  discovery/design risk appears or the user explicitly requests a durable LEAF
+  record. Expanded the execution-ready contract eval with zero-operation budgets
+  and cross-skill guards for routing, fast termination, and escalation.
 
 ## 0.18.0 - 2026-07-21
 

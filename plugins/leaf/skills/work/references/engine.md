@@ -176,9 +176,9 @@ So `03+04`, `04+05`, and `03+04+05` are forbidden. Keep ③, ④, and ⑤ as sep
 files/folders even for tiny work. **A merge ban is not a fold ban:** on tiny
 work a gate with no uncertainty to close may shrink to a one-line `folded:`
 record (see `gates.md` → Gate folding), but the file stays separate. In an
-execution-ready lane, create that separate record after the first execution
-evidence; the merge ban never makes documentation a prerequisite for evidence.
-Folding shortens a file; it never combines two.
+execution-ready direct lane these gates do not run. If unresolved uncertainty
+forces an escalation, start at Learn and apply this separation only inside the
+normal lifecycle. Folding shortens a file; it never combines two.
 
 ## Routing a mid-work discovery
 

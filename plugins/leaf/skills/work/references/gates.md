@@ -70,27 +70,9 @@ files.
   unfold ⑦**. Unfolding is the ordinary falsification of an assumption the
   fold consumed.
 
-## Execution-ready folding
-
-When `using-leaf` has established all five execution-ready conditions, the
-first failing test, reproduction, measurement, or minimum prototype comes
-before the gate files. That evidence is the concrete ④ instance; create the
-gate records after it, not as permission to make it.
-
-- ③ records the observable failure/success condition the evidence exercised.
-- ④ may record `folded: <failing test, reproduction, or prototype> — direct
-  evidence is the concrete instance`.
-- ⑤ may fold only when the evidence leaves no variation axis or reusable
-  precedent decision.
-- ⑦ may fold only when the change is one review unit with a named verification
-  command.
-
-The execution-ready judgment authorizes those ④/⑤/⑦ folds without a second
-human approval. It does not authorize ⑧ beyond the reversible delegated chunk,
-and it never bypasses the security, privacy, permission, external, costly,
-irreversible, public-contract, or large-structure stop. **⑨ audit** checks the
-actual diff against every fold reason; a mismatch must **unfold** the earliest
-affected gate and return normally.
+Execution-ready direct work does not enter these gates. If it exposes a durable
+unresolved decision, start at Learn and use the normal folding rules only after
+the work has entered the normal lifecycle.
 
 ---
 

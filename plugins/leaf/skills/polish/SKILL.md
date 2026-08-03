@@ -26,12 +26,13 @@ Use that sentence as the quality bar. More words are not higher quality. The
 best document is the one that leaves nothing important hidden and nothing
 unnecessary in the way.
 
-## 최초 실행 증거의 경계
+## Execution-ready direct path
 
-execution-ready 구현의 최초 실행 증거 전에는 polish를 호출하거나 기다리지
-않는다. 누적 polish, 독립 문서 검토, live UI는 문서 경계를 실제로 넘길 때의
-후속 품질 작업이며, 실패 테스트·재현·측정·최소 prototype을 만드는 실행을 막지 않는다.
-증거 뒤 필요한 gate 기록이 생기면 이 skill의 일반 규칙을 적용한다.
+execution-ready direct work는 LEAF 문서를 만들지 않으므로 최초 실행 증거 전뿐
+아니라 **최초 실행 증거 뒤에도 polish 대상이 아니다**. 누적 polish와 독립 문서 검토,
+live UI는 direct 실행을 막지 않는다. 미결정 사항 때문에 Learn으로
+승격하여 canonical gate 문서가 실제로 생긴 때부터만 이 skill의 일반 규칙을
+적용한다.
 
 ## Polish Unit — phase 경계의 누적 전체
 

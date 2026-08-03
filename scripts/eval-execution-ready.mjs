@@ -15,6 +15,13 @@ function requireText(path, text, needle) {
   }
 }
 
+function forbidText(path, text, needle) {
+  if (text.includes(needle)) {
+    failures += 1;
+    console.error(`${path}: forbidden ${JSON.stringify(needle)}`);
+  }
+}
+
 function requireOrder(path, text, needles) {
   let previous = -1;
   for (const needle of needles) {
@@ -40,6 +47,17 @@ requireOrder(fixturePath, fixture, [
 for (const forbiddenBeforeEvidence of ["phase gate 파일 작성", "누적 polish", "독립 문서 검토", "live UI 열기"]) {
   requireText(fixturePath, fixture, forbiddenBeforeEvidence);
 }
+for (const zeroBudget of [
+  "leaf scaffold: 0",
+  "phase transitions: 0",
+  "cumulative polish: 0",
+  "independent document reviews: 0",
+  "live UI opens: 0",
+]) {
+  requireText(fixturePath, fixture, zeroBudget);
+}
+requireText(fixturePath, fixture, "최초 실행 증거 뒤에도");
+requireText(fixturePath, fixture, "이 경우에만");
 
 const usingLeafPath = "plugins/leaf/skills/using-leaf/SKILL.md";
 const usingLeaf = read(usingLeafPath);
@@ -54,35 +72,63 @@ for (const readinessCondition of [
 ]) {
   requireText(usingLeafPath, usingLeaf, readinessCondition);
 }
+requireText(usingLeafPath, usingLeaf, "bounded maintenance");
+requireText(usingLeafPath, usingLeaf, "작업 크기만으로 LEAF를 시작하지 않는다");
+requireText(usingLeafPath, usingLeaf, "`.leaf/` 기록 없이 종료");
+requireText(usingLeafPath, usingLeaf, "| no LEAF skill |");
 
 const workPath = "plugins/leaf/skills/work/SKILL.md";
 const work = read(workPath);
 requireText(workPath, work, "## Execution-first lane");
-requireText(workPath, work, "누적 polish, 독립 문서 검토, live UI, phase gate 파일을 요구하지 않는다");
+requireText(workPath, work, "## Fast terminal");
+requireText(workPath, work, "최초 실행 증거 뒤에도");
+requireText(workPath, work, "`.leaf/` scaffold를 만들지 않는다");
 requireOrder(workPath, work, [
   "저장소 상태 확인",
   "최초 실행 증거",
   "작고 되돌릴 수 있는 구현과 검증",
   "실제로 생긴 결정·위험·부채",
 ]);
+forbidText(workPath, work, "then create the concise ③–⑦ records");
+forbidText(workPath, work, "The first evidence is not a skipped gate");
 
 const autopilotPath = "plugins/leaf/skills/autopilot/SKILL.md";
 const autopilot = read(autopilotPath);
 requireText(autopilotPath, autopilot, "execution-ready 분기");
-requireText(autopilotPath, autopilot, "④·⑤·⑦을 별도 사람 승인 없이 자동 fold");
-requireText(autopilotPath, autopilot, "최초 실행 증거 전에는");
+requireText(autopilotPath, autopilot, "execution-ready direct path를 LEAF lifecycle로 바꾸지 않는다");
+forbidText(autopilotPath, autopilot, "④·⑤·⑦을 별도 사람 승인 없이 자동 fold");
 
 const polishPath = "plugins/leaf/skills/polish/SKILL.md";
 const polish = read(polishPath);
-requireText(polishPath, polish, "최초 실행 증거 전에는");
+requireText(polishPath, polish, "최초 실행 증거 뒤에도 polish 대상이 아니다");
 requireText(polishPath, polish, "독립 문서 검토");
 requireText(polishPath, polish, "실행을 막지 않는다");
 
 const gatesPath = "plugins/leaf/skills/work/references/gates.md";
 const gates = read(gatesPath);
-requireText(gatesPath, gates, "## Execution-ready folding");
-requireText(gatesPath, gates, "⑨ audit");
 requireText(gatesPath, gates, "unfold");
+forbidText(gatesPath, gates, "## Execution-ready folding");
+
+const directPathContracts = [
+  ["plugins/leaf/skills/help/SKILL.md", "creates no LEAF document"],
+  ["plugins/leaf/skills/learn/SKILL.md", "exits without this document flow"],
+  ["plugins/leaf/skills/work/references/layout.md", "Execution-ready direct work does not run these commands"],
+  ["plugins/leaf/skills/work/references/loop-contract.md", "Existing issue, PR, commit, or final handoff"],
+  ["plugins/leaf/skills/work/references/engine.md", "these gates do not run"],
+  ["plugins/leaf/skills/autopilot/references/approval-policy.md", "Execution-ready direct work does not use autopilot"],
+];
+for (const [path, needle] of directPathContracts) {
+  requireText(path, read(path), needle);
+}
+
+for (const [path, needle] of [
+  ["plugins/leaf/skills/work/references/layout.md", "create the project folder immediately afterward"],
+  ["plugins/leaf/skills/work/references/loop-contract.md", "then concise ③–⑦ records"],
+  ["plugins/leaf/skills/work/references/engine.md", "create that separate record after the first execution evidence"],
+  ["plugins/leaf/skills/autopilot/references/approval-policy.md", "five-condition routing judgment replaces"],
+]) {
+  forbidText(path, read(path), needle);
+}
 
 if (failures > 0) {
   console.error(`execution-ready contract failed: ${failures} assertion(s)`);

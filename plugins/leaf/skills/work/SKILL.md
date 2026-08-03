@@ -34,8 +34,8 @@ LEAF closes four kinds of uncertainty in order:
 Context. It carries the same sprout from ③ through ⑧, moves passed work to
 `.leaf/02-leaves/` before ⑨, runs ⑨/⑩, then follows `using-leaf`
 ("Ending a leaf") to keep, press, or fall. An execution-ready implementation
-uses the narrower execution-first lane below before it creates normal gate
-records.
+uses the narrower execution-first lane below and does not enter the normal
+lifecycle unless new uncertainty forces an escalation.
 
 ## Execution-first lane
 
@@ -47,25 +47,29 @@ in-scope, local, reversible first experiment; it does not relax any hard stop.
 2. Make **최초 실행 증거**: a failing regression test, reproduction, measurement,
    or minimal prototype.
 3. Repeat **작고 되돌릴 수 있는 구현과 검증** while that evidence stays observable.
-4. Record only **실제로 생긴 결정·위험·부채**; then create the concise ③–⑦ records
-   the evidence requires and perform final verification, ⑨, and ⑩.
+4. Record only **실제로 생긴 결정·위험·부채** in the nearest existing delivery
+   surface, then perform final verification and handoff.
 
-execution-ready에서는 최초 실행 증거 전에는 누적 polish, 독립 문서 검토, live UI, phase gate 파일을 요구하지 않는다. `leaf init`/`leaf new`, checkpoints,
-formal phase boundaries, and `leaf doctor` may follow the evidence; they must
-not delay it.
-The first evidence is not a skipped gate: it becomes the concrete input for ③
-and the folded ④ record. If its result reveals a security, privacy, permission,
+## Fast terminal
+
+보존할 결정·위험·부채가 없으면 검증 결과를 handoff하고 종료한다.
+**최초 실행 증거 뒤에도** 이 작업만을 위한 phase gate, checkpoint, cumulative polish, 독립 문서
+검토, live UI를 만들거나 실행하지 않고, **`.leaf/` scaffold를 만들지 않는다**.
+완료된 구현을 사후에 ③–⑩으로 재구성하는 것도 금지한다.
+
+기록할 항목이 있더라도 먼저 기존 issue, PR, commit, final handoff에 남긴다.
+실행 결과가 security, privacy, permission,
 legal, public-contract, irreversible, external, costly, deployment, or
-large-structure decision, stop and return to Learn/normal Work before changing
-that surface.
+large-structure 미결정 사항을 드러내 추가 발견·설계가 필요할 때만 direct path를
+멈추고 Learn부터 normal Work로 승격한다. 사용자가 durable LEAF 기록 자체를
+명시적으로 요청한 경우도 같은 정상 진입 경로를 사용한다.
 
 ## Always-on rules
 
 - **Use the leaf CLI as the body.** Normal Work lives in one `.leaf/` project
   folder. If no matching sprout has passed ①/②, invoke `learn`; do not improvise
-  post-Learn gates or create loose phase folders. The execution-first lane may
-  make its first evidence before creating that folder, then records the evidence
-  in one project folder.
+  post-Learn gates or create loose phase folders. The execution-first lane does
+  not create a project folder unless it escalates and restarts at Learn.
 - **Inherit Learn in normal Work.** Start from `00-status.md`, then read ①
   Intent and ② Unknowns & Context. Trust them unless a downstream gate forces a
   return. The execution-first lane consumes its five-condition routing judgment
@@ -79,13 +83,13 @@ that surface.
   decision and the fall and keep actions live in `using-leaf`
   ("Ending a leaf"). Use `profile` when `.leaf/PROFILE.md` needs to be read
   or updated.
-- **Act by the relevant gate reference after evidence.** Identify the current gate, read its
+- **Act by the relevant gate reference in normal Work.** Identify the current gate, read its
   reference, tell the user the gate, and follow its pass/return conditions.
   For ①/② returns use `../learn/references/gate-01-intent.md` and
   `../learn/references/gate-02-unknowns-context.md`; use `references/gates.md`
   for ③ onward.
-- **Polish at each formal phase boundary, then cross it with `leaf next`.** After
-  first execution evidence, at every formal phase boundary (the end of Learn,
+- **Polish at each formal phase boundary, then cross it with `leaf next`.** In
+  normal Work, at every formal phase boundary (the end of Learn,
   Example, Architect, Feedback, and before close-out), run `leaf checkpoint <slug> --<gate>` on the gate files to polish,
   then invoke `polish` on the cumulative whole — all phases as
   one connected report, not just the latest. Polishing removes the phase's
@@ -107,7 +111,8 @@ that surface.
 - **Ask at approval points.** Ordinary gates inside a phase may proceed after
   self-review. Phase boundaries, high-impact gates, and ⑧ start/pass need
   explicit user approval unless pre-authorized. An execution-ready user request
-  pre-authorizes its first evidence and reversible implementation chunks only.
+  pre-authorizes its in-scope reversible implementation; external or destructive
+  effects still require their own explicit authorization.
 - **Move and close.** After ⑧ is explicitly passed or delivered, move the same
   folder from `.leaf/01-sprouts/` to `.leaf/02-leaves/`, update status, and run
   `leaf doctor`. After ⑩ passes, follow `using-leaf` ("Ending a leaf") to
@@ -115,9 +120,7 @@ that surface.
 - **Fold a gate with no uncertainty to close.** A gate always runs, but when
   ④/⑤/⑦ has no uncertainty left to close, pass it with a one-line `folded:`
   record (naming a concrete noun) instead of a full artifact — after the human approves the fold (at ③'s end interactively, or
-  pre-approved at the triple under `autopilot`). In the execution-first lane,
-  the validated readiness conditions authorize the three narrow folds; ⑨ audits
-  the folds. Full
+  pre-approved at the triple under `autopilot`). Full
   rules — which gates fold, the record schema, and the unfold path — live in
   `references/gates.md` → Gate folding.
 - **Use `references/layout.md` before writing files.** It owns folder layout,
