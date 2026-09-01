@@ -59,6 +59,13 @@ for (const zeroBudget of [
 requireText(fixturePath, fixture, "최초 실행 증거 뒤에도");
 requireText(fixturePath, fixture, "이 경우에만");
 requireText(fixturePath, fixture, "durable LEAF record를 명시적으로");
+requireText(fixturePath, fixture, "보존해야 할 설계 결정이나 미해결 위험이 없다");
+requireOrder(fixturePath, fixture, [
+  "## Bounded maintenance routing",
+  "보존해야 할 설계 결정이나 미해결 위험이 없다",
+  "durable LEAF record를 명시적으로 요청하지 않았다",
+  "bounded maintenance로 분류하고 LEAF를 시작하지 않는다",
+]);
 requireOrder(fixturePath, fixture, [
   "direct execution",
   "fast-track LEAF",
@@ -95,6 +102,12 @@ requireText(usingLeafPath, usingLeaf, "| no LEAF skill |");
 requireText(usingLeafPath, usingLeaf, "## Fast-track LEAF");
 requireText(usingLeafPath, usingLeaf, "references/fast-track.md");
 requireText(usingLeafPath, usingLeaf, "durable LEAF 기록을 명시적으로 요청하지");
+requireText(usingLeafPath, usingLeaf, "user explicitly asks for a durable LEAF record");
+requireOrder(usingLeafPath, usingLeaf, [
+  "After ⑩",
+  "`polish` the cumulative whole",
+  "exact active `route: fast-track`",
+]);
 requireOrder(usingLeafPath, usingLeaf, [
   "execution-ready 조건을 판정",
   "fast-track 조건을 만족하면 fast-track",
@@ -123,6 +136,8 @@ for (const fastTrackContract of [
   "locked `what`",
   "routing 전에",
   "⑩ close-out",
+  "autopilot approval: not approved`이면 `fold approval`도",
+  "canonical interactive",
 ]) {
   requireText(fastTrackPath, fastTrack, fastTrackContract);
 }
@@ -163,6 +178,12 @@ requireText(autopilotPath, autopilot, "same request");
 requireText(autopilotPath, autopilot, "approval: expired");
 requireText(autopilotPath, autopilot, "fold approval: expired");
 requireText(autopilotPath, autopilot, "history, not an active fast-track route");
+requireText(autopilotPath, autopilot, "only if");
+requireText(autopilotPath, autopilot, "exact `route: fast-track`");
+requireOrder(autopilotPath, autopilot, [
+  "Complete route-appropriate cumulative polish first",
+  "fast-track (expired)",
+]);
 forbidText(autopilotPath, autopilot, "④·⑤·⑦을 별도 사람 승인 없이 자동 fold");
 
 const polishPath = "plugins/leaf/skills/polish/SKILL.md";
@@ -178,20 +199,24 @@ requireText(learnPath, learn, "fast-track");
 requireText(learnPath, learn, "한 번의 묶음 승인");
 requireText(learnPath, learn, "autopilot approval: approved |");
 requireText(learnPath, learn, "fold approval: eligible ④/⑤/⑦ approved | not approved");
+requireText(learnPath, learn, "manual fast-track requests canonical fold approval at ③");
 
 const gate02Path = "plugins/leaf/skills/learn/references/gate-02-unknowns-context.md";
 const gate02 = read(gate02Path);
 requireText(gate02Path, gate02, "route: fast-track");
 requireText(gate02Path, gate02, "missing fields grant no delegation");
+requireText(gate02Path, gate02, "canonical ③ interactive approval");
 
 const approvalPolicyPath = "plugins/leaf/skills/autopilot/references/approval-policy.md";
 const approvalPolicy = read(approvalPolicyPath);
 requireText(approvalPolicyPath, approvalPolicy, "autopilot approval: approved");
-requireText(approvalPolicyPath, approvalPolicy, "missing fields grant no delegation");
+requireText(approvalPolicyPath, approvalPolicy, "Missing fields grant no delegation");
 requireText(approvalPolicyPath, approvalPolicy, "routing a new");
 requireText(approvalPolicyPath, approvalPolicy, "follow-up or scope change");
 requireText(approvalPolicyPath, approvalPolicy, "⑩ close-out");
 requireText(approvalPolicyPath, approvalPolicy, "ordinary autopilot");
+requireText(approvalPolicyPath, approvalPolicy, "manual work uses ③'s interactive approval");
+requireText(approvalPolicyPath, approvalPolicy, "route-appropriate cumulative polish before");
 
 const usingLeafAgentPath = "plugins/leaf/skills/using-leaf/agents/openai.yaml";
 const usingLeafAgent = read(usingLeafAgentPath);

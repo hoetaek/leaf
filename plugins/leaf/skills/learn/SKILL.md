@@ -124,7 +124,9 @@ Read only what the current move needs:
    ④/⑤/⑦ folds together for **한 번의 묶음 승인**; approval still precedes writing.
    After that decision, record `route: fast-track`, `autopilot approval: approved |
    not approved`, and `fold approval: eligible ④/⑤/⑦ approved | not approved` in
-   the `00-status.md` preamble. Do not infer any of them from chat history.
+   the `00-status.md` preamble. When autopilot is `not approved`, fold must also
+   be `not approved`; manual fast-track requests canonical fold approval at ③.
+   Do not infer any of them from chat history.
    Never auto-fill the triple; a drafted proposal is only a starting point to confirm.
    `none — <reason>` is a valid approved answer (understanding-only, killed, or
    deferred sprouts). The lock is a **return-condition lock**: work consumes
@@ -132,7 +134,7 @@ Read only what the current move needs:
    `references/gate-02-unknowns-context.md`. If the work looks simple enough to
    short-loop and the user intends `autopilot`, this is also where they may
    pre-approve gate folding (see `../work/references/gates.md` → Gate folding);
-   otherwise autopilot runs the full loop.
+   otherwise manual work uses ③'s interactive approval.
 
 Show the gathered references as a file tree first:
 

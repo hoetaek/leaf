@@ -33,7 +33,8 @@ repo. It is **not** LEAF work when the reply is a sentence or two, a trivial
 edit, a direct lookup, or **bounded maintenance** whose current state, desired
 state, scope, and verification are already observable — then work directly.
 Merge-conflict resolution, dependency updates, localized bug fixes, and similar
-maintenance stay direct unless they expose a durable unresolved decision.
+maintenance stay direct unless they expose a durable unresolved decision or the
+user explicitly asks for a durable LEAF record; then continue route evaluation.
 **작업 크기만으로 LEAF를 시작하지 않는다.**
 
 ## Execution-ready 구현
@@ -102,9 +103,9 @@ Process skills first (decide *how*), then domain skills.
 
 ## Ending a leaf
 
-After ⑩, set an active fast-track route to `fast-track (expired)` and expire its
-`autopilot approval` and `fold approval`, `polish` the cumulative whole, then
-decide the end and let the user confirm:
+After ⑩, `polish` the cumulative whole at the active route's depth. Then set an
+exact active `route: fast-track` to `fast-track (expired)`, expire its approvals,
+and decide the end with the user:
 
 - **keep** — useful but not citable; note it in `00-status.md`.
 - **press** — reference-worthy (reusable decision, pattern, lesson); invoke `press`.

@@ -92,9 +92,10 @@ If any start check fails, stop with the smallest needed repair or user question.
    `.leaf/02-leaves/<slug>/` using the LEAF lifecycle rule, update status, and
    run `leaf doctor`.
 7. **Review and retrospect.** Run ⑨ and ⑩ automatically unless a hard stop
-   appears. At ⑩ close-out, set `route: fast-track (expired)`, `autopilot
-   approval: expired`, and `fold approval: expired`. Then follow `using-leaf`
-   ending rules: keep, press via `leaf:press`, or fall.
+   appears. Complete route-appropriate cumulative polish first. Then, only if
+   status still has exact `route: fast-track`, set it to `fast-track (expired)`
+   with `autopilot approval: expired` and `fold approval: expired`. Follow
+   `using-leaf` ending rules: keep, press via `leaf:press`, or fall.
 
 ## Hard Stops
 

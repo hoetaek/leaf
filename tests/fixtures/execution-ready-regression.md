@@ -15,6 +15,7 @@ Evaluate routes in this order and stop at the first match:
 
 - merge conflict, dependency update, or localized regression fix처럼 현재 상태와 완료 조건이 관찰 가능하다.
 - 보존해야 할 설계 결정이나 미해결 위험이 없다.
+- durable LEAF record를 명시적으로 요청하지 않았다.
 
 ### Expected trace
 
@@ -101,7 +102,8 @@ phase gate, polish, review UI가 적용된다.
 
 5. 승인된 절차 예산 안에서 gate를 실행하거나 기존 fold 규칙으로 접는다.
 6. ⑧ 실행, ⑨ 검토, ⑩ 회고와 최종 검증은 생략하지 않는다.
-7. ⑩ close-out에서 다음 만료 상태를 기록한다.
+7. ⑩ close-out의 route-appropriate cumulative polish를 마친 뒤 다음 만료 상태를
+   기록한다.
 
    - `route: fast-track (expired)`
    - `autopilot approval: expired`
@@ -115,6 +117,10 @@ phase gate, polish, review UI가 적용된다.
 - independent polish reviews: 0 unless document-quality risk requires one
 - triple approvals: 1 bundled approval
 - gates ③/⑥/⑧/⑨/⑩: always run
+
+Bundled fold delegation은 `autopilot approval: approved`일 때만 소비한다.
+Autopilot이 `not approved`이면 fold도 `not approved`로 기록하고 manual
+fast-track은 ③ 끝에서 interactive fold approval을 받는다.
 
 ### Escalation and scope
 

@@ -27,6 +27,8 @@ Gate to continue:
 - A fast-track bundle also records `route: fast-track`, `autopilot approval:
   approved | not approved`, and `fold approval: eligible ④/⑤/⑦ approved | not
   approved` in the `00-status.md` preamble; missing fields grant no delegation.
+  If autopilot is `not approved`, fold is also `not approved` and manual work
+  returns to the canonical ③ interactive approval.
 
 Helpful defaults — the scout fan-out, reading map, and closing quiz live in
 the `learn` skill; deep-research rules in `research-quality.md`; the premise

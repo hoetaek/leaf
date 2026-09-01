@@ -18,7 +18,8 @@ For fast-track, the triple may use one bundled approval only when it presents
 the three values plus `승인 후 자동 진행` and eligible ④/⑤/⑦ folds explicitly.
 After approval, record `route: fast-track`, `autopilot approval: approved`, and
 `fold approval: eligible ④/⑤/⑦ approved` in the `00-status.md` preamble. Record
-each declined delegation as `not approved`; missing fields grant no delegation.
+each declined delegation as `not approved`; if autopilot is `not approved`, fold
+is also `not approved` and manual work uses ③'s interactive approval. Missing fields grant no delegation.
 Those fields spend the request-scoped procedure budget; they do not carry to
 another request or grant permission for deploy, delete, external sharing,
 cost, credentials, or another hard stop.
@@ -84,8 +85,8 @@ Use the nearest durable surface:
 - `03-Architect/08-execution.md` for execution sessions;
 - `04-Feedback/09-review.md` and `10-retrospect.md` for close-out findings.
 
-At ⑩ close-out, also record the approval expiration in `00-status.md` before
-ending the leaf.
+At ⑩ close-out, finish route-appropriate cumulative polish before recording the
+active fast-track expiration in `00-status.md` and ending the leaf.
 
 ## Gate Folding Under Autopilot
 
@@ -95,8 +96,8 @@ folding; this policy does not restate its rules. Its human-approval point is
 normally at ③'s end, which autopilot removes — so **fold eligibility is a
 triple-lock decision**: autopilot may fold only when the human, at triple
 review, pre-approved this work for short-loop folding and `00-status.md` records
-`fold approval: eligible ④/⑤/⑦ approved`. Without both, autopilot runs the full
-loop.
+both `autopilot approval: approved` and `fold approval: eligible ④/⑤/⑦
+approved`. Without both, autopilot runs the full loop.
 
 ## Return Rule
 
