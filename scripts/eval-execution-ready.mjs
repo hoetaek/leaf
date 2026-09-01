@@ -116,8 +116,11 @@ for (const fastTrackContract of [
   "core unknown",
   "권한을 추가하지 않는다",
   "route: fast-track",
-  "autopilot approval: approved | not approved",
-  "fold approval: eligible ④/⑤/⑦ approved | not approved",
+  "autopilot approval: approved | not approved | expired",
+  "fold approval: eligible ④/⑤/⑦ approved | not approved | expired",
+  "locked `what`",
+  "routing 전에",
+  "⑩ close-out",
 ]) {
   requireText(fastTrackPath, fastTrack, fastTrackContract);
 }
@@ -125,6 +128,8 @@ for (const statusField of [
   "route: fast-track",
   "autopilot approval: approved",
   "fold approval: eligible ④/⑤/⑦ approved",
+  "autopilot approval: expired",
+  "fold approval: expired",
 ]) {
   requireText(fixturePath, fixture, statusField);
 }
@@ -151,6 +156,8 @@ requireText(autopilotPath, autopilot, "execution-ready direct path를 LEAF lifec
 requireText(autopilotPath, autopilot, "fast-track 절차 예산");
 requireText(autopilotPath, autopilot, "autopilot approval: approved");
 requireText(autopilotPath, autopilot, "fold approval: eligible ④/⑤/⑦ approved");
+requireText(autopilotPath, autopilot, "same request");
+requireText(autopilotPath, autopilot, "approval` to `expired");
 forbidText(autopilotPath, autopilot, "④·⑤·⑦을 별도 사람 승인 없이 자동 fold");
 
 const polishPath = "plugins/leaf/skills/polish/SKILL.md";
@@ -176,6 +183,9 @@ const approvalPolicyPath = "plugins/leaf/skills/autopilot/references/approval-po
 const approvalPolicy = read(approvalPolicyPath);
 requireText(approvalPolicyPath, approvalPolicy, "autopilot approval: approved");
 requireText(approvalPolicyPath, approvalPolicy, "missing fields grant no delegation");
+requireText(approvalPolicyPath, approvalPolicy, "routing a new");
+requireText(approvalPolicyPath, approvalPolicy, "follow-up or scope change");
+requireText(approvalPolicyPath, approvalPolicy, "⑩ close-out");
 
 const soulPath = "plugins/leaf/skills/soul/SKILL.md";
 requireText(soulPath, read(soulPath), "fast-track");

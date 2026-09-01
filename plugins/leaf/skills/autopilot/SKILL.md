@@ -19,10 +19,11 @@ approved`, autopilot also consumes the fast-track 절차 예산 in
   unless `00-status.md` has human-reviewed `why`, `what`, and `wireframe`
   values. If they are missing, provisional, stale, or marked `USER REVIEW
   NEEDED` / `LOCK CANDIDATE`, return to `learn`.
-- **Delegation is durable.** For fast-track, require `route: fast-track` and
-  `autopilot approval: approved` in the status preamble. Only fold when it also
-  records `fold approval: eligible ④/⑤/⑦ approved`; missing fields grant no
-  authority.
+- **Delegation is durable but request-bounded.** For fast-track, require `route:
+  fast-track` and `autopilot approval: approved` in the status preamble, and
+  verify this is the same request and still matches the locked `what`. Only fold
+  when it also records `fold approval: eligible ④/⑤/⑦ approved`; missing,
+  `not approved`, or `expired` fields grant no authority.
 - **Autopilot after the lock.** Once the triple is locked, proceed through
   `work` gates automatically: ③ Criteria, ④ Wireframe, ⑤ Design, ⑥ Critic,
   ⑦ Tasks, ⑧ Artifact / Execution, ⑨ Review / Sync, and ⑩ Retrospect.
@@ -89,8 +90,9 @@ If any start check fails, stop with the smallest needed repair or user question.
    `.leaf/02-leaves/<slug>/` using the LEAF lifecycle rule, update status, and
    run `leaf doctor`.
 7. **Review and retrospect.** Run ⑨ and ⑩ automatically unless a hard stop
-   appears. Then follow `using-leaf` ending rules: keep, press via `leaf:press`,
-   or fall.
+   appears. At ⑩ close-out, set fast-track `autopilot approval` and `fold
+   approval` to `expired`. Then follow `using-leaf` ending rules: keep, press via
+   `leaf:press`, or fall.
 
 ## Hard Stops
 

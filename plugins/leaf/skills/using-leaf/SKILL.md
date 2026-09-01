@@ -75,6 +75,10 @@ triple과 함께 이후 autopilot 및 적격 ④/⑤/⑦ fold를 제안하고 �
 명시하지 않았으면 기존 discovery-heavy `learn` → `work`와 hard stop을 그대로
 사용한다.
 
+기존 fast-track을 같은 요청에서 재개할 때도 작업이 locked `what`과 일치해야 한다.
+새 follow-up이나 scope 변경이면 routing 전에 기존 autopilot/fold approval을
+`expired`로 바꾸고 이 요청을 새로 route한다.
+
 ## Which skill to use
 
 | Skill | Use it for |
@@ -94,8 +98,8 @@ Process skills first (decide *how*), then domain skills.
 
 ## Ending a leaf
 
-After ⑩, `polish` the cumulative whole, then decide the end and let the user
-confirm:
+After ⑩, expire any fast-track `autopilot approval` and `fold approval`,
+`polish` the cumulative whole, then decide the end and let the user confirm:
 
 - **keep** — useful but not citable; note it in `00-status.md`.
 - **press** — reference-worthy (reusable decision, pattern, lesson); invoke `press`.

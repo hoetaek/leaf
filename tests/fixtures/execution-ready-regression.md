@@ -99,6 +99,8 @@ phase gate, polish, review UI가 적용된다.
 
 5. 승인된 절차 예산 안에서 gate를 실행하거나 기존 fold 규칙으로 접는다.
 6. ⑧ 실행, ⑨ 검토, ⑩ 회고와 최종 검증은 생략하지 않는다.
+7. ⑩ close-out에서 `autopilot approval: expired`와 `fold approval: expired`를
+   기록한다.
 
 ### Default procedure budget
 
@@ -113,4 +115,6 @@ phase gate, polish, review UI가 적용된다.
 
 fast-track은 현재 요청에만 적용한다. core unknown이나 safety/authority boundary가
 드러나면 discovery-heavy LEAF로 승격한다. fast-track이나 autopilot 승인은 배포,
-삭제, 외부 공유, 비용 발생 같은 별도 권한을 만들지 않는다.
+삭제, 외부 공유, 비용 발생 같은 별도 권한을 만들지 않는다. 같은 요청을 재개하며
+locked `what`이 유지될 때만 승인이 유효하다. 새 follow-up이나 scope 변경은
+routing 전에 기존 승인을 만료하고 새로 승인받는다.
