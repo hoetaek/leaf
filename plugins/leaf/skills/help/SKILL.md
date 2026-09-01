@@ -25,11 +25,13 @@ the full artifact.
 
 `using-leaf` owns the exact routing predicates. Quick reference: trivial
 replies/edits and direct lookups are unconditional direct exclusions. Bounded
-maintenance and execution-ready implementation work directly unless a durable
-LEAF record is explicitly requested; then use explicit safe fast-track when
-eligible, otherwise discovery-heavy Learn. Direct implementation starts with a
-failing test, reproduction, measurement, or minimum prototype, then implements,
-verifies, and hands off. It creates no LEAF document flow.
+maintenance works directly only when no durable unresolved decision remains and
+no durable LEAF record was explicitly requested. Execution-ready implementation
+works directly unless a durable LEAF record is explicitly requested; then use
+explicit safe fast-track when eligible, otherwise discovery-heavy Learn. Direct
+implementation starts with a failing test, reproduction, measurement, or minimum
+prototype, then implements, verifies, and hands off. It creates no LEAF document
+flow.
 
 ## Skills
 

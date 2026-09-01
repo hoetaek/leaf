@@ -102,6 +102,8 @@ requireText(usingLeafPath, usingLeaf, "bounded maintenance");
 requireText(usingLeafPath, usingLeaf, "작업 크기만으로 LEAF를 시작하지 않는다");
 requireText(usingLeafPath, usingLeaf, "`.leaf/` 기록 없이 종료");
 requireText(usingLeafPath, usingLeaf, "| no LEAF skill |");
+requireText(usingLeafPath, usingLeaf, "canonical router가 direct로 판정한");
+requireText(usingLeafPath, usingLeaf, "When the canonical router selects direct execution");
 requireText(usingLeafPath, usingLeaf, "## Fast-track LEAF");
 requireText(usingLeafPath, usingLeaf, "references/fast-track.md");
 requireText(usingLeafPath, usingLeaf, "durable LEAF 기록을 명시적으로 요청하지");
@@ -244,15 +246,18 @@ forbidText(workAgentPath, workAgent, "Keep execution-ready implementation direct
 
 const autopilotAgentPath = "plugins/leaf/skills/autopilot/agents/openai.yaml";
 const autopilotAgent = read(autopilotAgentPath);
-requireText(autopilotAgentPath, autopilotAgent, "exact route: fast-track");
-requireText(autopilotAgentPath, autopilotAgent, "autopilot approval: approved");
+requireText(autopilotAgentPath, autopilotAgent, "canonical start checks and recorded delegation");
+forbidText(autopilotAgentPath, autopilotAgent, "otherwise run the ordinary full loop");
+forbidText(autopilotAgentPath, autopilotAgent, "exact route: fast-track");
 
 const helpPath = "plugins/leaf/skills/help/SKILL.md";
 const help = read(helpPath);
 requireText(helpPath, help, "`using-leaf` owns the exact routing predicates");
 requireText(helpPath, help, "replies/edits and direct lookups are unconditional direct exclusions");
-requireText(helpPath, help, "maintenance and execution-ready implementation work directly unless");
-requireText(helpPath, help, "LEAF record is explicitly requested");
+requireText(helpPath, help, "no durable unresolved decision remains");
+requireText(helpPath, help, "no durable LEAF record was explicitly requested");
+requireText(helpPath, help, "Execution-ready implementation");
+requireText(helpPath, help, "a durable LEAF record is explicitly requested");
 requireText(helpPath, help, "eligible, otherwise discovery-heavy Learn");
 requireText(helpPath, help, "Routes direct → request-scoped fast-track → discovery-heavy");
 requireText(helpPath, help, "approved active fast-track budget");

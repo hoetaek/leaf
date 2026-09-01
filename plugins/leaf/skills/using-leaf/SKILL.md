@@ -89,7 +89,7 @@ approved delegation, expiration 규칙을 따른다.
 
 | Skill | Use it for |
 |---|---|
-| no LEAF skill | bounded maintenance와 execution-ready 구현 — direct execution으로 완료 |
+| no LEAF skill | canonical router가 direct로 판정한 bounded maintenance와 execution-ready 구현 |
 | `soul` | **First for actual LEAF work.** Conduct: plain explanation, fact-vs-guess, user-language, review handoff |
 | `learn` | Capture/triage an idea and run fast-track 또는 discovery-heavy Learn |
 | `split` | Decide whether/how to split one work item into separate leaves |
@@ -126,6 +126,6 @@ it. If `leaf` is not on PATH,
 tell the user to run the install entry (`$leaf:install` in Codex, `/leaf:install`
 in Claude) before creating or advancing LEAF records.
 
-For execution-ready work, exit LEAF routing and implement directly. For
-early/idea work start with `learn`; to build a sprout that passed Learn use
-`work`.
+When the canonical router selects direct execution, exit LEAF routing and
+implement directly. For early/idea work start with `learn`; to build a sprout
+that passed Learn use `work`.
