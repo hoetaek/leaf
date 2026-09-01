@@ -1,7 +1,7 @@
 interface:
   display_name: "LEAF Work"
-  short_description: "Turn vague intent into reliable work"
-  default_prompt: "Use $leaf:work. For execution-ready implementation, check the five conditions and make failing-test/reproduction/measurement evidence before LEAF documents; otherwise start after Learn. Preserve hard stops, then record only needed gates, verify, review, retrospect, and keep/press/fall."
+  short_description: "Carry direct, fast-track, or full LEAF work"
+  default_prompt: "Use $leaf:work only after $leaf:using-leaf provides the canonical route and status handoff. Follow that selected route while preserving gates, fold conditions, hard stops, review, retrospect, and verification."
 
 policy:
   allow_implicit_invocation: true
