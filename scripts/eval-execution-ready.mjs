@@ -61,6 +61,8 @@ requireText(fixturePath, fixture, "이 경우에만");
 requireText(fixturePath, fixture, "durable LEAF record를 명시적으로");
 requireText(fixturePath, fixture, "보존해야 할 설계 결정이나 미해결 위험이 없다");
 requireText(fixturePath, fixture, "locked `what` 없이 이 상태로 Learn만 재개");
+requireText(fixturePath, fixture, "fast-track procedure budget을 유지하지만 autopilot/fold delegation");
+forbidText(fixturePath, fixture, "procedure budget, autopilot, fold 권한을 주지 않는다");
 requireOrder(fixturePath, fixture, [
   "## Bounded maintenance routing",
   "보존해야 할 설계 결정이나 미해결 위험이 없다",
@@ -143,6 +145,7 @@ for (const fastTrackContract of [
   "route: discovery-heavy",
   "승인 전 Learn 재개 표지",
   "locked `what`이 없어도",
+  "fast-track procedure budget으로 이어간다",
   "Approved delegation",
 ]) {
   requireText(fastTrackPath, fastTrack, fastTrackContract);
@@ -246,8 +249,11 @@ requireText(autopilotAgentPath, autopilotAgent, "autopilot approval: approved");
 
 const helpPath = "plugins/leaf/skills/help/SKILL.md";
 const help = read(helpPath);
-requireText(helpPath, help, "Trivial replies/edits, direct lookups, bounded maintenance");
-requireText(helpPath, help, "explicit safe fast-track when eligible");
+requireText(helpPath, help, "`using-leaf` owns the exact routing predicates");
+requireText(helpPath, help, "replies/edits and direct lookups are unconditional direct exclusions");
+requireText(helpPath, help, "maintenance and execution-ready implementation work directly unless");
+requireText(helpPath, help, "LEAF record is explicitly requested");
+requireText(helpPath, help, "eligible, otherwise discovery-heavy Learn");
 requireText(helpPath, help, "Routes direct → request-scoped fast-track → discovery-heavy");
 requireText(helpPath, help, "approved active fast-track budget");
 

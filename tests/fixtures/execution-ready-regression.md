@@ -99,7 +99,7 @@ phase gate, polish, review UI가 적용된다.
    - `fold approval: not approved`
 
 3. 승인 전에 중단되면 locked `what` 없이 이 상태로 Learn만 재개한다. 이 상태는
-   procedure budget, autopilot, fold 권한을 주지 않는다.
+   fast-track procedure budget을 유지하지만 autopilot/fold delegation은 주지 않는다.
 4. why / what / wireframe triple을 한 묶음으로 제안하고 사용자의 승인을 받는다.
 5. 승인 결과로 `00-status.md` preamble을 덮어쓴다.
 

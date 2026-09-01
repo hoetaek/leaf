@@ -35,9 +35,9 @@ approved`여야 한다.
 무시하므로 별도 scaffold나 parser 변경은 필요하지 않다.
 
 두 `not approved` 값은 **승인 전 Learn 재개 표지**다. 아직 locked `what`이 없어도
-같은 Learn을 이어갈 수 있지만 procedure budget, autopilot, fold 권한은 없다.
-Approved delegation은 같은 요청을 재개하고 현재 작업이 user-approved locked
-`what`과 계속 일치할 때만 소비한다.
+같은 Learn을 fast-track procedure budget으로 이어간다. 다만 autopilot/fold
+delegation은 없으며, Approved delegation은 같은 요청을 재개하고 현재 작업이
+user-approved locked `what`과 계속 일치할 때만 소비한다.
 
 새 follow-up이나 scope 변경이 들어오면 routing 전에 route를 `fast-track
 (expired)`로, 두 approval을 `expired`로 바꾼다. ⑩ close-out에서도
