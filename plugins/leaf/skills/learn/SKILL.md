@@ -134,7 +134,8 @@ Read only what the current move needs:
    `references/gate-02-unknowns-context.md`. If the work looks simple enough to
    short-loop and the user intends `autopilot`, this is also where they may
    pre-approve gate folding (see `../work/references/gates.md` → Gate folding);
-   otherwise manual work uses ③'s interactive approval.
+   if autopilot is approved without fold approval, it runs the full unfolded
+   loop. Only manual work uses ③'s interactive approval.
 
 Show the gathered references as a file tree first:
 

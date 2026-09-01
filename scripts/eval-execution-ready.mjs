@@ -214,6 +214,8 @@ requireText(learnPath, learn, "한 번의 묶음 승인");
 requireText(learnPath, learn, "autopilot approval: approved |");
 requireText(learnPath, learn, "fold approval: eligible ④/⑤/⑦ approved | not approved");
 requireText(learnPath, learn, "manual fast-track requests canonical fold approval at ③");
+requireText(learnPath, learn, "if autopilot is approved without fold approval");
+requireText(learnPath, learn, "it runs the full unfolded");
 
 const gate02Path = "plugins/leaf/skills/learn/references/gate-02-unknowns-context.md";
 const gate02 = read(gate02Path);
@@ -231,6 +233,12 @@ requireText(approvalPolicyPath, approvalPolicy, "⑩ close-out");
 requireText(approvalPolicyPath, approvalPolicy, "ordinary autopilot");
 requireText(approvalPolicyPath, approvalPolicy, "manual work uses ③'s interactive approval");
 requireText(approvalPolicyPath, approvalPolicy, "route-appropriate cumulative polish before");
+requireText(approvalPolicyPath, approvalPolicy, "For an active `route:");
+requireText(approvalPolicyPath, approvalPolicy, "these fast-track-only status");
+requireText(approvalPolicyPath, approvalPolicy, "fields are not required");
+
+const changelogPath = "CHANGELOG.md";
+forbidText(changelogPath, read(changelogPath), "while retaining the ⑨ audit/unfold check");
 
 const usingLeafAgentPath = "plugins/leaf/skills/using-leaf/agents/openai.yaml";
 const usingLeafAgent = read(usingLeafAgentPath);

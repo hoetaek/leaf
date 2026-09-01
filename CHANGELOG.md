@@ -48,9 +48,7 @@ minor version instead of moving to `x.0.0`.
   in one place (`gates.md` → Gate folding); `engine.md` clarifies a merge ban
   is not a fold ban; `work`/`autopilot`/`learn` point to it. Folding is
   human-approved (at ③'s end, or pre-approved at the triple under `autopilot`)
-  and audited at ⑨, never pure self-assessment. The later execution-ready lane
-  is the narrow exception: its five-condition routing judgment replaces the
-  separate fold approval while retaining the ⑨ audit/unfold check.
+  and audited at ⑨, never pure self-assessment.
 
 ## 0.17.0 - 2026-07-03
 

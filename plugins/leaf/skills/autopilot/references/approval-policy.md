@@ -95,9 +95,12 @@ no uncertainty to close) is defined in `../../work/references/gates.md` → Gate
 folding; this policy does not restate its rules. Its human-approval point is
 normally at ③'s end, which autopilot removes — so **fold eligibility is a
 triple-lock decision**: autopilot may fold only when the human, at triple
-review, pre-approved this work for short-loop folding and `00-status.md` records
-both `autopilot approval: approved` and `fold approval: eligible ④/⑤/⑦
-approved`. Without both, autopilot runs the full loop.
+review, pre-approved this work for short-loop folding. For an active `route:
+fast-track`, `00-status.md` must also record both `autopilot approval: approved`
+and `fold approval: eligible ④/⑤/⑦ approved`. For ordinary autopilot, the
+triple's short-loop pre-approval is sufficient; these fast-track-only status
+fields are not required. Without route-appropriate pre-approval, autopilot runs
+the full loop.
 
 ## Return Rule
 
