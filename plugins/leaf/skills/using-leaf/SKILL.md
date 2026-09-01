@@ -71,14 +71,16 @@ LEAF로, 아니면 discovery-heavy lifecycle로 간다.
 direct execution을 먼저 제외한 뒤, 사용자가 **현재 요청에 fast track을 명시**했고
 실제 LEAF lifecycle이 필요하며 why / what / wireframe·안전·권한을 바꿀 core
 unknown이 없으면 요청 단위 fast-track LEAF를 쓴다. `soul` 다음 `learn`으로
-sprout을 만들거나 이어가되, `references/fast-track.md`의 절차 예산을 적용한다.
+sprout을 만들거나 이어가고 승인 전에 `references/fast-track.md`의 initial status를
+기록한 뒤 그 절차 예산을 적용한다.
 
 `fast track`이라는 말은 route 선호일 뿐 자동 진행·fold 승인이 아니다. Learn이
 triple과 함께 이후 autopilot 및 적격 ④/⑤/⑦ fold를 제안하고 사용자가 승인해야
 그 위임이 생긴다. 승인 뒤 `00-status.md` preamble에 `route`, `autopilot approval`,
 `fold approval`을 명시적으로 기록한다. core unknown이 있거나 fast track을
 명시하지 않았으면 기존 discovery-heavy `learn` → `work`와 hard stop을 그대로
-사용한다.
+사용한다. 선택 뒤 core unknown이 드러나면 같은 reference의 escalation status를
+기록하고 discovery-heavy로 승격한다.
 
 기존 fast-track을 같은 요청에서 재개할 때도 작업이 locked `what`과 일치해야 한다.
 새 follow-up이나 scope 변경이면 routing 전에 route를 `fast-track (expired)`로,

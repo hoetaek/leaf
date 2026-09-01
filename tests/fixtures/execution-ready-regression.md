@@ -92,9 +92,14 @@ phase gate, polish, review UI가 적용된다.
 ### Expected trace
 
 1. direct execution 조건을 먼저 확인하고 제외한다.
-2. 요청 단위 fast-track LEAF로 분류한다.
+2. 요청 단위 fast-track LEAF로 분류하고 승인 전에 다음 상태를 기록한다.
+
+   - `route: fast-track`
+   - `autopilot approval: not approved`
+   - `fold approval: not approved`
+
 3. why / what / wireframe triple을 한 묶음으로 제안하고 사용자의 승인을 받는다.
-4. `00-status.md` preamble에 다음 세 필드를 기록한다.
+4. 승인 결과로 `00-status.md` preamble을 덮어쓴다.
 
    - `route: fast-track`
    - `autopilot approval: approved`
@@ -125,7 +130,8 @@ fast-track은 ③ 끝에서 interactive fold approval을 받는다.
 ### Escalation and scope
 
 fast-track은 현재 요청에만 적용한다. core unknown이나 safety/authority boundary가
-드러나면 discovery-heavy LEAF로 승격한다. fast-track이나 autopilot 승인은 배포,
+드러나면 `route: discovery-heavy`와 만료된 approval을 기록한 뒤 승격한다.
+fast-track이나 autopilot 승인은 배포,
 삭제, 외부 공유, 비용 발생 같은 별도 권한을 만들지 않는다. 같은 요청을 재개하며
 locked `what`이 유지될 때만 승인이 유효하다. 새 follow-up이나 scope 변경은
 routing 전에 기존 승인을 만료하고 새로 승인받는다.

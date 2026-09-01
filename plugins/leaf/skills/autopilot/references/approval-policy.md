@@ -103,4 +103,6 @@ approved`. Without both, autopilot runs the full loop.
 
 If an automatic gate finds that the locked triple is wrong, return to Learn. Do
 not patch around it downstream. Record what falsified the triple, reopen only
-the affected fields, and wait for human review before continuing.
+the affected fields, and wait for human review before continuing. An active
+fast-track core-unknown return uses the status transition in
+`../../using-leaf/references/fast-track.md`.

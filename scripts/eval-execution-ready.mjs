@@ -130,7 +130,7 @@ for (const fastTrackContract of [
   "③ · ⑥ · ⑧ · ⑨ · ⑩",
   "core unknown",
   "권한을 추가하지 않는다",
-  "route: fast-track | fast-track (expired)",
+  "route: fast-track | fast-track (expired) | discovery-heavy",
   "autopilot approval: approved | not approved | expired",
   "fold approval: eligible ④/⑤/⑦ approved | not approved | expired",
   "locked `what`",
@@ -138,6 +138,8 @@ for (const fastTrackContract of [
   "⑩ close-out",
   "autopilot approval: not approved`이면 `fold approval`도",
   "canonical interactive",
+  "승인 대기 전",
+  "route: discovery-heavy",
 ]) {
   requireText(fastTrackPath, fastTrack, fastTrackContract);
 }
@@ -148,6 +150,9 @@ for (const statusField of [
   "autopilot approval: expired",
   "fold approval: expired",
   "route: fast-track (expired)",
+  "autopilot approval: not approved",
+  "fold approval: not approved",
+  "route: discovery-heavy",
 ]) {
   requireText(fixturePath, fixture, statusField);
 }
@@ -222,10 +227,25 @@ const usingLeafAgentPath = "plugins/leaf/skills/using-leaf/agents/openai.yaml";
 const usingLeafAgent = read(usingLeafAgentPath);
 requireText(usingLeafAgentPath, usingLeafAgent, "no durable LEAF record was explicitly requested");
 requireOrder(usingLeafAgentPath, usingLeafAgent, [
-  "direct execution only",
+  "trivial reply/edit",
+  "direct lookup",
+  "bounded maintenance",
+  "execution-ready implementation",
   "request-scoped fast-track LEAF",
   "discovery-heavy LEAF",
 ]);
+
+const autopilotAgentPath = "plugins/leaf/skills/autopilot/agents/openai.yaml";
+const autopilotAgent = read(autopilotAgentPath);
+requireText(autopilotAgentPath, autopilotAgent, "exact route: fast-track");
+requireText(autopilotAgentPath, autopilotAgent, "autopilot approval: approved");
+
+const helpPath = "plugins/leaf/skills/help/SKILL.md";
+const help = read(helpPath);
+requireText(helpPath, help, "Trivial replies/edits, direct lookups, bounded maintenance");
+requireText(helpPath, help, "explicit safe fast-track when eligible");
+requireText(helpPath, help, "Routes direct → request-scoped fast-track → discovery-heavy");
+requireText(helpPath, help, "approved active fast-track budget");
 
 const soulPath = "plugins/leaf/skills/soul/SKILL.md";
 requireText(soulPath, read(soulPath), "fast-track");

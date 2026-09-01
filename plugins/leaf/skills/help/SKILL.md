@@ -23,22 +23,23 @@ write gate files, run `leaf next`, or persist anything.
 Core rule: leaf before tree. Validate one inspectable instance before growing
 the full artifact.
 
-An execution-ready implementation exits LEAF routing and works directly: after
-one repository-state check, make a failing test, reproduction, measurement, or
-minimum prototype, implement, verify, and hand off. It creates no LEAF document
-flow unless unresolved uncertainty requires escalation to Learn. Unknown,
-high-risk, and document-output work still starts with Learn.
+Trivial replies/edits, direct lookups, bounded maintenance, and execution-ready
+implementation work directly when no durable LEAF record was explicitly
+requested. If one was requested, use explicit safe fast-track when eligible,
+otherwise discovery-heavy Learn. Direct implementation starts with a failing
+test, reproduction, measurement, or minimum prototype, then implements,
+verifies, and hands off. It creates no LEAF document flow.
 
 ## Skills
 
 | Skill | Trigger | What it does |
 |-------|---------|--------------|
-| **using-leaf** | automatic session context | Routes LEAF work to the right skill. |
+| **using-leaf** | automatic session context | Routes direct → request-scoped fast-track → discovery-heavy. |
 | **soul** | LEAF reporting or handoff | Plain explanation, fact/guess boundaries, user-language prose. |
 | **learn** | `$leaf:learn`, ideas, unclear work | Captures intent and unknowns before execution. |
 | **work** | approved Learn work | Carries Example → Architect → Feedback. |
 | **split** | `$leaf:split`, split this work | Decides whether one item should become multiple leaves. |
-| **autopilot** | `$leaf:autopilot` | Continues after the why/what/wireframe triple is reviewed. |
+| **autopilot** | `$leaf:autopilot` | Continues after triple review; consumes only an approved active fast-track budget. |
 | **polish** | phase boundaries | Makes cumulative LEAF files read as one connected report. |
 | **press** | `$leaf:press` | Turns reference-worthy work into a citable digest. |
 | **profile** | LEAF preferences | Reads or updates global and repo-local LEAF profile entries. |

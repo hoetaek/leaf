@@ -9,7 +9,8 @@ track을 명시했고 실제 LEAF 기록이 필요하며 core unknown이 없을 
 - **bounded unknown** — 답이 달라도 승인할 why / what / wireframe이 바뀌지 않는다.
   필요한 scout나 확인 하나만 실행한다.
 - **core unknown** — 답에 따라 triple, 안전 경계, 권한, 공개 계약, 핵심 범위가
-  바뀔 수 있다. fast-track을 쓰지 말고 discovery-heavy LEAF로 간다.
+  바뀔 수 있다. `route: discovery-heavy`로 바꾸고 두 approval을 `expired`로 만든
+  뒤 discovery-heavy LEAF로 간다.
 
 `fast track`이라는 말만으로 자동 진행이나 gate fold가 승인되지는 않는다. Learn의
 triple 제안에 `승인 후 자동 진행`과 `적격 ④/⑤/⑦ fold`를 함께 적고 사용자가
@@ -17,13 +18,14 @@ triple 제안에 `승인 후 자동 진행`과 `적격 ④/⑤/⑦ fold`를 함�
 
 ## Durable status contract
 
-묶음 승인 뒤 `00-status.md` preamble의 기존 operational fields와 `## Overview`
-사이에 다음 세 필드를 기록한다. 승인하지 않은 위임은 생략하지 말고 `not
-approved`로 남긴다. `autopilot approval: not approved`이면 `fold approval`도
-`not approved`여야 한다.
+Fast-track을 선택하면 승인 대기 전 `00-status.md` preamble의 기존 operational
+fields와 `## Overview` 사이에 `route: fast-track`과 두 approval의 `not approved`
+값을 즉시 기록한다. 묶음 승인 뒤 승인 결과로 덮어쓴다. 승인하지 않은 위임은
+생략하지 않는다. `autopilot approval: not approved`이면 `fold approval`도 `not
+approved`여야 한다.
 
 ```markdown
-- route: fast-track | fast-track (expired)
+- route: fast-track | fast-track (expired) | discovery-heavy
 - autopilot approval: approved | not approved | expired
 - fold approval: eligible ④/⑤/⑦ approved | not approved | expired
 ```
@@ -39,6 +41,9 @@ route-appropriate cumulative polish를 먼저 마친 뒤 셋을 같은 방식으
 Exact `route: fast-track`만 현재
 활성 route이고 `fast-track (expired)`은 감사용 이력일 뿐 권한을 부여하지 않는다.
 이후 요청은 새 묶음 승인을 받아 exact active 값을 다시 기록해야 한다.
+
+실행 중 core unknown이 드러나면 active route를 `discovery-heavy`로 교체하고 두
+approval을 `expired`로 바꾼 뒤 승격한다. 이 전환도 대화에만 남기지 않는다.
 
 ## 기본 절차 예산
 
@@ -71,5 +76,5 @@ approval을 따른다. 구체적인 이유와 ⑨ audit은 남긴다.
 
 Fast-track은 검증이나 안전을 생략하지 않으며 **권한을 추가하지 않는다**. 삭제,
 배포, 외부 공유, 비용, credential, security/privacy/legal/permission boundary는
-기존 승인을 그대로 요구한다. 실행 중 core unknown이 드러나면 즉시
-discovery-heavy LEAF로 승격한다. 이 선택은 다음 요청으로 이어지지 않는다.
+기존 승인을 그대로 요구한다. 실행 중 core unknown 승격은 위 durable status
+contract를 따른다. 이 선택은 다음 요청으로 이어지지 않는다.
