@@ -25,8 +25,10 @@ cost, credentials, or another hard stop.
 
 An `approved` value remains valid only while resuming the same request and the
 current work still matches the user-approved locked `what`. Before routing a new
-follow-up or scope change, and again at ⑩ close-out, change both approval values
-to `expired`. Keep `route: fast-track` only as history; it grants no authority.
+follow-up or scope change, and again at ⑩ close-out, change the route to
+`fast-track (expired)` and both approval values to `expired`. Exact `route:
+fast-track` means active; `fast-track (expired)` is history and does not restrict
+ordinary autopilot. A fresh bundled approval restores the exact active value.
 
 ## May Continue Automatically
 

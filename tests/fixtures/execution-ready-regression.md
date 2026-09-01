@@ -4,7 +4,8 @@
 
 Evaluate routes in this order and stop at the first match:
 
-1. direct execution
+1. direct execution — execution-ready이고 durable LEAF record를 명시적으로
+   요청하지 않았을 때만 match
 2. fast-track LEAF
 3. discovery-heavy LEAF
 
@@ -40,6 +41,7 @@ Evaluate routes in this order and stop at the first match:
 - 수정 범위와 제외 범위가 정해져 있다.
 - 첫 행동은 작고 되돌릴 수 있는 실패 회귀 테스트다.
 - 데이터·보안·권한·공개 계약·대규모 구조에 영향을 주는 미결정 사항이 없다.
+- durable LEAF record를 명시적으로 요청하지 않았다.
 
 ## Expected trace
 
@@ -99,8 +101,11 @@ phase gate, polish, review UI가 적용된다.
 
 5. 승인된 절차 예산 안에서 gate를 실행하거나 기존 fold 규칙으로 접는다.
 6. ⑧ 실행, ⑨ 검토, ⑩ 회고와 최종 검증은 생략하지 않는다.
-7. ⑩ close-out에서 `autopilot approval: expired`와 `fold approval: expired`를
-   기록한다.
+7. ⑩ close-out에서 다음 만료 상태를 기록한다.
+
+   - `route: fast-track (expired)`
+   - `autopilot approval: expired`
+   - `fold approval: expired`
 
 ### Default procedure budget
 

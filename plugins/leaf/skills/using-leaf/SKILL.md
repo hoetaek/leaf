@@ -47,6 +47,10 @@ maintenance stay direct unless they expose a durable unresolved decision.
 - 작고 되돌릴 수 있는 첫 실험을 정할 수 있다.
 - 데이터·보안·공개 계약·대규모 구조를 좌우하는 미결정 사항이 없다.
 
+`direct execution`은 이 조건들과 함께 durable LEAF 기록을 명시적으로 요청하지
+않았을 때만 match한다. 기록 요청이 있으면 아래 fast-track, 그 다음
+discovery-heavy 순서로 계속 판정한다.
+
 execution-ready에서는 기존 요구와 저장소 상태를 한 번 확인한 뒤, 가능한 가장
 작은 **최초 실행 증거**(실패 테스트, 재현, 측정, 최소 prototype)를 먼저 만든다.
 그 뒤 작은 구현·검증을 반복하고, 실제로 생긴 결정·위험·부채만 기존 issue, PR,
@@ -76,8 +80,8 @@ triple과 함께 이후 autopilot 및 적격 ④/⑤/⑦ fold를 제안하고 �
 사용한다.
 
 기존 fast-track을 같은 요청에서 재개할 때도 작업이 locked `what`과 일치해야 한다.
-새 follow-up이나 scope 변경이면 routing 전에 기존 autopilot/fold approval을
-`expired`로 바꾸고 이 요청을 새로 route한다.
+새 follow-up이나 scope 변경이면 routing 전에 route를 `fast-track (expired)`로,
+기존 autopilot/fold approval을 `expired`로 바꾸고 이 요청을 새로 route한다.
 
 ## Which skill to use
 
@@ -98,8 +102,9 @@ Process skills first (decide *how*), then domain skills.
 
 ## Ending a leaf
 
-After ⑩, expire any fast-track `autopilot approval` and `fold approval`,
-`polish` the cumulative whole, then decide the end and let the user confirm:
+After ⑩, set an active fast-track route to `fast-track (expired)` and expire its
+`autopilot approval` and `fold approval`, `polish` the cumulative whole, then
+decide the end and let the user confirm:
 
 - **keep** — useful but not citable; note it in `00-status.md`.
 - **press** — reference-worthy (reusable decision, pattern, lesson); invoke `press`.

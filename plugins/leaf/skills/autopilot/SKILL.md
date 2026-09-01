@@ -23,7 +23,9 @@ approved`, autopilot also consumes the fast-track 절차 예산 in
   fast-track` and `autopilot approval: approved` in the status preamble, and
   verify this is the same request and still matches the locked `what`. Only fold
   when it also records `fold approval: eligible ④/⑤/⑦ approved`; missing,
-  `not approved`, or `expired` fields grant no authority.
+  `not approved`, or `expired` fields grant no authority. `route: fast-track
+  (expired)` is history, not an active fast-track route; do not apply fast-track
+  approval checks to ordinary autopilot on that basis.
 - **Autopilot after the lock.** Once the triple is locked, proceed through
   `work` gates automatically: ③ Criteria, ④ Wireframe, ⑤ Design, ⑥ Critic,
   ⑦ Tasks, ⑧ Artifact / Execution, ⑨ Review / Sync, and ⑩ Retrospect.
@@ -90,9 +92,9 @@ If any start check fails, stop with the smallest needed repair or user question.
    `.leaf/02-leaves/<slug>/` using the LEAF lifecycle rule, update status, and
    run `leaf doctor`.
 7. **Review and retrospect.** Run ⑨ and ⑩ automatically unless a hard stop
-   appears. At ⑩ close-out, set fast-track `autopilot approval` and `fold
-   approval` to `expired`. Then follow `using-leaf` ending rules: keep, press via
-   `leaf:press`, or fall.
+   appears. At ⑩ close-out, set `route: fast-track (expired)`, `autopilot
+   approval: expired`, and `fold approval: expired`. Then follow `using-leaf`
+   ending rules: keep, press via `leaf:press`, or fall.
 
 ## Hard Stops
 

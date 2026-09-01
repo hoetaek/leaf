@@ -22,7 +22,7 @@ triple 제안에 `승인 후 자동 진행`과 `적격 ④/⑤/⑦ fold`를 함�
 approved`로 남긴다.
 
 ```markdown
-- route: fast-track
+- route: fast-track | fast-track (expired)
 - autopilot approval: approved | not approved | expired
 - fold approval: eligible ④/⑤/⑦ approved | not approved | expired
 ```
@@ -33,9 +33,10 @@ approved`로 남긴다.
 
 `approved`는 **같은 요청을 재개하고 현재 작업이 user-approved locked `what`과
 계속 일치할 때만** 유효하다. 새 follow-up이나 scope 변경이 들어오면 routing 전에
-두 approval을 `expired`로 바꾼다. ⑩ close-out에서도 둘을 `expired`로 바꾼다.
-`route: fast-track`은 감사용 이력으로 남지만 권한을 부여하지 않는다. 이후 요청은
-새 묶음 승인을 받아야 한다.
+route를 `fast-track (expired)`로, 두 approval을 `expired`로 바꾼다. ⑩ close-out에서도
+셋을 같은 방식으로 만료한다. Exact `route: fast-track`만 현재
+활성 route이고 `fast-track (expired)`은 감사용 이력일 뿐 권한을 부여하지 않는다.
+이후 요청은 새 묶음 승인을 받아 exact active 값을 다시 기록해야 한다.
 
 ## 기본 절차 예산
 

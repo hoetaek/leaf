@@ -58,6 +58,7 @@ for (const zeroBudget of [
 }
 requireText(fixturePath, fixture, "최초 실행 증거 뒤에도");
 requireText(fixturePath, fixture, "이 경우에만");
+requireText(fixturePath, fixture, "durable LEAF record를 명시적으로");
 requireOrder(fixturePath, fixture, [
   "direct execution",
   "fast-track LEAF",
@@ -93,6 +94,7 @@ requireText(usingLeafPath, usingLeaf, "`.leaf/` 기록 없이 종료");
 requireText(usingLeafPath, usingLeaf, "| no LEAF skill |");
 requireText(usingLeafPath, usingLeaf, "## Fast-track LEAF");
 requireText(usingLeafPath, usingLeaf, "references/fast-track.md");
+requireText(usingLeafPath, usingLeaf, "durable LEAF 기록을 명시적으로 요청하지");
 requireOrder(usingLeafPath, usingLeaf, [
   "execution-ready 조건을 판정",
   "fast-track 조건을 만족하면 fast-track",
@@ -115,7 +117,7 @@ for (const fastTrackContract of [
   "③ · ⑥ · ⑧ · ⑨ · ⑩",
   "core unknown",
   "권한을 추가하지 않는다",
-  "route: fast-track",
+  "route: fast-track | fast-track (expired)",
   "autopilot approval: approved | not approved | expired",
   "fold approval: eligible ④/⑤/⑦ approved | not approved | expired",
   "locked `what`",
@@ -130,6 +132,7 @@ for (const statusField of [
   "fold approval: eligible ④/⑤/⑦ approved",
   "autopilot approval: expired",
   "fold approval: expired",
+  "route: fast-track (expired)",
 ]) {
   requireText(fixturePath, fixture, statusField);
 }
@@ -157,7 +160,9 @@ requireText(autopilotPath, autopilot, "fast-track 절차 예산");
 requireText(autopilotPath, autopilot, "autopilot approval: approved");
 requireText(autopilotPath, autopilot, "fold approval: eligible ④/⑤/⑦ approved");
 requireText(autopilotPath, autopilot, "same request");
-requireText(autopilotPath, autopilot, "approval` to `expired");
+requireText(autopilotPath, autopilot, "approval: expired");
+requireText(autopilotPath, autopilot, "fold approval: expired");
+requireText(autopilotPath, autopilot, "history, not an active fast-track route");
 forbidText(autopilotPath, autopilot, "④·⑤·⑦을 별도 사람 승인 없이 자동 fold");
 
 const polishPath = "plugins/leaf/skills/polish/SKILL.md";
@@ -186,6 +191,16 @@ requireText(approvalPolicyPath, approvalPolicy, "missing fields grant no delegat
 requireText(approvalPolicyPath, approvalPolicy, "routing a new");
 requireText(approvalPolicyPath, approvalPolicy, "follow-up or scope change");
 requireText(approvalPolicyPath, approvalPolicy, "⑩ close-out");
+requireText(approvalPolicyPath, approvalPolicy, "ordinary autopilot");
+
+const usingLeafAgentPath = "plugins/leaf/skills/using-leaf/agents/openai.yaml";
+const usingLeafAgent = read(usingLeafAgentPath);
+requireText(usingLeafAgentPath, usingLeafAgent, "no durable LEAF record was explicitly requested");
+requireOrder(usingLeafAgentPath, usingLeafAgent, [
+  "direct execution only",
+  "request-scoped fast-track LEAF",
+  "discovery-heavy LEAF",
+]);
 
 const soulPath = "plugins/leaf/skills/soul/SKILL.md";
 requireText(soulPath, read(soulPath), "fast-track");
