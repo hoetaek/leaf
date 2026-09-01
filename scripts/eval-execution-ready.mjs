@@ -258,7 +258,8 @@ requireText(helpPath, help, "no durable unresolved decision remains");
 requireText(helpPath, help, "no durable LEAF record was explicitly requested");
 requireText(helpPath, help, "Execution-ready implementation");
 requireText(helpPath, help, "a durable LEAF record is explicitly requested");
-requireText(helpPath, help, "eligible, otherwise discovery-heavy Learn");
+requireText(helpPath, help, "current request also explicitly names fast track");
+requireText(helpPath, help, "eligible, otherwise use discovery-heavy Learn");
 requireText(helpPath, help, "Routes direct → request-scoped fast-track → discovery-heavy");
 requireText(helpPath, help, "approved active fast-track budget");
 
