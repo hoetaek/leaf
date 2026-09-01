@@ -82,9 +82,8 @@ triple과 함께 이후 autopilot 및 적격 ④/⑤/⑦ fold를 제안하고 �
 사용한다. 선택 뒤 core unknown이 드러나면 같은 reference의 escalation status를
 기록하고 discovery-heavy로 승격한다.
 
-기존 fast-track을 같은 요청에서 재개할 때도 작업이 locked `what`과 일치해야 한다.
-새 follow-up이나 scope 변경이면 routing 전에 route를 `fast-track (expired)`로,
-기존 autopilot/fold approval을 `expired`로 바꾸고 이 요청을 새로 route한다.
+Fast-track 재개와 새 follow-up은 `references/fast-track.md`의 pre-lock resume,
+approved delegation, expiration 규칙을 따른다.
 
 ## Which skill to use
 

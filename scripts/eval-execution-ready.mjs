@@ -60,6 +60,7 @@ requireText(fixturePath, fixture, "최초 실행 증거 뒤에도");
 requireText(fixturePath, fixture, "이 경우에만");
 requireText(fixturePath, fixture, "durable LEAF record를 명시적으로");
 requireText(fixturePath, fixture, "보존해야 할 설계 결정이나 미해결 위험이 없다");
+requireText(fixturePath, fixture, "locked `what` 없이 이 상태로 Learn만 재개");
 requireOrder(fixturePath, fixture, [
   "## Bounded maintenance routing",
   "보존해야 할 설계 결정이나 미해결 위험이 없다",
@@ -140,6 +141,9 @@ for (const fastTrackContract of [
   "canonical interactive",
   "승인 대기 전",
   "route: discovery-heavy",
+  "승인 전 Learn 재개 표지",
+  "locked `what`이 없어도",
+  "Approved delegation",
 ]) {
   requireText(fastTrackPath, fastTrack, fastTrackContract);
 }
@@ -225,15 +229,15 @@ requireText(approvalPolicyPath, approvalPolicy, "route-appropriate cumulative po
 
 const usingLeafAgentPath = "plugins/leaf/skills/using-leaf/agents/openai.yaml";
 const usingLeafAgent = read(usingLeafAgentPath);
-requireText(usingLeafAgentPath, usingLeafAgent, "no durable LEAF record was explicitly requested");
-requireOrder(usingLeafAgentPath, usingLeafAgent, [
-  "trivial reply/edit",
-  "direct lookup",
-  "bounded maintenance",
-  "execution-ready implementation",
-  "request-scoped fast-track LEAF",
-  "discovery-heavy LEAF",
-]);
+requireText(usingLeafAgentPath, usingLeafAgent, "SKILL.md canonical direct exclusions and route order");
+requireText(usingLeafAgentPath, usingLeafAgent, "canonical status handoff");
+forbidText(usingLeafAgentPath, usingLeafAgent, "trivial reply/edit");
+forbidText(usingLeafAgentPath, usingLeafAgent, "no durable LEAF record");
+
+const workAgentPath = "plugins/leaf/skills/work/agents/openai.yaml";
+const workAgent = read(workAgentPath);
+requireText(workAgentPath, workAgent, "$leaf:using-leaf provides the canonical route and status handoff");
+forbidText(workAgentPath, workAgent, "Keep execution-ready implementation direct");
 
 const autopilotAgentPath = "plugins/leaf/skills/autopilot/agents/openai.yaml";
 const autopilotAgent = read(autopilotAgentPath);

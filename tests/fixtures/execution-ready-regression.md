@@ -98,16 +98,18 @@ phase gate, polish, review UI가 적용된다.
    - `autopilot approval: not approved`
    - `fold approval: not approved`
 
-3. why / what / wireframe triple을 한 묶음으로 제안하고 사용자의 승인을 받는다.
-4. 승인 결과로 `00-status.md` preamble을 덮어쓴다.
+3. 승인 전에 중단되면 locked `what` 없이 이 상태로 Learn만 재개한다. 이 상태는
+   procedure budget, autopilot, fold 권한을 주지 않는다.
+4. why / what / wireframe triple을 한 묶음으로 제안하고 사용자의 승인을 받는다.
+5. 승인 결과로 `00-status.md` preamble을 덮어쓴다.
 
    - `route: fast-track`
    - `autopilot approval: approved`
    - `fold approval: eligible ④/⑤/⑦ approved`
 
-5. 승인된 절차 예산 안에서 gate를 실행하거나 기존 fold 규칙으로 접는다.
-6. ⑧ 실행, ⑨ 검토, ⑩ 회고와 최종 검증은 생략하지 않는다.
-7. ⑩ close-out의 route-appropriate cumulative polish를 마친 뒤 다음 만료 상태를
+6. 승인된 절차 예산 안에서 gate를 실행하거나 기존 fold 규칙으로 접는다.
+7. ⑧ 실행, ⑨ 검토, ⑩ 회고와 최종 검증은 생략하지 않는다.
+8. ⑩ close-out의 route-appropriate cumulative polish를 마친 뒤 다음 만료 상태를
    기록한다.
 
    - `route: fast-track (expired)`

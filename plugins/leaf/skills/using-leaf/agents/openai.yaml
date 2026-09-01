@@ -1,7 +1,7 @@
 interface:
   display_name: "Using LEAF"
   short_description: "Route direct, fast-track, or discovery-heavy LEAF work"
-  default_prompt: "Use $leaf:using-leaf to route this request in order: direct for a trivial reply/edit, direct lookup, bounded maintenance, or execution-ready implementation only when no durable LEAF record was explicitly requested and no durable decision remains; otherwise request-scoped fast-track LEAF when explicitly requested and safe, then discovery-heavy LEAF. Use soul first for actual LEAF work and preserve the CLI body, approvals, gates, and verification."
+  default_prompt: "Use $leaf:using-leaf and follow its SKILL.md canonical direct exclusions and route order. Use soul first for actual LEAF work and preserve the canonical status handoff, approvals, gates, and verification."
 
 policy:
   allow_implicit_invocation: true

@@ -34,9 +34,13 @@ approved`여야 한다.
 문구만으로 추론하지 않는다. 기존 status parser는 unknown preamble key를
 무시하므로 별도 scaffold나 parser 변경은 필요하지 않다.
 
-`approved`는 **같은 요청을 재개하고 현재 작업이 user-approved locked `what`과
-계속 일치할 때만** 유효하다. 새 follow-up이나 scope 변경이 들어오면 routing 전에
-route를 `fast-track (expired)`로, 두 approval을 `expired`로 바꾼다. ⑩ close-out에서도
+두 `not approved` 값은 **승인 전 Learn 재개 표지**다. 아직 locked `what`이 없어도
+같은 Learn을 이어갈 수 있지만 procedure budget, autopilot, fold 권한은 없다.
+Approved delegation은 같은 요청을 재개하고 현재 작업이 user-approved locked
+`what`과 계속 일치할 때만 소비한다.
+
+새 follow-up이나 scope 변경이 들어오면 routing 전에 route를 `fast-track
+(expired)`로, 두 approval을 `expired`로 바꾼다. ⑩ close-out에서도
 route-appropriate cumulative polish를 먼저 마친 뒤 셋을 같은 방식으로 만료한다.
 Exact `route: fast-track`만 현재
 활성 route이고 `fast-track (expired)`은 감사용 이력일 뿐 권한을 부여하지 않는다.
