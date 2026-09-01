@@ -122,6 +122,9 @@ Read only what the current move needs:
    Discovery-heavy Learn uses the per-item **ask → approve → write** loop.
    Fast-track may present the unambiguous triple, `승인 후 자동 진행`, and eligible
    ④/⑤/⑦ folds together for **한 번의 묶음 승인**; approval still precedes writing.
+   After that decision, record `route: fast-track`, `autopilot approval: approved |
+   not approved`, and `fold approval: eligible ④/⑤/⑦ approved | not approved` in
+   the `00-status.md` preamble. Do not infer any of them from chat history.
    Never auto-fill the triple; a drafted proposal is only a starting point to confirm.
    `none — <reason>` is a valid approved answer (understanding-only, killed, or
    deferred sprouts). The lock is a **return-condition lock**: work consumes
@@ -264,6 +267,10 @@ when a sprout or leaf lacks the why/what/wireframe lines or still carries the
 scaffold `TODO` placeholder, so the summary the preview and detail header
 surface is guaranteed present (a `none — …` value is a valid answer and is not
 flagged; fallen and pressed are exempt).
+
+For fast-track, put the three durable delegation fields from Workflow step 8
+after the existing operational fields and before `## Overview`. Unknown preamble
+keys are parser-compatible; no global scaffold change is required.
 
 The `## Overview` section below the preamble keeps the rest:
 

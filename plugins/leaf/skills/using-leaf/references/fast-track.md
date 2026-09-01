@@ -15,6 +15,22 @@ track을 명시했고 실제 LEAF 기록이 필요하며 core unknown이 없을 
 triple 제안에 `승인 후 자동 진행`과 `적격 ④/⑤/⑦ fold`를 함께 적고 사용자가
 승인한 경우에만 autopilot이 그 위임을 소비한다.
 
+## Durable status contract
+
+묶음 승인 뒤 `00-status.md` preamble의 기존 operational fields와 `## Overview`
+사이에 다음 세 필드를 기록한다. 승인하지 않은 위임은 생략하지 말고 `not
+approved`로 남긴다.
+
+```markdown
+- route: fast-track
+- autopilot approval: approved | not approved
+- fold approval: eligible ④/⑤/⑦ approved | not approved
+```
+
+이 필드들은 요청 단위 route와 위임의 재개 근거다. 대화 기록이나 `fast track`
+문구만으로 추론하지 않는다. 기존 status parser는 unknown preamble key를
+무시하므로 별도 scaffold나 parser 변경은 필요하지 않다.
+
 ## 기본 절차 예산
 
 | 절차 | 기본값 | 늘리는 조건 |
@@ -29,7 +45,8 @@ triple 제안에 `승인 후 자동 진행`과 `적격 ④/⑤/⑦ fold`를 함�
 
 ③ · ⑥ · ⑧ · ⑨ · ⑩은 항상 실행하되 증거에 맞게 깊이를 줄일 수 있다.
 ④ · ⑤ · ⑦은 `../../work/references/gates.md`의 기존 조건을 만족하고 triple에서
-fold를 승인받았을 때만 한 줄로 접는다. 구체적인 이유와 ⑨ audit은 남긴다.
+fold를 승인받고 `fold approval: eligible ④/⑤/⑦ approved`가 기록됐을 때만 한
+줄로 접는다. 구체적인 이유와 ⑨ audit은 남긴다.
 
 ## 기존 규칙의 주인
 

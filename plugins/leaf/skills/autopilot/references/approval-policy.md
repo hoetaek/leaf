@@ -16,9 +16,12 @@ asking the user.
 
 For fast-track, the triple may use one bundled approval only when it presents
 the three values plus `승인 후 자동 진행` and eligible ④/⑤/⑦ folds explicitly.
-That approval spends the request-scoped procedure budget; it does not carry to
-another request or grant permission for deploy, delete, external sharing, cost,
-credentials, or another hard stop.
+After approval, record `route: fast-track`, `autopilot approval: approved`, and
+`fold approval: eligible ④/⑤/⑦ approved` in the `00-status.md` preamble. Record
+each declined delegation as `not approved`; missing fields grant no delegation.
+Those fields spend the request-scoped procedure budget; they do not carry to
+another request or grant permission for deploy, delete, external sharing,
+cost, credentials, or another hard stop.
 
 ## May Continue Automatically
 
@@ -81,8 +84,9 @@ no uncertainty to close) is defined in `../../work/references/gates.md` → Gate
 folding; this policy does not restate its rules. Its human-approval point is
 normally at ③'s end, which autopilot removes — so **fold eligibility is a
 triple-lock decision**: autopilot may fold only when the human, at triple
-review, pre-approved this work for short-loop folding. Without that
-pre-approval, autopilot runs the full loop.
+review, pre-approved this work for short-loop folding and `00-status.md` records
+`fold approval: eligible ④/⑤/⑦ approved`. Without both, autopilot runs the full
+loop.
 
 ## Return Rule
 

@@ -56,8 +56,10 @@ phase gate 파일, 누적 polish, 독립 문서 검토, live UI는 기본 경로
 
 execution-ready는 일반 LEAF lifecycle의 축약판이 아니라 direct execution
 경로다. 완료된 구현을 사후 설명하기 위해 ③–⑩을 만들지 않는다. 실행 중 미결정
-사항이 생겨 추가 발견·설계가 필요하거나, 사용자가 LEAF 기록 자체를 명시적으로
-요청한 경우에만 `learn`부터 discovery-heavy lifecycle로 승격한다.
+사항이 생겨 추가 발견·설계가 필요하면 `learn`부터 discovery-heavy lifecycle로
+승격한다. 사용자가 durable LEAF 기록 자체를 명시적으로 요청하면 먼저 위
+execution-ready 조건을 판정한 뒤, 아래 fast-track 조건을 만족하면 fast-track
+LEAF로, 아니면 discovery-heavy lifecycle로 간다.
 
 ## Fast-track LEAF
 
@@ -68,8 +70,10 @@ sprout을 만들거나 이어가되, `references/fast-track.md`의 절차 예산
 
 `fast track`이라는 말은 route 선호일 뿐 자동 진행·fold 승인이 아니다. Learn이
 triple과 함께 이후 autopilot 및 적격 ④/⑤/⑦ fold를 제안하고 사용자가 승인해야
-그 위임이 생긴다. core unknown이 있거나 fast track을 명시하지 않았으면 기존
-discovery-heavy `learn` → `work`와 hard stop을 그대로 사용한다.
+그 위임이 생긴다. 승인 뒤 `00-status.md` preamble에 `route`, `autopilot approval`,
+`fold approval`을 명시적으로 기록한다. core unknown이 있거나 fast track을
+명시하지 않았으면 기존 discovery-heavy `learn` → `work`와 hard stop을 그대로
+사용한다.
 
 ## Which skill to use
 

@@ -9,8 +9,9 @@ description: Use after a LEAF sprout's why / what / wireframe triple has been ex
 wireframe` triple. It does not remove LEAF's judgment boundary; it keeps
 automatic reviews, hard stops, and evidence. The **execution-ready 분기** belongs
 to `work`'s direct path; autopilot does not wrap it in a lifecycle.
-When the locked triple records a fast-track route, autopilot also consumes the
-fast-track 절차 예산 in `../using-leaf/references/fast-track.md`.
+When `00-status.md` records `route: fast-track` and `autopilot approval:
+approved`, autopilot also consumes the fast-track 절차 예산 in
+`../using-leaf/references/fast-track.md`.
 
 ## Core Contract
 
@@ -18,6 +19,10 @@ fast-track 절차 예산 in `../using-leaf/references/fast-track.md`.
   unless `00-status.md` has human-reviewed `why`, `what`, and `wireframe`
   values. If they are missing, provisional, stale, or marked `USER REVIEW
   NEEDED` / `LOCK CANDIDATE`, return to `learn`.
+- **Delegation is durable.** For fast-track, require `route: fast-track` and
+  `autopilot approval: approved` in the status preamble. Only fold when it also
+  records `fold approval: eligible ④/⑤/⑦ approved`; missing fields grant no
+  authority.
 - **Autopilot after the lock.** Once the triple is locked, proceed through
   `work` gates automatically: ③ Criteria, ④ Wireframe, ⑤ Design, ⑥ Critic,
   ⑦ Tasks, ⑧ Artifact / Execution, ⑨ Review / Sync, and ⑩ Retrospect.
@@ -59,7 +64,8 @@ Before doing work:
 6. Read `references/approval-policy.md` when the request involves execution,
    external side effects, credentials, cost, security, privacy, or ambiguity
    about what autopilot may decide.
-7. If the triple records fast-track, read
+7. If the status records `route: fast-track`, verify `autopilot approval:
+   approved`, then read
    `../using-leaf/references/fast-track.md` and keep its request-scoped budget.
 
 If any start check fails, stop with the smallest needed repair or user question.

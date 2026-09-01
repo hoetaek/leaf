@@ -91,8 +91,14 @@ phase gate, polish, review UI가 적용된다.
 1. direct execution 조건을 먼저 확인하고 제외한다.
 2. 요청 단위 fast-track LEAF로 분류한다.
 3. why / what / wireframe triple을 한 묶음으로 제안하고 사용자의 승인을 받는다.
-4. 승인된 절차 예산 안에서 gate를 실행하거나 기존 fold 규칙으로 접는다.
-5. ⑧ 실행, ⑨ 검토, ⑩ 회고와 최종 검증은 생략하지 않는다.
+4. `00-status.md` preamble에 다음 세 필드를 기록한다.
+
+   - `route: fast-track`
+   - `autopilot approval: approved`
+   - `fold approval: eligible ④/⑤/⑦ approved`
+
+5. 승인된 절차 예산 안에서 gate를 실행하거나 기존 fold 규칙으로 접는다.
+6. ⑧ 실행, ⑨ 검토, ⑩ 회고와 최종 검증은 생략하지 않는다.
 
 ### Default procedure budget
 

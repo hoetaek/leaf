@@ -24,6 +24,9 @@ Gate to continue:
   ask → approve → write loop — per item for discovery-heavy, or as one
   unambiguous bundle for fast-track — and is never agent-authored;
   `none — <reason>` is a valid approved answer.
+- A fast-track bundle also records `route: fast-track`, `autopilot approval:
+  approved | not approved`, and `fold approval: eligible ④/⑤/⑦ approved | not
+  approved` in the `00-status.md` preamble; missing fields grant no delegation.
 
 Helpful defaults — the scout fan-out, reading map, and closing quiz live in
 the `learn` skill; deep-research rules in `research-quality.md`; the premise

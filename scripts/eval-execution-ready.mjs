@@ -93,6 +93,11 @@ requireText(usingLeafPath, usingLeaf, "`.leaf/` 기록 없이 종료");
 requireText(usingLeafPath, usingLeaf, "| no LEAF skill |");
 requireText(usingLeafPath, usingLeaf, "## Fast-track LEAF");
 requireText(usingLeafPath, usingLeaf, "references/fast-track.md");
+requireOrder(usingLeafPath, usingLeaf, [
+  "execution-ready 조건을 판정",
+  "fast-track 조건을 만족하면 fast-track",
+  "아니면 discovery-heavy",
+]);
 
 const fastTrackPath = "plugins/leaf/skills/using-leaf/references/fast-track.md";
 const fastTrack = existsSync(resolve(root, fastTrackPath)) ? read(fastTrackPath) : "";
@@ -110,8 +115,18 @@ for (const fastTrackContract of [
   "③ · ⑥ · ⑧ · ⑨ · ⑩",
   "core unknown",
   "권한을 추가하지 않는다",
+  "route: fast-track",
+  "autopilot approval: approved | not approved",
+  "fold approval: eligible ④/⑤/⑦ approved | not approved",
 ]) {
   requireText(fastTrackPath, fastTrack, fastTrackContract);
+}
+for (const statusField of [
+  "route: fast-track",
+  "autopilot approval: approved",
+  "fold approval: eligible ④/⑤/⑦ approved",
+]) {
+  requireText(fixturePath, fixture, statusField);
 }
 
 const workPath = "plugins/leaf/skills/work/SKILL.md";
@@ -134,6 +149,8 @@ const autopilot = read(autopilotPath);
 requireText(autopilotPath, autopilot, "execution-ready 분기");
 requireText(autopilotPath, autopilot, "execution-ready direct path를 LEAF lifecycle로 바꾸지 않는다");
 requireText(autopilotPath, autopilot, "fast-track 절차 예산");
+requireText(autopilotPath, autopilot, "autopilot approval: approved");
+requireText(autopilotPath, autopilot, "fold approval: eligible ④/⑤/⑦ approved");
 forbidText(autopilotPath, autopilot, "④·⑤·⑦을 별도 사람 승인 없이 자동 fold");
 
 const polishPath = "plugins/leaf/skills/polish/SKILL.md";
@@ -147,6 +164,18 @@ const learnPath = "plugins/leaf/skills/learn/SKILL.md";
 const learn = read(learnPath);
 requireText(learnPath, learn, "fast-track");
 requireText(learnPath, learn, "한 번의 묶음 승인");
+requireText(learnPath, learn, "autopilot approval: approved |");
+requireText(learnPath, learn, "fold approval: eligible ④/⑤/⑦ approved | not approved");
+
+const gate02Path = "plugins/leaf/skills/learn/references/gate-02-unknowns-context.md";
+const gate02 = read(gate02Path);
+requireText(gate02Path, gate02, "route: fast-track");
+requireText(gate02Path, gate02, "missing fields grant no delegation");
+
+const approvalPolicyPath = "plugins/leaf/skills/autopilot/references/approval-policy.md";
+const approvalPolicy = read(approvalPolicyPath);
+requireText(approvalPolicyPath, approvalPolicy, "autopilot approval: approved");
+requireText(approvalPolicyPath, approvalPolicy, "missing fields grant no delegation");
 
 const soulPath = "plugins/leaf/skills/soul/SKILL.md";
 requireText(soulPath, read(soulPath), "fast-track");
