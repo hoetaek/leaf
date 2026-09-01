@@ -26,6 +26,22 @@ Use that sentence as the quality bar. More words are not higher quality. The
 best document is the one that leaves nothing important hidden and nothing
 unnecessary in the way.
 
+## Execution-ready direct path
+
+execution-ready direct work는 LEAF 문서를 만들지 않으므로 최초 실행 증거 전뿐
+아니라 **최초 실행 증거 뒤에도 polish 대상이 아니다**. 누적 polish와 독립 문서 검토,
+live UI는 direct 실행을 막지 않는다. 미결정 사항 때문에 Learn으로
+승격하여 canonical gate 문서가 실제로 생긴 때부터만 이 skill의 일반 규칙을
+적용한다.
+
+## Fast-track LEAF
+
+Fast-track도 각 phase 경계에서 누적 전체를 읽고 status drift·중복·모순을
+자체 점검한 뒤 polish marker를 제거한다. 다만 문서가 길거나 stale·모순 상태거나,
+사용자 검토 문서의 품질 위험이 있을 때만 아래 full Polish Pass와 독립 reviewer를
+실행한다. trigger가 없으면 한 줄짜리 self-polish 증거로 충분하다. 절차를 줄여도
+사실, 결정, 위험, 다음 입력, `leaf doctor`와 `leaf next` 경계는 생략하지 않는다.
+
 ## Polish Unit — phase 경계의 누적 전체
 
 polish의 기본 단위는 단일 파일이 아니라 **하나의 phase 경계에서 그때까지 쌓인 전체
@@ -146,7 +162,9 @@ Extra checks: drift, surface, archive, fallen.
 
 ## Subagent Review
 
-Before calling a polish complete, delegate an independent review to a subagent.
+Before calling a full polish complete, delegate an independent review to a subagent.
+Fast-track의 lightweight self-polish는 위 quality-risk trigger가 없으면 이 review를
+요구하지 않는다.
 The reviewer judges only document quality, not implementation truth. Give it the
 target file or `leaf review` output and this rubric:
 
@@ -191,6 +209,6 @@ Report:
 - target files polished;
 - what was removed or compressed;
 - what source truth was preserved;
-- subagent reviewer verdict;
+- subagent reviewer verdict, or the fast-track reason it was not triggered;
 - `leaf doctor` result;
 - confirmation that no `.wt/` or execution artifacts were created.

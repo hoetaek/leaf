@@ -5,6 +5,14 @@ description: Use when capturing, triaging, or deeply learning a sprout through L
 
 # LEAF Learn
 
+Before starting Learn for an implementation request, use `using-leaf` to check
+whether it is execution-ready. That direct path makes evidence, implements,
+verifies, and exits without this document flow. Learn remains the route for
+discovery-heavy work, document outputs, and any request with a blocking unknown.
+When `using-leaf` selects fast-track, read
+`../using-leaf/references/fast-track.md` and keep this Learn flow while spending
+only its procedure budget.
+
 `learn` owns **Learn**: ① Intent and ② Unknowns & Context. Learn is where an
 eager learner goes to *understand a topic for its own sake*. ① locks the why (the
 problem definition) and the what (what the output is); ② explores the terrain —
@@ -41,6 +49,9 @@ Record the result as checked context with separate entries for skills and MCP
 tools, then continue normally. These capabilities are accelerators, not
 blockers: if neither surface exposes them, use built-in search, fetch, browser,
 and explicit limitation notes.
+
+Fast-track skips this check when no scout or external fact is needed. If its
+bounded unknown triggers research, run only the tool check needed for that probe.
 
 ## First Read
 
@@ -85,10 +96,11 @@ Read only what the current move needs:
    the output is), and the locked intent. Surface guessed facts before locking it.
    When ① changes the why, the what, the core noun, or the split decision, update
    the status overview in the same turn.
-5. **Dispatch the four scout subagents in parallel.** Be the explorer-companion,
-   not a clerk who only files the unknowns the user names. Fan out Terrain,
-   Method, Judgment, Context as parallel subagents (see `## Parallel Scouts`)
-   instead of one linear sweep; each writes to `01-Learn/02-references/`.
+5. **Resolve only the scouts the route needs.** In discovery-heavy Learn,
+   dispatch the four scout subagents in parallel. In fast-track, default to zero
+   scouts; dispatch one only for a bounded unknown that cannot change the triple.
+   A core unknown exits fast-track and restores the full fan-out. See
+   `## Parallel Scouts`; each scout writes to `01-Learn/02-references/`.
 6. **Run ② Unknowns & Context as the leader.** Use
    `references/gate-02-unknowns-context.md` as the contract. Check the user's
    prior knowledge early (the **known knowns**) so teaching targets the gap, and
@@ -97,26 +109,33 @@ Read only what the current move needs:
    and a reading map (see Parallel Scouts → Reading map), not an answer. When ②
    changes what the user now understands or the scope of the curiosity, update the
    status overview in the same turn.
-7. **Quiz, then offer Learn-rest options.** Before resting, invoke `polish`
-   on the Learn/status surface as one report — this is the Learn phase boundary —
-   open the gathered references for the user (live page, per `soul`), then quiz
-   the user on the core (see Parallel Scouts → Quiz). Then show concrete
+7. **Close Learn at the route's depth.** Discovery-heavy Learn invokes `polish`,
+   opens the gathered references per `soul`, and quizzes the user on the core.
+   Fast-track performs the required cumulative self-polish, but defaults quiz,
+   full polish, independent review, and live UI to zero unless their trigger in
+   the fast-track budget is present. Then show concrete
    curiosity threads the user could keep pulling, not only a generic "anything
    else?" question. Learn need not "finish": if a thread still pulls, keep
    exploring. This is a resting point, not a gate to clear.
 8. **Lock the why / what / wireframe before resting.** Mandatory at every Learn
    close: record an explicit, user-approved triple in `00-status.md`'s preamble.
-   Run it as a per-item **ask → approve → write** loop — for each of why, what,
-   and wireframe, ask the open questions first (the `why` must be a sharp problem
-   definition), get the user's approval of the wording, then write it. Never
-   auto-fill the triple; a drafted proposal is only a starting point to confirm.
+   Discovery-heavy Learn uses the per-item **ask → approve → write** loop.
+   Fast-track may present the unambiguous triple, `승인 후 자동 진행`, and eligible
+   ④/⑤/⑦ folds together for **한 번의 묶음 승인**; approval still precedes writing.
+   After that decision, record `route: fast-track`, `autopilot approval: approved |
+   not approved`, and `fold approval: eligible ④/⑤/⑦ approved | not approved` in
+   the `00-status.md` preamble. When autopilot is `not approved`, fold must also
+   be `not approved`; manual fast-track requests canonical fold approval at ③.
+   Do not infer any of them from chat history.
+   Never auto-fill the triple; a drafted proposal is only a starting point to confirm.
    `none — <reason>` is a valid approved answer (understanding-only, killed, or
    deferred sprouts). The lock is a **return-condition lock**: work consumes
    it, and ④/⑧/⑨ falsifying it reopens it via a recorded return. Contract:
    `references/gate-02-unknowns-context.md`. If the work looks simple enough to
    short-loop and the user intends `autopilot`, this is also where they may
    pre-approve gate folding (see `../work/references/gates.md` → Gate folding);
-   otherwise autopilot runs the full loop.
+   if autopilot is approved without fold approval, it runs the full unfolded
+   loop. Only manual work uses ③'s interactive approval.
 
 Show the gathered references as a file tree first:
 
@@ -148,13 +167,14 @@ Use this shape:
 > 알고 싶던 걸 충분히 알게 됐나요? 아직 당신을 끌어당기는 결, 즉 더 파고 싶은
 > 개념, 보고 싶은 사례, 짚어보고 싶은 논쟁, 확인하지 않은 가정이 남아 있나요?
 
-Then lock the triple (Workflow step 8): ask why / what / wireframe one at a time,
-write each to `00-status.md` only after the user approves its wording.
+Then lock the triple (Workflow step 8): use the route's per-item or bundled
+approval form, and write it to `00-status.md` only after the user approves it.
 
 ## Parallel Scouts
 
-② is run as a fan-out, not a single linear sweep. The leader dispatches up to
-four scout subagents at once, each searching the topic from one angle —
+Discovery-heavy ② is run as a fan-out, not a single linear sweep. Fast-track ②
+uses the explicit zero-scout default above. When fan-out is required, the leader
+dispatches up to four scout subagents at once, each searching the topic from one angle —
 including active web search for external references, prior art, and benchmarks —
 and writing what it finds to `01-Learn/02-references/` (one file per topic, named
 for what it covers). The families are fixed so coverage is legible; what each scout
@@ -172,7 +192,7 @@ explicit delegation request for those scouts.
 
 Rules for the fan-out:
 
-- **C is never dropped.** A/B/D answer "what is true / how / why"; C is what turns
+- **In discovery-heavy fan-out, C is never dropped.** A/B/D answer "what is true / how / why"; C is what turns
   collection into judgment. Skipping it leaves the user with a pile of material
   and no way to decide — the exact failure Learn exists to prevent.
 - **The scouts return grounds, not verdicts.** Each writes "here is what I found
@@ -208,8 +228,9 @@ into `02-unknowns.md` so later work does not have to re-read every file.
 
 ### Quiz
 
-Handing over references is not the same as the user learning them. Before resting
-Learn, pose a few short **multiple-choice** questions that check the user
+Handing over references is not the same as the user learning them. In
+discovery-heavy Learn, or when the fast-track budget's knowledge trigger is
+present, pose a few short **multiple-choice** questions that check the user
 understands the core knowledge — the key concepts, why it is the way it is, the
 trade-offs and where the topic forks. Give each question 3–4 options whose wrong
 answers are plausible-but-wrong (common misconceptions or near-misses), so
@@ -239,8 +260,8 @@ the operational fields:
   (understanding-only outputs may use a one-paragraph explanation, worked
   example, or quiz instead of a built wireframe).
 
-These three are written only through the Learn-close lock — an ask → approve →
-write loop, per item, never agent-authored (see Workflow step 8 and
+These three are written only through the Learn-close lock — the route's
+per-item or bundled ask → approve → write loop, never agent-authored (see Workflow step 8 and
 `references/gate-02-unknowns-context.md`). The operational status parser
 (`stage` / `current phase` / `current gate`) ignores these keys, so the triple
 sits safely in the preamble above the operational fields. `leaf doctor` does
@@ -249,6 +270,10 @@ when a sprout or leaf lacks the why/what/wireframe lines or still carries the
 scaffold `TODO` placeholder, so the summary the preview and detail header
 surface is guaranteed present (a `none — …` value is a valid answer and is not
 flagged; fallen and pressed are exempt).
+
+For fast-track, put the three durable delegation fields from Workflow step 8
+after the existing operational fields and before `## Overview`. Unknown preamble
+keys are parser-compatible; no global scaffold change is required.
 
 The `## Overview` section below the preamble keeps the rest:
 

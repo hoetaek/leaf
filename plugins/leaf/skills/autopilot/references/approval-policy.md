@@ -7,12 +7,29 @@ asking the user.
 
 `autopilot` uses three layers:
 
-1. **Human-reviewed triple** — `why`, `what`, and `wireframe` are reviewed before
-   autopilot starts. This is the ownership boundary.
+1. **Human-reviewed triple** — normal work locks `why`, `what`, and `wireframe`
+   before autopilot. Execution-ready direct work does not use autopilot.
 2. **Automatic gate review** — after the triple, the agent may draft, grill,
    revise, test, and review LEAF gates without asking at every gate.
 3. **Hard stops** — when risk or ownership exceeds the pre-authorized lane, stop
    and ask.
+
+For fast-track, the triple may use one bundled approval only when it presents
+the three values plus `승인 후 자동 진행` and eligible ④/⑤/⑦ folds explicitly.
+After approval, record `route: fast-track`, `autopilot approval: approved`, and
+`fold approval: eligible ④/⑤/⑦ approved` in the `00-status.md` preamble. Record
+each declined delegation as `not approved`; if autopilot is `not approved`, fold
+is also `not approved` and manual work uses ③'s interactive approval. Missing fields grant no delegation.
+Those fields spend the request-scoped procedure budget; they do not carry to
+another request or grant permission for deploy, delete, external sharing,
+cost, credentials, or another hard stop.
+
+An `approved` value remains valid only while resuming the same request and the
+current work still matches the user-approved locked `what`. Before routing a new
+follow-up or scope change, and again at ⑩ close-out, change the route to
+`fast-track (expired)` and both approval values to `expired`. Exact `route:
+fast-track` means active; `fast-track (expired)` is history and does not restrict
+ordinary autopilot. A fresh bundled approval restores the exact active value.
 
 ## May Continue Automatically
 
@@ -68,6 +85,9 @@ Use the nearest durable surface:
 - `03-Architect/08-execution.md` for execution sessions;
 - `04-Feedback/09-review.md` and `10-retrospect.md` for close-out findings.
 
+At ⑩ close-out, finish route-appropriate cumulative polish before recording the
+active fast-track expiration in `00-status.md` and ending the leaf.
+
 ## Gate Folding Under Autopilot
 
 Gate folding (passing ④/⑤/⑦ with a one-line `folded:` record when the work has
@@ -75,13 +95,17 @@ no uncertainty to close) is defined in `../../work/references/gates.md` → Gate
 folding; this policy does not restate its rules. Its human-approval point is
 normally at ③'s end, which autopilot removes — so **fold eligibility is a
 triple-lock decision**: autopilot may fold only when the human, at triple
-review, pre-approved this work for short-loop folding. Without that
-pre-approval, autopilot runs the full loop. Either way ⑨ runs the fold audit.
-This keeps folding inside layer 1 (the ownership boundary), not layer 2's
-automatic discretion.
+review, pre-approved this work for short-loop folding. For an active `route:
+fast-track`, `00-status.md` must also record both `autopilot approval: approved`
+and `fold approval: eligible ④/⑤/⑦ approved`. For ordinary autopilot, the
+triple's short-loop pre-approval is sufficient; these fast-track-only status
+fields are not required. Without route-appropriate pre-approval, autopilot runs
+the full loop.
 
 ## Return Rule
 
 If an automatic gate finds that the locked triple is wrong, return to Learn. Do
 not patch around it downstream. Record what falsified the triple, reopen only
-the affected fields, and wait for human review before continuing.
+the affected fields, and wait for human review before continuing. An active
+fast-track core-unknown return uses the status transition in
+`../../using-leaf/references/fast-track.md`.

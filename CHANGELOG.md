@@ -8,6 +8,27 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+## 0.19.0 - 2026-09-01
+
+- Plugin skills: released `leaf` plugin 0.11.0 — added request-scoped
+  fast-track LEAF for work that needs a durable record but has no core unknown.
+  It keeps the CLI body, cumulative self-polish, verification, review, and
+  retrospect while defaulting scouts, quiz, full polish, independent review,
+  and live UI to zero. With explicit approval, eligible ④/⑤/⑦ artifacts fold
+  to one-line judgments; automatic progress and folds never follow from the
+  route name alone. Route and delegation state are resumable within the same
+  locked work, expire on follow-up or close-out, and escalate to discovery-heavy
+  LEAF when scope, safety, authority, or another core unknown changes.
+- Plugin skills: released `leaf` plugin 0.10.1 — bounded maintenance and
+  execution-ready implementation now exit LEAF routing and work directly.
+  Verified work with no durable unresolved decision finishes without scaffold,
+  gates, phase transitions, cumulative polish, independent document review, or
+  live UI; completed implementation is never reconstructed as ③–⑩ afterward.
+  Work escalates to the normal Learn-first lifecycle only when unresolved
+  discovery/design risk appears or the user explicitly requests a durable LEAF
+  record. Expanded the execution-ready contract eval with zero-operation budgets
+  and cross-skill guards for routing, fast termination, and escalation.
+
 ## 0.18.0 - 2026-07-21
 
 - Review reader: the table of contents no longer narrows the document. Wide
@@ -17,6 +38,7 @@ minor version instead of moving to `x.0.0`.
   technology and respects reduced-motion preferences.
 - Dependencies: updated `crossbeam-epoch` to 0.9.20, resolving
   RUSTSEC-2026-0204.
+
 - Plugin skills: released `leaf` plugin 0.9.0 — added gate folding (short loop)
   to `work`. A gate always runs, but when ④/⑤/⑦ has no uncertainty left to
   close, it is passed with a one-line `folded:` record (naming a concrete noun)

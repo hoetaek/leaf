@@ -119,6 +119,15 @@ sprout from ③ Example through ⑧ Artifact / Execution. After ⑧ passes,
 `work` moves the sprout into leaves before Feedback. Immediately after ⑩
 Retrospect, follow `using-leaf` ("Ending a leaf") to keep, press, or fall.
 
+For an implementation that is already execution-ready — its current state can
+be observed, success is observable, scope and exclusions are known, the first
+experiment is small and reversible, and no high-risk decision remains — first
+make a failing test, reproduction, measurement, or minimum prototype. Do not
+make LEAF documents, cumulative polish, document review, or the local UI a
+precondition for that evidence. Record only the decisions that implementation
+actually reveals; work with unknowns, document outputs, or high-risk changes
+still follows Learn first.
+
 ## The LEAF Loop
 
 LEAF closes uncertainty in order:

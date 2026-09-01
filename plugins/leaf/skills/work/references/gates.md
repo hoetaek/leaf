@@ -70,6 +70,10 @@ files.
   unfold ⑦**. Unfolding is the ordinary falsification of an assumption the
   fold consumed.
 
+Execution-ready direct work does not enter these gates. If it exposes a durable
+unresolved decision, start at Learn and use the normal folding rules only after
+the work has entered the normal lifecycle.
+
 ---
 
 ## ① Intent

@@ -33,6 +33,12 @@ leaf init
 leaf new <slug>
 ```
 
+Execution-ready direct work does not run these commands. If it exposes an
+unresolved decision and escalates, start the normal lifecycle at Learn and run
+these commands then; do not create a project after completed implementation
+only to reconstruct gate records. Discovery-heavy work always uses the normal
+start order.
+
 `leaf new <slug>` creates or resumes the sprout project folder. Use lowercase
 ASCII kebab-case slugs. If a likely matching sprout already exists, resume it
 instead of creating a duplicate.
@@ -162,9 +168,10 @@ return invalidated. Do not use `returned` as a status.
 
 - **One project folder per LEAF work item.** Do not spread one item's process
   files across multiple sprout or leaf folders.
-- **The scaffold comes first.** Invoking LEAF means using `leaf init` /
-  `leaf new <slug>` and keeping the gate files in that project folder. A task too
-  small for the scaffold should not invoke LEAF.
+- **The scaffold comes first for normal Work.** Use `leaf init` / `leaf new
+  <slug>` and keep gate files in that project folder. Execution-ready direct
+  work has no scaffold; if it escalates, begin normal Work at Learn. A task too
+  small for either path should not invoke LEAF.
 - **Top-level folders are phases.** Use exactly `01-Learn/`, `02-Example/`,
   `03-Architect/`, and `04-Feedback/` inside the project folder.
 - **No nested project folders.** Split large work inside `03-Architect/07-tasks.md`;

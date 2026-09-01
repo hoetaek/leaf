@@ -1,7 +1,7 @@
 interface:
   display_name: "LEAF Polish"
-  short_description: "Turn LEAF drafts into current reports"
-  default_prompt: "Use $leaf:polish before user review to turn a LEAF gate/status document into a simple current report."
+  short_description: "Self-polish fast-track or fully polish LEAF reports"
+  default_prompt: "Use $leaf:polish at a real LEAF document boundary. Fast-track defaults to cumulative self-polish without an independent reviewer unless length, staleness, contradiction, or user-review quality risk triggers the full pass. Never delay execution-ready evidence for polish."
 
 policy:
   allow_implicit_invocation: true

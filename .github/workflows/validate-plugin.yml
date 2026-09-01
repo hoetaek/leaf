@@ -7,6 +7,9 @@ on:
       - ".agents/plugins/**"
       - "plugins/leaf/**"
       - "scripts/validate-manifests.mjs"
+      - "scripts/eval-execution-ready.mjs"
+      - "tests/fixtures/execution-ready-regression.md"
+      - "CHANGELOG.md"
       - "scripts/lint-shell.sh"
       - "Cargo.toml"
   push:
@@ -21,6 +24,7 @@ jobs:
         with:
           node-version: "22"
       - run: node scripts/validate-manifests.mjs --audit
+      - run: node scripts/eval-execution-ready.mjs
 
   lint-shell:
     runs-on: ubuntu-latest
