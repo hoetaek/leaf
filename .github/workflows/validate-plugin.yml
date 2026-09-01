@@ -9,6 +9,7 @@ on:
       - "scripts/validate-manifests.mjs"
       - "scripts/eval-execution-ready.mjs"
       - "tests/fixtures/execution-ready-regression.md"
+      - "CHANGELOG.md"
       - "scripts/lint-shell.sh"
       - "Cargo.toml"
   push:
