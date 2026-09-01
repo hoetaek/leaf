@@ -55,11 +55,14 @@ in-scope, local, reversible first experiment; it does not relax any hard stop.
    or minimal prototype.
 3. Repeat **작고 되돌릴 수 있는 구현과 검증** while that evidence stays observable.
 4. Record only **실제로 생긴 결정·위험·부채** in the nearest existing delivery
-   surface, then perform final verification and handoff.
+   surface. Then perform final verification and any route-appropriate lightweight
+   implementation review or retrospect that can still change the result, using
+   that same surface, before handoff.
 
 ## Fast terminal
 
-보존할 결정·위험·부채가 없으면 검증 결과를 handoff하고 종료한다.
+보존할 결정·위험·부채가 없으면 최종 검증과 해당하는 경량 구현
+review/retrospect 결과를 handoff하고 종료한다.
 **최초 실행 증거 뒤에도** 이 작업만을 위한 phase gate, checkpoint, cumulative polish, 독립 문서
 검토, live UI를 만들거나 실행하지 않고, **`.leaf/` scaffold를 만들지 않는다**.
 완료된 구현을 사후에 ③–⑩으로 재구성하는 것도 금지한다.

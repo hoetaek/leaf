@@ -43,6 +43,8 @@ requireOrder(fixturePath, fixture, [
   "작은 구현과 검증",
   "결정·위험·부채",
   "최종 검증",
+  "경량 구현 review/retrospect",
+  "handoff",
 ]);
 for (const forbiddenBeforeEvidence of ["phase gate 파일 작성", "누적 polish", "독립 문서 검토", "live UI 열기"]) {
   requireText(fixturePath, fixture, forbiddenBeforeEvidence);
@@ -93,7 +95,7 @@ for (const readinessCondition of [
   "성공 조건을 관찰",
   "범위와 제외 범위를 구분",
   "작고 되돌릴 수 있는 첫 실험",
-  "데이터·보안·공개 계약·대규모 구조",
+  "데이터·보안·프라이버시·권한·법적 판단·비가역성·외부 공유·비용·배포·",
   "discovery-heavy",
 ]) {
   requireText(usingLeafPath, usingLeaf, readinessCondition);
@@ -108,6 +110,8 @@ requireText(usingLeafPath, usingLeaf, "## Fast-track LEAF");
 requireText(usingLeafPath, usingLeaf, "references/fast-track.md");
 requireText(usingLeafPath, usingLeaf, "durable LEAF 기록을 명시적으로 요청하지");
 requireText(usingLeafPath, usingLeaf, "user explicitly asks for a durable LEAF record");
+requireText(usingLeafPath, usingLeaf, "route-appropriate 경량 구현");
+requireText(usingLeafPath, usingLeaf, "review/retrospect");
 requireOrder(usingLeafPath, usingLeaf, [
   "After ⑩",
   "`polish` the cumulative whole",
@@ -172,11 +176,16 @@ requireText(workPath, work, "## Execution-first lane");
 requireText(workPath, work, "## Fast terminal");
 requireText(workPath, work, "최초 실행 증거 뒤에도");
 requireText(workPath, work, "`.leaf/` scaffold를 만들지 않는다");
+requireText(workPath, work, "route-appropriate lightweight");
+requireText(workPath, work, "implementation review or retrospect");
 requireOrder(workPath, work, [
   "저장소 상태 확인",
   "최초 실행 증거",
   "작고 되돌릴 수 있는 구현과 검증",
   "실제로 생긴 결정·위험·부채",
+  "final verification",
+  "implementation review or retrospect",
+  "handoff",
 ]);
 forbidText(workPath, work, "then create the concise ③–⑦ records");
 forbidText(workPath, work, "The first evidence is not a skipped gate");

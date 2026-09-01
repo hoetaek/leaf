@@ -46,7 +46,8 @@ user explicitly asks for a durable LEAF record; then continue route evaluation.
 - 수정 후 성공 조건을 관찰할 수 있다.
 - 범위와 제외 범위를 구분할 수 있다.
 - 작고 되돌릴 수 있는 첫 실험을 정할 수 있다.
-- 데이터·보안·공개 계약·대규모 구조를 좌우하는 미결정 사항이 없다.
+- 데이터·보안·프라이버시·권한·법적 판단·비가역성·외부 공유·비용·배포·
+  공개 계약·대규모 구조를 좌우하는 미결정 사항이 없다.
 
 `direct execution`은 이 조건들과 함께 durable LEAF 기록을 명시적으로 요청하지
 않았을 때만 match한다. 기록 요청이 있으면 아래 fast-track, 그 다음
@@ -55,9 +56,11 @@ discovery-heavy 순서로 계속 판정한다.
 execution-ready에서는 기존 요구와 저장소 상태를 한 번 확인한 뒤, 가능한 가장
 작은 **최초 실행 증거**(실패 테스트, 재현, 측정, 최소 prototype)를 먼저 만든다.
 그 뒤 작은 구현·검증을 반복하고, 실제로 생긴 결정·위험·부채만 기존 issue, PR,
-commit, 또는 최종 handoff처럼 가장 가까운 전달 표면에 기록한다. 보존할 항목이
-없으면 최종 검증 뒤 **`.leaf/` 기록 없이 종료**한다. 최초 실행 증거 전후 모두
-phase gate 파일, 누적 polish, 독립 문서 검토, live UI는 기본 경로가 아니다.
+commit, 또는 최종 handoff처럼 가장 가까운 전달 표면에 기록한다. 최종 handoff
+전에는 최종 검증과 결과를 바꿀 수 있는 route-appropriate 경량 구현
+review/retrospect를 수행한다. 보존할 항목이 없으면 그 결과만 handoff하고
+**`.leaf/` 기록 없이 종료**한다. 최초 실행 증거 전후 모두 phase gate 파일, 누적
+polish, 독립 문서 검토, live UI는 기본 경로가 아니다.
 
 execution-ready는 일반 LEAF lifecycle의 축약판이 아니라 direct execution
 경로다. 완료된 구현을 사후 설명하기 위해 ③–⑩을 만들지 않는다. 실행 중 미결정
