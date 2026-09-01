@@ -43,11 +43,9 @@ sha2 = "0.11"
 syntect = "5"
 tar = "0.4"
 tempfile = "3"
-# Constraint-only dependency: time 0.3.48 breaks ratatui-widgets' blanket
-# `From` impls with E0119 under fresh resolution (e.g. `cargo install`
-# without --locked). Remove once a fixed time release ships or 0.3.48 is
-# yanked.
-time = { version = ">=0.3.47, <0.3.52", default-features = false }
+# `cargo install`의 fresh resolution이 검증되지 않은 time 릴리스를 고르지 않도록 상한을 둔다.
+# 0.3.48은 ratatui-widgets의 blanket `From` impl과 충돌했다(E0119).
+time = { version = ">=0.3.47, <0.3.54", default-features = false }
 tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "net"] }
 toml = "1.1.2"
 tower-http = { version = "0.7.0", features = ["fs"] }
