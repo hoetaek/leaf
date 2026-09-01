@@ -14,6 +14,12 @@ asking the user.
 3. **Hard stops** — when risk or ownership exceeds the pre-authorized lane, stop
    and ask.
 
+For fast-track, the triple may use one bundled approval only when it presents
+the three values plus `승인 후 자동 진행` and eligible ④/⑤/⑦ folds explicitly.
+That approval spends the request-scoped procedure budget; it does not carry to
+another request or grant permission for deploy, delete, external sharing, cost,
+credentials, or another hard stop.
+
 ## May Continue Automatically
 
 Continue without asking when all are true:

@@ -21,13 +21,19 @@ Gate to continue:
 - The user can explain the core knowledge the topic's decisions rest on —
   the concepts, why it is this way, and where it forks.
 - The why / what / wireframe triple is locked in `00-status.md` through an
-  ask → approve → write loop per item — never agent-authored;
+  ask → approve → write loop — per item for discovery-heavy, or as one
+  unambiguous bundle for fast-track — and is never agent-authored;
   `none — <reason>` is a valid approved answer.
 
 Helpful defaults — the scout fan-out, reading map, and closing quiz live in
 the `learn` skill; deep-research rules in `research-quality.md`; the premise
 table format in `../../work/references/patterns.md`. They are defaults,
 never pass/fail conditions.
+
+Fast-track procedure defaults live in
+`../../using-leaf/references/fast-track.md`. A bounded unknown may spend one
+scout without widening the triple. A core unknown that could change the triple,
+safety, or authority exits fast-track before the lock.
 
 Adding a check to a gate requires recording, next to it, the actual failure
 it prevents. Promoting a default into a pass/fail condition counts as

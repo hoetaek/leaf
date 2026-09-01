@@ -9,6 +9,8 @@ description: Use after a LEAF sprout's why / what / wireframe triple has been ex
 wireframe` triple. It does not remove LEAF's judgment boundary; it keeps
 automatic reviews, hard stops, and evidence. The **execution-ready 분기** belongs
 to `work`'s direct path; autopilot does not wrap it in a lifecycle.
+When the locked triple records a fast-track route, autopilot also consumes the
+fast-track 절차 예산 in `../using-leaf/references/fast-track.md`.
 
 ## Core Contract
 
@@ -22,11 +24,12 @@ to `work`'s direct path; autopilot does not wrap it in a lifecycle.
 - **Review still happens.** Gate reviews are automatic unless a hard stop or
   pre-authorization gap appears. Leave the review evidence in the gate file,
   `08-execution.md`, or `09-review.md`.
-- **Polish at every formal phase boundary, gated by `leaf next`.** Because autopilot
-  removes the human pause that triggers it, invoke `leaf:polish` on the cumulative
-  whole at the end of each phase and before close-out, then cross the boundary
-  with `leaf next <slug>` — and open each result for the user per `soul` (live
-  page), not a path. Polishing removes the phase's
+- **Polish at every formal phase boundary, gated by `leaf next`.**
+  Discovery-heavy autopilot invokes `leaf:polish` on the cumulative whole at the
+  end of each phase and before close-out. Fast-track performs its lightweight
+  cumulative self-polish and invokes full polish/reviewer only when the budget's
+  quality-risk trigger is present. Then cross with `leaf next <slug>` and show it
+  per `soul` only when the display trigger is present. Either pass removes the phase's
   `<!-- leaf:polish-pending -->` marker; if still present, `leaf next` **pauses
   (멈칫)** and `leaf doctor` flags `boundary_unpolished`. Treat that pause as a
   polish signal; don't bypass it by hand-creating the next phase. Don't let an
@@ -56,6 +59,8 @@ Before doing work:
 6. Read `references/approval-policy.md` when the request involves execution,
    external side effects, credentials, cost, security, privacy, or ambiguity
    about what autopilot may decide.
+7. If the triple records fast-track, read
+   `../using-leaf/references/fast-track.md` and keep its request-scoped budget.
 
 If any start check fails, stop with the smallest needed repair or user question.
 
@@ -107,8 +112,8 @@ Before reporting completion, show:
 - gates completed and evidence paths;
 - commands run, including `leaf doctor` and any tests/build/lint;
 - automatic review or critic verdicts;
-- the cumulative-whole `leaf:polish` run at each phase boundary and before
-  close-out, with where its evidence is recorded;
+- the cumulative boundary self-polish at each phase and before close-out, plus
+  any full `leaf:polish` run the route triggered, with its evidence;
 - hard stops checked and not triggered, or the stop that remains;
 - files changed outside `.leaf/`, if any.
 

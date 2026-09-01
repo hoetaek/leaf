@@ -1,4 +1,4 @@
 interface:
   display_name: "LEAF Autopilot"
-  short_description: "Run LEAF after triple lock"
-  default_prompt: "Use $leaf:autopilot after a reviewed why/what/wireframe triple, or for an explicit execution-ready implementation request. Make first execution evidence before documents only in the latter lane; preserve hard stops and complete the evidence audit."
+  short_description: "Run LEAF automatically after triple lock"
+  default_prompt: "Use $leaf:autopilot only after a reviewed why/what/wireframe triple. Consume a recorded fast-track procedure budget when present; otherwise run the full loop. Preserve hard stops, gate evidence, verification, review, and retrospect. Never wrap execution-ready direct work in LEAF."

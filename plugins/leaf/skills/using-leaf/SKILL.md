@@ -59,10 +59,17 @@ execution-ready는 일반 LEAF lifecycle의 축약판이 아니라 direct execut
 사항이 생겨 추가 발견·설계가 필요하거나, 사용자가 LEAF 기록 자체를 명시적으로
 요청한 경우에만 `learn`부터 discovery-heavy lifecycle로 승격한다.
 
-하나라도 충족하지 않거나 결과물이 문서 자체·리서치·설계라면 discovery-heavy
-경로다. 기존 `learn` → `work`와 hard stop을 그대로 사용한다. 실행 중 보안,
-권한, 비가역성, 외부 공유·비용·배포, 공개 계약, 대규모 구조의 미결정이 드러나면
-즉시 discovery-heavy로 돌아간다.
+## Fast-track LEAF
+
+direct execution을 먼저 제외한 뒤, 사용자가 **현재 요청에 fast track을 명시**했고
+실제 LEAF lifecycle이 필요하며 why / what / wireframe·안전·권한을 바꿀 core
+unknown이 없으면 요청 단위 fast-track LEAF를 쓴다. `soul` 다음 `learn`으로
+sprout을 만들거나 이어가되, `references/fast-track.md`의 절차 예산을 적용한다.
+
+`fast track`이라는 말은 route 선호일 뿐 자동 진행·fold 승인이 아니다. Learn이
+triple과 함께 이후 autopilot 및 적격 ④/⑤/⑦ fold를 제안하고 사용자가 승인해야
+그 위임이 생긴다. core unknown이 있거나 fast track을 명시하지 않았으면 기존
+discovery-heavy `learn` → `work`와 hard stop을 그대로 사용한다.
 
 ## Which skill to use
 
@@ -70,7 +77,7 @@ execution-ready는 일반 LEAF lifecycle의 축약판이 아니라 direct execut
 |---|---|
 | no LEAF skill | bounded maintenance와 execution-ready 구현 — direct execution으로 완료 |
 | `soul` | **First for actual LEAF work.** Conduct: plain explanation, fact-vs-guess, user-language, review handoff |
-| `learn` | Capture/triage an idea and run Learn (① Intent, ② Unknowns & Context) |
+| `learn` | Capture/triage an idea and run fast-track 또는 discovery-heavy Learn |
 | `split` | Decide whether/how to split one work item into separate leaves |
 | `autopilot` | Run the gates automatically after the human-reviewed why/what/wireframe triple |
 | `work` | Carry a sprout from ③ Example through a shipped ⑧ Artifact, then ⑨/⑩ |

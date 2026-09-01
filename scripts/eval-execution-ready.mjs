@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -58,6 +58,21 @@ for (const zeroBudget of [
 }
 requireText(fixturePath, fixture, "최초 실행 증거 뒤에도");
 requireText(fixturePath, fixture, "이 경우에만");
+requireOrder(fixturePath, fixture, [
+  "direct execution",
+  "fast-track LEAF",
+  "discovery-heavy LEAF",
+]);
+for (const fastTrackBudget of [
+  "scouts: 0 unless a bounded unknown requires one",
+  "quiz: 0 unless the user needs outside knowledge to judge the triple",
+  "live UI opens: 0 unless the user requests it or a rendered artifact needs review",
+  "independent polish reviews: 0 unless document-quality risk requires one",
+  "triple approvals: 1 bundled approval",
+  "gates ③/⑥/⑧/⑨/⑩: always run",
+]) {
+  requireText(fixturePath, fixture, fastTrackBudget);
+}
 
 const usingLeafPath = "plugins/leaf/skills/using-leaf/SKILL.md";
 const usingLeaf = read(usingLeafPath);
@@ -76,6 +91,28 @@ requireText(usingLeafPath, usingLeaf, "bounded maintenance");
 requireText(usingLeafPath, usingLeaf, "작업 크기만으로 LEAF를 시작하지 않는다");
 requireText(usingLeafPath, usingLeaf, "`.leaf/` 기록 없이 종료");
 requireText(usingLeafPath, usingLeaf, "| no LEAF skill |");
+requireText(usingLeafPath, usingLeaf, "## Fast-track LEAF");
+requireText(usingLeafPath, usingLeaf, "references/fast-track.md");
+
+const fastTrackPath = "plugins/leaf/skills/using-leaf/references/fast-track.md";
+const fastTrack = existsSync(resolve(root, fastTrackPath)) ? read(fastTrackPath) : "";
+if (!fastTrack) {
+  failures += 1;
+  console.error(`${fastTrackPath}: missing fast-track contract`);
+}
+for (const fastTrackContract of [
+  "요청 단위",
+  "## 기본 절차 예산",
+  "scout | 0",
+  "quiz | 0",
+  "live UI | 0",
+  "독립 polish reviewer | 0",
+  "③ · ⑥ · ⑧ · ⑨ · ⑩",
+  "core unknown",
+  "권한을 추가하지 않는다",
+]) {
+  requireText(fastTrackPath, fastTrack, fastTrackContract);
+}
 
 const workPath = "plugins/leaf/skills/work/SKILL.md";
 const work = read(workPath);
@@ -96,6 +133,7 @@ const autopilotPath = "plugins/leaf/skills/autopilot/SKILL.md";
 const autopilot = read(autopilotPath);
 requireText(autopilotPath, autopilot, "execution-ready 분기");
 requireText(autopilotPath, autopilot, "execution-ready direct path를 LEAF lifecycle로 바꾸지 않는다");
+requireText(autopilotPath, autopilot, "fast-track 절차 예산");
 forbidText(autopilotPath, autopilot, "④·⑤·⑦을 별도 사람 승인 없이 자동 fold");
 
 const polishPath = "plugins/leaf/skills/polish/SKILL.md";
@@ -103,6 +141,15 @@ const polish = read(polishPath);
 requireText(polishPath, polish, "최초 실행 증거 뒤에도 polish 대상이 아니다");
 requireText(polishPath, polish, "독립 문서 검토");
 requireText(polishPath, polish, "실행을 막지 않는다");
+requireText(polishPath, polish, "fast-track");
+
+const learnPath = "plugins/leaf/skills/learn/SKILL.md";
+const learn = read(learnPath);
+requireText(learnPath, learn, "fast-track");
+requireText(learnPath, learn, "한 번의 묶음 승인");
+
+const soulPath = "plugins/leaf/skills/soul/SKILL.md";
+requireText(soulPath, read(soulPath), "fast-track");
 
 const gatesPath = "plugins/leaf/skills/work/references/gates.md";
 const gates = read(gatesPath);

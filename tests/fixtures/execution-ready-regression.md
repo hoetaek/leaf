@@ -1,5 +1,13 @@
 # Execution-ready regression scenarios
 
+## Routing precedence
+
+Evaluate routes in this order and stop at the first match:
+
+1. direct execution
+2. fast-track LEAF
+3. discovery-heavy LEAF
+
 ## Bounded maintenance routing
 
 ### Given
@@ -66,3 +74,37 @@ execution-ready 경로를 멈추고 기존 Learn/Work hard stop으로 돌아간�
 실행 중 보안·공개 계약·대규모 구조를 좌우하는 미결정 사항이 드러나면 direct
 execution을 멈추고 Learn부터 일반 LEAF lifecycle을 시작한다. 이 경우에만
 phase gate, polish, review UI가 적용된다.
+
+---
+
+## Fast-track LEAF lifecycle
+
+### Given
+
+- 사용자가 이 요청에 fast track을 명시했다.
+- 결과물이나 기록 특성상 LEAF lifecycle 자체는 필요하다.
+- why / what / wireframe, 안전, 권한을 바꿀 core unknown은 없다.
+- triple에 이후 자동 진행과 ④/⑤/⑦의 적격 fold 승인을 함께 제안할 수 있다.
+
+### Expected trace
+
+1. direct execution 조건을 먼저 확인하고 제외한다.
+2. 요청 단위 fast-track LEAF로 분류한다.
+3. why / what / wireframe triple을 한 묶음으로 제안하고 사용자의 승인을 받는다.
+4. 승인된 절차 예산 안에서 gate를 실행하거나 기존 fold 규칙으로 접는다.
+5. ⑧ 실행, ⑨ 검토, ⑩ 회고와 최종 검증은 생략하지 않는다.
+
+### Default procedure budget
+
+- scouts: 0 unless a bounded unknown requires one
+- quiz: 0 unless the user needs outside knowledge to judge the triple
+- live UI opens: 0 unless the user requests it or a rendered artifact needs review
+- independent polish reviews: 0 unless document-quality risk requires one
+- triple approvals: 1 bundled approval
+- gates ③/⑥/⑧/⑨/⑩: always run
+
+### Escalation and scope
+
+fast-track은 현재 요청에만 적용한다. core unknown이나 safety/authority boundary가
+드러나면 discovery-heavy LEAF로 승격한다. fast-track이나 autopilot 승인은 배포,
+삭제, 외부 공유, 비용 발생 같은 별도 권한을 만들지 않는다.
