@@ -20,12 +20,16 @@ the end is the failure ledger those records live in.
 
 ---
 
+Apply gate approval requirements within the authorization contract in
+`gate-authoring.md`: consume existing explicit approval for the same scope,
+while preserving step-by-step requests and project-specific permissions.
+
 ## Gate folding (short loop)
 
 **A gate always runs; what scales with the work is how much it produces.** ⑥
 Critic already works this way — "always runs; only the depth scales." Fold
 generalizes that grammar to ④, ⑤, and ⑦: when the uncertainty a gate exists to
-close is already absent for *this* work, the gate is passed with a one-line
+close is already absent for _this_ work, the gate is passed with a one-line
 `folded:` record instead of a full artifact. **The floor is a one-line
 judgment, never zero — folding shrinks the gate's output, not its judgment.**
 So a folded gate is depth-minimal, not skipped; the file stays, its body
@@ -34,12 +38,12 @@ it prevents: forcing eight full gate artifacts onto a one-word change).
 
 **Which gates fold, and the "no uncertainty" condition each:**
 
-| Gate | Folds when | The one line still carries |
-|---|---|---|
-| ④ Wireframe | instance = artifact — there is no separate cheap instance to validate (building one would make the deliverable twice) | the real asset/file inspected (≥1 concrete noun) |
-| ⑤ Design | there is no variation axis to generalize (one value / one string swapped) | a one-line precedent declaration if a precedent surface exists, else `없음` |
-| ⑥ Critic | *(no new clause — already depth-scaling)* | the existing quick self-pass line |
-| ⑦ Tasks | one review unit (small on the `task-pr-size-guidance.md` tripwire) | the single task + its verification command |
+| Gate        | Folds when                                                                                                            | The one line still carries                                                  |
+| ----------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| ④ Wireframe | instance = artifact — there is no separate cheap instance to validate (building one would make the deliverable twice) | the real asset/file inspected (≥1 concrete noun)                            |
+| ⑤ Design    | there is no variation axis to generalize (one value / one string swapped)                                             | a one-line precedent declaration if a precedent surface exists, else `없음` |
+| ⑥ Critic    | _(no new clause — already depth-scaling)_                                                                             | the existing quick self-pass line                                           |
+| ⑦ Tasks     | one review unit (small on the `task-pr-size-guidance.md` tripwire)                                                    | the single task + its verification command                                  |
 
 **Never fold** ③ (it produces the fold judgment), ⑧ (the work itself), ⑨ (it
 runs the fold audit), or ⑩ (it only gets shorter). ③–⑤ files still never merge
@@ -48,7 +52,7 @@ files.
 
 **Deciding, recording, and unfolding:**
 
-- **Decide (not pure self-assessment).** ③'s end is the *earliest* fold
+- **Decide (not pure self-assessment).** ③'s end is the _earliest_ fold
   proposal; each gate re-affirms its own fold on arrival (true per-gate depth,
   not one central switch). The agent proposes; a human approves. In
   interactive work that approval is at ③'s end. Under `autopilot` there is no
@@ -56,7 +60,7 @@ files.
   approval point moves forward, like Shape Up's appetite fixed at intake);
   without that pre-approval autopilot runs the full loop.
 - **Record (falsifiable).** `folded: <reason — ≥1 concrete noun: the file,
-  asset, or rejected alternative> [+ one line of remaining judgment]`. A line
+asset, or rejected alternative> [+ one line of remaining judgment]`. A line
   that would copy-paste onto any task ("simple, so skipped") fails this and is
   not a fold.
 - **Audit (post-hoc, in ⑨).** ⑨ adds a fold-audit line: does the actual
@@ -123,7 +127,7 @@ instance can falsify a criterion, and every placeholder in it must trace to a
 declared contract.** This is the answer probe: ② experiments on the world
 ("is this true?"), ④ experiments on your answer ("is this answer right?").
 
-Folds when the instance *is* the artifact (see Gate folding); the folded line
+Folds when the instance _is_ the artifact (see Gate folding); the folded line
 still names the real asset inspected.
 
 Gate to continue:
@@ -269,8 +273,7 @@ Gate to continue:
   `.leaf/PROFILE.md` via the `profile` skill when they should apply across
   leaves).
 
-⑩ passing does not end the work: immediately follow `using-leaf` ("Ending a
-leaf") to decide keep / press / fall.
+⑩ passing does not end the work: immediately follow `../../using-leaf/references/lifecycle.md` ("Ending a leaf") to decide keep / press / fall.
 
 ---
 

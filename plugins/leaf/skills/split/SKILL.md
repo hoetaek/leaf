@@ -20,14 +20,14 @@ willing to lose."**
 
 The three layers:
 
-| Layer | Question |
-|---|---|
-| **(a) whether / when** | Should this split now at all? |
-| **(b) which grain** | If yes, which single dominant cut-axis? |
-| **(c) order & link** | After the cut, how do the pieces order and stay linked? |
+| Layer                  | Question                                                |
+| ---------------------- | ------------------------------------------------------- |
+| **(a) whether / when** | Should this split now at all?                           |
+| **(b) which grain**    | If yes, which single dominant cut-axis?                 |
+| **(c) order & link**   | After the cut, how do the pieces order and stay linked? |
 
 (a) and (b) are **co-determined**, not strictly sequential — seeing a clean grain
-*is* evidence to split; seeing none *is* evidence to keep grouped. Only (c) is
+_is_ evidence to split; seeing none _is_ evidence to keep grouped. Only (c) is
 strictly downstream: order and links only mean something after a cut exists.
 
 ## (a)+(b) — split now, and along which grain
@@ -41,29 +41,29 @@ Look at both together:
      work item). "No grain" is a valid terminal answer, not a failure to look
      harder.
 2. **Cross-check with `learn`'s Split Check** (`split now / keep grouped /
-   ask first`). Reuse that judgment — do not invent competing criteria.
+ask first`). Reuse that judgment — do not invent competing criteria.
 
 ### The cut-axis menu (open, not closed)
 
 Pick the **single sharpest** grain. These are the common ones; if none fits,
 name the sharpest cut yourself from the broader taxonomy.
 
-| Grain | Signal that this is the cut |
-|---|---|
-| Responsibility | each piece has a different reason to change (SRP) |
-| Abstraction level | concept/definition vs implementation/realization |
-| Lifecycle / review path | outputs, tests, and review paths run separately |
-| Volatility | a fast-changing part vs a stable part |
-| Form vs content | the substance vs the shape it is delivered in |
-| Feature / value | a vertical slice that delivers value on its own |
-| Disposability | one piece can be dropped or deferred and the rest still lives |
-| *other* | name the sharpest cut from your decomposition knowledge |
+| Grain                   | Signal that this is the cut                                   |
+| ----------------------- | ------------------------------------------------------------- |
+| Responsibility          | each piece has a different reason to change (SRP)             |
+| Abstraction level       | concept/definition vs implementation/realization              |
+| Lifecycle / review path | outputs, tests, and review paths run separately               |
+| Volatility              | a fast-changing part vs a stable part                         |
+| Form vs content         | the substance vs the shape it is delivered in                 |
+| Feature / value         | a vertical slice that delivers value on its own               |
+| Disposability           | one piece can be dropped or deferred and the rest still lives |
+| _other_                 | name the sharpest cut from your decomposition knowledge       |
 
 ### Choosing the dominant grain
 
 1. Take the **one** grain it divides along most cleanly (one axis per pass).
 2. **Name the lost cohesion in one line** — the most painful thing the
-   *unpicked* grains will scatter. The unpicked axes always scatter; say which
+   _unpicked_ grains will scatter. The unpicked axes always scatter; say which
    loss hurts.
 3. **Reject gate:** weigh the lost cohesion against the separation gained. If the
    loss hurts more than the separation helps, **drop that axis and try another**.
@@ -78,12 +78,12 @@ name the sharpest cut yourself from the broader taxonomy.
 
 ### When to stop / ask
 
-| Outcome | Do |
-|---|---|
-| grain visible + split now | go to (c) |
-| no grain / keep grouped | **stop.** Return "keep it as one work item" + the reason |
-| ambiguous independence | ask the user `are these independent?` (an (a) question) |
-| ambiguous grain | ask `which cut dominates?` (a (b) question) |
+| Outcome                   | Do                                                       |
+| ------------------------- | -------------------------------------------------------- |
+| grain visible + split now | go to (c)                                                |
+| no grain / keep grouped   | **stop.** Return "keep it as one work item" + the reason |
+| ambiguous independence    | ask the user `are these independent?` (an (a) question)  |
+| ambiguous grain           | ask `which cut dominates?` (a (b) question)              |
 
 ## (c) — order & link the pieces
 
@@ -99,11 +99,11 @@ Split the work into children (N ≥ 2). For each child record:
 
 Use this mapping when a split relationship becomes pressed knowledge:
 
-| Split relation | Later `linked.md` edge |
-|---|---|
-| child came from parent | `derived_from` -> `leaf:<parent-slug>` |
-| child A is blocked by child B | in A: `depends_on` -> `leaf:<child-b-slug>` |
-| sibling leaves are related but unordered | `related_to` -> `leaf:<sibling-slug>` |
+| Split relation                           | Later `linked.md` edge                      |
+| ---------------------------------------- | ------------------------------------------- |
+| child came from parent                   | `derived_from` -> `leaf:<parent-slug>`      |
+| child A is blocked by child B            | in A: `depends_on` -> `leaf:<child-b-slug>` |
+| sibling leaves are related but unordered | `related_to` -> `leaf:<sibling-slug>`       |
 
 **Order:** topologically sort by the directional dependencies → which child must
 come first.
@@ -137,10 +137,10 @@ Before emitting children, and **at every recursion level**:
 ## Boundaries
 
 - **Reuse `learn`'s Split Check for (a)** — do not author new split criteria here.
-- **Execution is a later increment.** This skill produces the *judgment*; the
+- **Execution is a later increment.** This skill produces the _judgment_; the
   parent `leaf fall --reason split`, child `leaf new`, and link wiring are not
   automated yet. The keep/press/fall actions and the `split` fallen reason live
-  in `using-leaf` ("Ending a leaf").
+  in `../using-leaf/references/lifecycle.md` ("Ending a leaf").
 - **Do not create `linked.md` early.** It belongs beside `pressed.md` in
   `.leaf/02-leaves/<slug>/` after the relevant child becomes citable. Before
   then, keep the link plan in the split output/status prose.
@@ -153,5 +153,5 @@ rendering + link-edge recording; the recording was split off as
 `citation-link-recording`. Running the framework: (a)+(b) a clean
 **responsibility** grain is visible (rendering vs edge data) → split now;
 lost cohesion = "seeing links right inside the tree"; (c) the tree is
-*blocked-by* the link model, so the link model comes first. That reproduces the
+_blocked-by_ the link model, so the link model comes first. That reproduces the
 decision actually made — which is the bar this framework must clear.

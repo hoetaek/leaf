@@ -1,7 +1,7 @@
 interface:
   display_name: "LEAF Learn"
   short_description: "Run fast-track or discovery-heavy LEAF Learn"
-  default_prompt: "Use $leaf:learn to capture or resume this .leaf sprout and run the route selected by using-leaf. For fast-track, default scouts, quiz, full polish/reviewer, and live UI to zero, then seek one bundled triple/autopilot/fold approval. For discovery-heavy, run the full four-scout Learn flow."
+  default_prompt: "Use $leaf:learn only after using-leaf selects actual LEAF work. Follow the Learn contract with question-driven research, learning-only quizzes, conditional document review, and existing user decisions. Preserve the fast-track delegation contract."
 
 policy:
   allow_implicit_invocation: true
