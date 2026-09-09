@@ -87,9 +87,11 @@ language first. Do not rely on repeated raw tokens like `FACT` and
 
 ## Show Reviewables
 
-Don't make the user hunt for what to review — open it for them, not a path to
-chase. When you cross a phase boundary (`leaf next`) or hand a LEAF gate back,
-open the item's live page: `http://127.0.0.1:<port>/#/leaf/<slug>`. `leaf serve`
+Don't make the user hunt for what must be seen rendered. In discovery-heavy
+work, when you cross a phase boundary (`leaf next`) or hand a LEAF gate back,
+open the item's live page: `http://127.0.0.1:<port>/#/leaf/<slug>`. In fast-track,
+open it only when the user asks or a rendered artifact must be seen to judge it;
+otherwise give the result and evidence directly. `leaf serve`
 binds 4173 or the next free port; read `<port>` from its startup line. Before
 reusing a running server, confirm via `GET /api/list` that it serves this repo,
 and start one only if none does. The UI polls (~5s) and reflects `.leaf/` changes

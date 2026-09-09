@@ -9,6 +9,9 @@ description: Use after a LEAF sprout's why / what / wireframe triple has been ex
 wireframe` triple. It does not remove LEAF's judgment boundary; it keeps
 automatic reviews, hard stops, and evidence. The **execution-ready 분기** belongs
 to `work`'s direct path; autopilot does not wrap it in a lifecycle.
+When `00-status.md` records `route: fast-track` and `autopilot approval:
+approved`, autopilot also consumes the fast-track 절차 예산 in
+`../using-leaf/references/fast-track.md`.
 
 ## Core Contract
 
@@ -16,17 +19,25 @@ to `work`'s direct path; autopilot does not wrap it in a lifecycle.
   unless `00-status.md` has human-reviewed `why`, `what`, and `wireframe`
   values. If they are missing, provisional, stale, or marked `USER REVIEW
   NEEDED` / `LOCK CANDIDATE`, return to `learn`.
+- **Delegation is durable but request-bounded.** For fast-track, require `route:
+  fast-track` and `autopilot approval: approved` in the status preamble, and
+  verify this is the same request and still matches the locked `what`. Only fold
+  when it also records `fold approval: eligible ④/⑤/⑦ approved`; missing,
+  `not approved`, or `expired` fields grant no authority. `route: fast-track
+  (expired)` is history, not an active fast-track route; do not apply fast-track
+  approval checks to ordinary autopilot on that basis.
 - **Autopilot after the lock.** Once the triple is locked, proceed through
   `work` gates automatically: ③ Criteria, ④ Wireframe, ⑤ Design, ⑥ Critic,
   ⑦ Tasks, ⑧ Artifact / Execution, ⑨ Review / Sync, and ⑩ Retrospect.
 - **Review still happens.** Gate reviews are automatic unless a hard stop or
   pre-authorization gap appears. Leave the review evidence in the gate file,
   `08-execution.md`, or `09-review.md`.
-- **Polish at every formal phase boundary, gated by `leaf next`.** Because autopilot
-  removes the human pause that triggers it, invoke `leaf:polish` on the cumulative
-  whole at the end of each phase and before close-out, then cross the boundary
-  with `leaf next <slug>` — and open each result for the user per `soul` (live
-  page), not a path. Polishing removes the phase's
+- **Polish at every formal phase boundary, gated by `leaf next`.**
+  Discovery-heavy autopilot invokes `leaf:polish` on the cumulative whole at the
+  end of each phase and before close-out. Fast-track performs its lightweight
+  cumulative self-polish and invokes full polish/reviewer only when the budget's
+  quality-risk trigger is present. Then cross with `leaf next <slug>` and show it
+  per `soul` only when the display trigger is present. Either pass removes the phase's
   `<!-- leaf:polish-pending -->` marker; if still present, `leaf next` **pauses
   (멈칫)** and `leaf doctor` flags `boundary_unpolished`. Treat that pause as a
   polish signal; don't bypass it by hand-creating the next phase. Don't let an
@@ -56,6 +67,9 @@ Before doing work:
 6. Read `references/approval-policy.md` when the request involves execution,
    external side effects, credentials, cost, security, privacy, or ambiguity
    about what autopilot may decide.
+7. If the status records `route: fast-track`, verify `autopilot approval:
+   approved`, then read
+   `../using-leaf/references/fast-track.md` and keep its request-scoped budget.
 
 If any start check fails, stop with the smallest needed repair or user question.
 
@@ -78,8 +92,10 @@ If any start check fails, stop with the smallest needed repair or user question.
    `.leaf/02-leaves/<slug>/` using the LEAF lifecycle rule, update status, and
    run `leaf doctor`.
 7. **Review and retrospect.** Run ⑨ and ⑩ automatically unless a hard stop
-   appears. Then follow `using-leaf` ending rules: keep, press via `leaf:press`,
-   or fall.
+   appears. Complete route-appropriate cumulative polish first. Then, only if
+   status still has exact `route: fast-track`, set it to `fast-track (expired)`
+   with `autopilot approval: expired` and `fold approval: expired`. Follow
+   `using-leaf` ending rules: keep, press via `leaf:press`, or fall.
 
 ## Hard Stops
 
@@ -107,8 +123,8 @@ Before reporting completion, show:
 - gates completed and evidence paths;
 - commands run, including `leaf doctor` and any tests/build/lint;
 - automatic review or critic verdicts;
-- the cumulative-whole `leaf:polish` run at each phase boundary and before
-  close-out, with where its evidence is recorded;
+- the cumulative boundary self-polish at each phase and before close-out, plus
+  any full `leaf:polish` run the route triggered, with its evidence;
 - hard stops checked and not triggered, or the stop that remains;
 - files changed outside `.leaf/`, if any.
 

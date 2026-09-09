@@ -8,6 +8,17 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+## 0.19.0 - 2026-09-01
+
+- Plugin skills: released `leaf` plugin 0.11.0 — added request-scoped
+  fast-track LEAF for work that needs a durable record but has no core unknown.
+  It keeps the CLI body, cumulative self-polish, verification, review, and
+  retrospect while defaulting scouts, quiz, full polish, independent review,
+  and live UI to zero. With explicit approval, eligible ④/⑤/⑦ artifacts fold
+  to one-line judgments; automatic progress and folds never follow from the
+  route name alone. Route and delegation state are resumable within the same
+  locked work, expire on follow-up or close-out, and escalate to discovery-heavy
+  LEAF when scope, safety, authority, or another core unknown changes.
 - Plugin skills: released `leaf` plugin 0.10.1 — bounded maintenance and
   execution-ready implementation now exit LEAF routing and work directly.
   Verified work with no durable unresolved decision finishes without scaffold,
@@ -37,9 +48,7 @@ minor version instead of moving to `x.0.0`.
   in one place (`gates.md` → Gate folding); `engine.md` clarifies a merge ban
   is not a fold ban; `work`/`autopilot`/`learn` point to it. Folding is
   human-approved (at ③'s end, or pre-approved at the triple under `autopilot`)
-  and audited at ⑨, never pure self-assessment. The later execution-ready lane
-  is the narrow exception: its five-condition routing judgment replaces the
-  separate fold approval while retaining the ⑨ audit/unfold check.
+  and audited at ⑨, never pure self-assessment.
 
 ## 0.17.0 - 2026-07-03
 

@@ -1,7 +1,7 @@
 interface:
   display_name: "LEAF Learn"
-  short_description: "Capture ideas and run the LEAF Learn phase on sprouts"
-  default_prompt: "Use $leaf:learn to capture this idea as a .leaf sprout, triage it (kill/defer/enrich/split), keep 00-status.md Overview aligned, and run Learn — lock ① Intent, then fan out the four scouts (Terrain/Method/Judgment/Context) to gather references and resolve ② Unknowns & Context, build a reading map, and quiz to confirm learning — then recommend whether to continue to ③ Example in the same sprout."
+  short_description: "Run fast-track or discovery-heavy LEAF Learn"
+  default_prompt: "Use $leaf:learn to capture or resume this .leaf sprout and run the route selected by using-leaf. For fast-track, default scouts, quiz, full polish/reviewer, and live UI to zero, then seek one bundled triple/autopilot/fold approval. For discovery-heavy, run the full four-scout Learn flow."
 
 policy:
   allow_implicit_invocation: true

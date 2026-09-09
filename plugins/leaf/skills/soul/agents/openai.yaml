@@ -1,7 +1,7 @@
 interface:
   display_name: "LEAF Soul"
   short_description: "Shared conduct and voice for the LEAF skill family"
-  default_prompt: "Use $leaf:soul to apply the shared LEAF conduct, voice, and reporting standard across LEAF work: report overview-first, separate fact from guess, show reviewable artifacts, and write in the user's preferred language."
+  default_prompt: "Use $leaf:soul to apply LEAF conduct: bottom line first, fact/guess separation, inspectable evidence, and the user's language. Open reviewables by default in discovery-heavy work; in fast-track, open live UI only on request or when rendered judgment requires it."
 
 policy:
   allow_implicit_invocation: true

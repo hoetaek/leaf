@@ -37,6 +37,13 @@ Context. It carries the same sprout from ③ through ⑧, moves passed work to
 uses the narrower execution-first lane below and does not enter the normal
 lifecycle unless new uncertainty forces an escalation.
 
+## Fast-track lifecycle lane
+
+When `using-leaf` selects fast-track, this is still normal LEAF gate work, not
+the execution-first lane. Read `../using-leaf/references/fast-track.md`, consume
+its request-scoped procedure budget, and keep every gate's pass/return and safety
+contract. The budget reduces ceremony; it does not make validation optional.
+
 ## Execution-first lane
 
 Use this lane only when `using-leaf`'s five execution-ready conditions hold and
@@ -48,11 +55,14 @@ in-scope, local, reversible first experiment; it does not relax any hard stop.
    or minimal prototype.
 3. Repeat **작고 되돌릴 수 있는 구현과 검증** while that evidence stays observable.
 4. Record only **실제로 생긴 결정·위험·부채** in the nearest existing delivery
-   surface, then perform final verification and handoff.
+   surface. Then perform final verification and any route-appropriate lightweight
+   implementation review or retrospect that can still change the result, using
+   that same surface, before handoff.
 
 ## Fast terminal
 
-보존할 결정·위험·부채가 없으면 검증 결과를 handoff하고 종료한다.
+보존할 결정·위험·부채가 없으면 최종 검증과 해당하는 경량 구현
+review/retrospect 결과를 handoff하고 종료한다.
 **최초 실행 증거 뒤에도** 이 작업만을 위한 phase gate, checkpoint, cumulative polish, 독립 문서
 검토, live UI를 만들거나 실행하지 않고, **`.leaf/` scaffold를 만들지 않는다**.
 완료된 구현을 사후에 ③–⑩으로 재구성하는 것도 금지한다.
@@ -88,14 +98,16 @@ large-structure 미결정 사항을 드러내 추가 발견·설계가 필요할
   For ①/② returns use `../learn/references/gate-01-intent.md` and
   `../learn/references/gate-02-unknowns-context.md`; use `references/gates.md`
   for ③ onward.
-- **Polish at each formal phase boundary, then cross it with `leaf next`.** In
-  normal Work, at every formal phase boundary (the end of Learn,
-  Example, Architect, Feedback, and before close-out), run `leaf checkpoint <slug> --<gate>` on the gate files to polish,
-  then invoke `polish` on the cumulative whole — all phases as
-  one connected report, not just the latest. Polishing removes the phase's
+- **Polish at each formal phase boundary, then cross it with `leaf next`.** At
+  every formal phase boundary (the end of Learn, Example, Architect, Feedback,
+  and before close-out), run `leaf checkpoint <slug> --<gate>` on the gate files.
+  Discovery-heavy Work invokes `polish` on the cumulative whole. Fast-track
+  performs a lightweight cumulative self-polish and invokes full `polish` plus
+  its independent reviewer only when its budget trigger is present. Either pass
+  removes the phase's
   `<!-- leaf:polish-pending -->` marker; then run `leaf next <slug>` to advance —
-  and open the result for the user to review per `soul` (live web UI), not a path
-  to chase. `leaf next` is the boundary event: if the phase is still unpolished it
+  and show the result per `soul` only when its display condition holds. `leaf
+  next` is the boundary event: if the phase is still unpolished it
   **pauses (멈칫)** asking you to polish, and `leaf doctor` flags any skipped
   boundary as `boundary_unpolished`. A gate with an in-phase user review (e.g. ④
   Wireframe) may get a local polish just before it.

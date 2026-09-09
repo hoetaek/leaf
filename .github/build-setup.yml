@@ -1,7 +1,7 @@
 - name: Setup Node
   uses: actions/setup-node@v7
   with:
-    node-version: 22
+    node-version-file: .nvmrc
     cache: npm
     cache-dependency-path: web/package-lock.json
 
