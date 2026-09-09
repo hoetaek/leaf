@@ -6,7 +6,7 @@ description: |
   "인용용으로 눌러줘", or "write the press abstract". Writes `pressed.md` and a
   `## Press Abstract` in `00-status.md` without touching source truth. The
   keep / press / fall decision and the fall and keep actions live in
-  `using-leaf` ("Ending a leaf"), not here. Do not use for gate document
+  `../using-leaf/references/lifecycle.md` ("Ending a leaf"), not here. Do not use for gate document
   cleanup or producing the artifact itself.
 ---
 
@@ -20,7 +20,7 @@ new `pressed.md` files start with OKF-compatible YAML frontmatter so tools can
 route, index, and link them as typed concepts without parsing the prose body.
 
 Pressing is one outcome of ending a leaf. The keep / press / fall decision, and
-the fall and keep actions, live in `using-leaf` ("Ending a leaf"). Enter this
+the fall and keep actions, live in `../using-leaf/references/lifecycle.md` ("Ending a leaf"). Enter this
 skill once press is the chosen outcome.
 
 ## Boundary
@@ -53,7 +53,7 @@ Resolve the source:
 Press only reference-worthy work: work that established reusable knowledge, a
 durable design decision, a pattern, a citable artifact, or a lesson future
 leaves should reuse. If the work is not that, it is a fall, not a press — return
-to `using-leaf` ("Ending a leaf"). Do not press just because effort was spent;
+to `../using-leaf/references/lifecycle.md` ("Ending a leaf"). Do not press just because effort was spent;
 press because future work should be able to cite it.
 
 ## Press

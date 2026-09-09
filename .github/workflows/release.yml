@@ -157,9 +157,9 @@ jobs:
       # Keep this in sync with .github/build-setup.yml. The dist config points
       # at that file, but this workflow is hand-edited via allow-dirty = ["ci"].
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: web/package-lock.json
       - name: Build web UI

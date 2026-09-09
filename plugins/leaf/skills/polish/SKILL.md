@@ -34,9 +34,9 @@ live UI는 direct 실행을 막지 않는다. 미결정 사항 때문에 Learn�
 승격하여 canonical gate 문서가 실제로 생긴 때부터만 이 skill의 일반 규칙을
 적용한다.
 
-## Fast-track LEAF
+## Review depth
 
-Fast-track도 각 phase 경계에서 누적 전체를 읽고 status drift·중복·모순을
+모든 LEAF 경로는 각 phase 경계에서 누적 전체를 읽고 status drift·중복·모순을
 자체 점검한 뒤 polish marker를 제거한다. 다만 문서가 길거나 stale·모순 상태거나,
 사용자 검토 문서의 품질 위험이 있을 때만 아래 full Polish Pass와 독립 reviewer를
 실행한다. trigger가 없으면 한 줄짜리 self-polish 증거로 충분하다. 절차를 줄여도
@@ -105,12 +105,12 @@ run **Migrate** first, even when the user asked for something else.
 This skill is the migration operator that `leaf doctor` routes old-layout
 findings to.
 
-| Finding | Repair |
-|---------|--------|
-| `old_stage_dir_present` | Map the old dir to its own canonical stage dir: `seeds`/`01-seeds` → `01-sprouts`, `leaves` → `02-leaves`, `fallen` → `03-fallen`. If the canonical dir is missing or empty, rename the old dir to the canonical name. If both hold items, move item folders one by one into the canonical dir; on a slug collision, stop and ask. |
-| `pressed_stage_dir_present` (top-level `.leaf/04-pressed/` or `.leaf/pressed/`) | Move each `{slug}.md` digest into the matching item folder as `pressed.md`, then remove the emptied pressed dir — doctor warns as long as the dir exists. If a digest has no matching folder, report it, leave it in place, and tell the user the warning will persist until it is resolved. |
-| `legacy_state_field` | Rewrite the status `state` field as the canonical `stage` field and translate the value: `seed`/`active` → `sprout`; `complete`/`completed` → `leaf`; `fallen` stays `fallen`. For an unrecognized value, use the stage matching the directory the item lives in; if that is ambiguous, stop and ask. |
-| `legacy_fall_reason_field` | Rewrite `fall reason` as `fallen reason`. |
+| Finding                                                                         | Repair                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `old_stage_dir_present`                                                         | Map the old dir to its own canonical stage dir: `seeds`/`01-seeds` → `01-sprouts`, `leaves` → `02-leaves`, `fallen` → `03-fallen`. If the canonical dir is missing or empty, rename the old dir to the canonical name. If both hold items, move item folders one by one into the canonical dir; on a slug collision, stop and ask. |
+| `pressed_stage_dir_present` (top-level `.leaf/04-pressed/` or `.leaf/pressed/`) | Move each `{slug}.md` digest into the matching item folder as `pressed.md`, then remove the emptied pressed dir — doctor warns as long as the dir exists. If a digest has no matching folder, report it, leave it in place, and tell the user the warning will persist until it is resolved.                                       |
+| `legacy_state_field`                                                            | Rewrite the status `state` field as the canonical `stage` field and translate the value: `seed`/`active` → `sprout`; `complete`/`completed` → `leaf`; `fallen` stays `fallen`. For an unrecognized value, use the stage matching the directory the item lives in; if that is ambiguous, stop and ask.                              |
+| `legacy_fall_reason_field`                                                      | Rewrite `fall reason` as `fallen reason`.                                                                                                                                                                                                                                                                                          |
 
 - Never merge folders by overwriting; a collision means stop.
 - Migration changes locations and field names, never meaning: do not rewrite
@@ -162,9 +162,11 @@ Extra checks: drift, surface, archive, fallen.
 
 ## Subagent Review
 
-Before calling a full polish complete, delegate an independent review to a subagent.
-Fast-track의 lightweight self-polish는 위 quality-risk trigger가 없으면 이 review를
-요구하지 않는다.
+Use independent review when complexity, stale material, contradictions, or
+substantial user-review quality risk warrants it, and delegation is authorized
+and available. Otherwise a cumulative self-review is sufficient on either route,
+including fast-track. If independent review is warranted but unavailable, name
+the limitation and perform a focused self-review; do not invent a reviewer.
 The reviewer judges only document quality, not implementation truth. Give it the
 target file or `leaf review` output and this rubric:
 
@@ -209,6 +211,6 @@ Report:
 - target files polished;
 - what was removed or compressed;
 - what source truth was preserved;
-- subagent reviewer verdict, or the fast-track reason it was not triggered;
+- review verdict and any material limitation;
 - `leaf doctor` result;
 - confirmation that no `.wt/` or execution artifacts were created.

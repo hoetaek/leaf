@@ -18,13 +18,13 @@ approved`, autopilot also consumes the fast-track 절차 예산 in
 - **Triple first.** Do not start autopilot
   unless `00-status.md` has human-reviewed `why`, `what`, and `wireframe`
   values. If they are missing, provisional, stale, or marked `USER REVIEW
-  NEEDED` / `LOCK CANDIDATE`, return to `learn`.
+NEEDED` / `LOCK CANDIDATE`, return to `learn`.
 - **Delegation is durable but request-bounded.** For fast-track, require `route:
-  fast-track` and `autopilot approval: approved` in the status preamble, and
+fast-track` and `autopilot approval: approved` in the status preamble, and
   verify this is the same request and still matches the locked `what`. Only fold
   when it also records `fold approval: eligible ④/⑤/⑦ approved`; missing,
   `not approved`, or `expired` fields grant no authority. `route: fast-track
-  (expired)` is history, not an active fast-track route; do not apply fast-track
+(expired)` is history, not an active fast-track route; do not apply fast-track
   approval checks to ordinary autopilot on that basis.
 - **Autopilot after the lock.** Once the triple is locked, proceed through
   `work` gates automatically: ③ Criteria, ④ Wireframe, ⑤ Design, ⑥ Critic,
@@ -33,10 +33,10 @@ approved`, autopilot also consumes the fast-track 절차 예산 in
   pre-authorization gap appears. Leave the review evidence in the gate file,
   `08-execution.md`, or `09-review.md`.
 - **Polish at every formal phase boundary, gated by `leaf next`.**
-  Discovery-heavy autopilot invokes `leaf:polish` on the cumulative whole at the
-  end of each phase and before close-out. Fast-track performs its lightweight
-  cumulative self-polish and invokes full polish/reviewer only when the budget's
-  quality-risk trigger is present. Then cross with `leaf next <slug>` and show it
+  Use `leaf:polish` to check cumulative coherence at the end of each phase and
+  before close-out. On either route, independent review is conditional on
+  document-quality risk and authorized delegation; fast-track retains its budget.
+  Then cross with `leaf next <slug>` and show it
   per `soul` only when the display trigger is present. Either pass removes the phase's
   `<!-- leaf:polish-pending -->` marker; if still present, `leaf next` **pauses
   (멈칫)** and `leaf doctor` flags `boundary_unpolished`. Treat that pause as a
@@ -59,7 +59,8 @@ approved`, autopilot also consumes the fast-track 절차 예산 in
 Before doing work:
 
 1. Read `../soul/SKILL.md` and apply its conduct rules.
-2. Read `../using-leaf/SKILL.md` for close-out rules and routing boundaries.
+2. Read `../using-leaf/SKILL.md` for routing boundaries and
+   `../using-leaf/references/lifecycle.md` for close-out rules.
 3. Run `git status --short --branch` and `leaf doctor`.
 4. Read the sprout's `00-status.md`, `01-Learn/01-intent.md`, and
    `01-Learn/02-unknowns.md`.
@@ -68,7 +69,7 @@ Before doing work:
    external side effects, credentials, cost, security, privacy, or ambiguity
    about what autopilot may decide.
 7. If the status records `route: fast-track`, verify `autopilot approval:
-   approved`, then read
+approved`, then read
    `../using-leaf/references/fast-track.md` and keep its request-scoped budget.
 
 If any start check fails, stop with the smallest needed repair or user question.
@@ -87,7 +88,7 @@ If any start check fails, stop with the smallest needed repair or user question.
    fit the locked triple and the user's pre-authorization.
 5. **Audit completion.** Do not mark done because files exist. Map the locked
    triple and criteria to evidence: gate files, command output, tests, `leaf
-   doctor`, review notes, and unresolved assumptions.
+doctor`, review notes, and unresolved assumptions.
 6. **Move to Feedback.** After ⑧ is passed or delivered, move the sprout to
    `.leaf/02-leaves/<slug>/` using the LEAF lifecycle rule, update status, and
    run `leaf doctor`.
@@ -95,7 +96,7 @@ If any start check fails, stop with the smallest needed repair or user question.
    appears. Complete route-appropriate cumulative polish first. Then, only if
    status still has exact `route: fast-track`, set it to `fast-track (expired)`
    with `autopilot approval: expired` and `fold approval: expired`. Follow
-   `using-leaf` ending rules: keep, press via `leaf:press`, or fall.
+   `../using-leaf/references/lifecycle.md` ending rules: keep, press via `leaf:press`, or fall.
 
 ## Hard Stops
 

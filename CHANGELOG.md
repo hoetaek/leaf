@@ -8,6 +8,21 @@ minor version instead of moving to `x.0.0`.
 
 ## Unreleased
 
+## 0.19.1 - 2026-09-09
+
+- Dependencies: updated Rust dependencies, including `lru`, `plist`, and
+  `quick-xml` fixes, and removed the obsolete quick-xml security audit exceptions.
+  Also updated the HTTP client, serialization, CLI parsing, async runtime, and
+  embedded web asset dependencies.
+- Development: standardized web and plugin tooling on Node.js 24 LTS through
+  `.nvmrc`, package engine declarations, and shared CI/release configuration.
+  Updated Node type declarations and prevented Node's global Web Storage from
+  interfering with jsdom tests.
+- Plugin skills: released `leaf` plugin 0.12.0 — narrowed automatic LEAF routing
+  so clear ordinary work proceeds directly, moved lifecycle-only guidance out of
+  startup context, and preserved explicit requests for step-by-step approval.
+  A missing CLI now prompts installation only when actual LEAF records need it.
+
 ## 0.19.0 - 2026-09-01
 
 - Plugin skills: released `leaf` plugin 0.11.0 — added request-scoped

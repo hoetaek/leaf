@@ -51,15 +51,15 @@ approval을 `expired`로 바꾼 뒤 승격한다. 이 전환도 대화에만 남
 
 ## 기본 절차 예산
 
-| 절차 | 기본값 | 늘리는 조건 |
-|---|---:|---|
-| sprout·CLI body | 유지 | — |
-| triple 승인 | 1회 묶음 | 항목이 모호하거나 서로 충돌함 |
-| scout | 0 | bounded unknown 하나를 확인해야 함 |
-| quiz | 0 | 사용자가 triple을 판단할 외부 지식이 필요함 |
-| 경계 누적 self-polish | 유지 | — |
-| full polish·독립 polish reviewer | 0 | 문서가 길거나 stale·모순·사용자 검토 품질 위험이 있음 |
-| live UI | 0 | 사용자가 요청했거나 rendered artifact를 봐야 판단 가능함 |
+| 절차                             |   기본값 | 늘리는 조건                                              |
+| -------------------------------- | -------: | -------------------------------------------------------- |
+| sprout·CLI body                  |     유지 | —                                                        |
+| triple 승인                      | 1회 묶음 | 항목이 모호하거나 서로 충돌함                            |
+| scout                            |        0 | bounded unknown 하나를 확인해야 함                       |
+| quiz                             |        0 | 학습 세션에서 지식 확인이 사용자에게 도움이 됨           |
+| 경계 누적 self-polish            |     유지 | —                                                        |
+| full polish·독립 polish reviewer |        0 | 문서가 길거나 stale·모순·사용자 검토 품질 위험이 있음    |
+| live UI                          |        0 | 사용자가 요청했거나 rendered artifact를 봐야 판단 가능함 |
 
 ③ · ⑥ · ⑧ · ⑨ · ⑩은 항상 실행하되 증거에 맞게 깊이를 줄일 수 있다.
 ④ · ⑤ · ⑦은 `../../work/references/gates.md`의 기존 조건을 만족하고 triple에서

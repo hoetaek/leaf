@@ -4,8 +4,8 @@
 
 Evaluate routes in this order and stop at the first match:
 
-1. direct execution — execution-ready이고 durable LEAF record를 명시적으로
-   요청하지 않았을 때만 match
+1. direct execution — 요구와 성공 조건이 명확하고, LEAF·학습 세션·공동 설계·
+   durable LEAF record를 명시적으로 요청하지 않았을 때만 match
 2. fast-track LEAF
 3. discovery-heavy LEAF
 
@@ -79,7 +79,7 @@ hard stop으로 돌아간다.
 
 실행 중 보안·공개 계약·대규모 구조를 좌우하는 미결정 사항이 드러나면 direct
 execution을 멈추고 Learn부터 일반 LEAF lifecycle을 시작한다. 이 경우에만
-phase gate, polish, review UI가 적용된다.
+phase gate와 누적 coherence 점검이 적용된다. 독립 검토와 UI는 각 조건이 있을 때만 적용된다.
 
 ---
 
@@ -122,7 +122,7 @@ phase gate, polish, review UI가 적용된다.
 ### Default procedure budget
 
 - scouts: 0 unless a bounded unknown requires one
-- quiz: 0 unless the user needs outside knowledge to judge the triple
+- quiz: 0 unless a learning session benefits from a knowledge check
 - live UI opens: 0 unless the user requests it or a rendered artifact needs review
 - independent polish reviews: 0 unless document-quality risk requires one
 - triple approvals: 1 bundled approval
@@ -140,3 +140,36 @@ fast-track이나 autopilot 승인은 배포,
 삭제, 외부 공유, 비용 발생 같은 별도 권한을 만들지 않는다. 같은 요청을 재개하며
 locked `what`이 유지될 때만 승인이 유효하다. 새 follow-up이나 scope 변경은
 routing 전에 기존 승인을 만료하고 새로 승인받는다.
+
+## Additional routing and procedure cases
+
+These are behavioral evaluation prompts and expected boundaries. Static contract
+checks alone do not demonstrate that a model follows them.
+
+| Request/context                                                                     | Expected route and first action                                            | Must not infer                                                 |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| “Compare these supplied alternatives in a paragraph”; criteria and sources provided | direct: compare using supplied evidence                                    | research/comparison implies LEAF                               |
+| “Write a short migration note from this diff”                                       | direct: inspect diff and draft note                                        | document output implies Learn                                  |
+| “Add this fully specified local command”; scope and checks clear                    | direct: inspect local state and make first execution evidence              | new implementation implies lifecycle                           |
+| “Explain this algorithm”; user wants an answer                                      | direct: explain at the requested depth                                     | explanation authorizes a quiz or durable record                |
+| “Use LEAF to learn this topic with me”                                              | Learn: establish the user's learning gap and useful questions              | four scouts, live UI, or a quiz always required                |
+| “Design this with me”; core trade-off unresolved                                    | Learn: surface that decision with evidence                                 | ordinary comparison alone supplies collaborative-design intent |
+| LEAF discovery has one local unresolved choice                                      | local investigation, with decisive trade-offs visible                      | discovery-heavy requires four delegated agents                 |
+| The triple is explicit in the user's approved request                               | record those decisions and ask only about a genuinely missing item         | phase entry cancels prior approval                             |
+| User requests separate approval at each phase                                       | retain those stops                                                         | bundled triple approval grants autopilot                       |
+| Small coherent LEAF documents reach a boundary                                      | cumulative self-review and marker removal                                  | independent review or live UI required by the boundary         |
+| Complex conflicting LEAF documents need review                                      | independent review if authorized and available; name limitations otherwise | permission to delegate without authorization                   |
+| CLI missing and request is ordinary clear work                                      | direct: proceed without installing LEAF                                    | missing binary blocks the task                                 |
+
+## Known fast-track continuation without repeating the route name
+
+The user need not repeat “fast track” in a same-request continuation. Before
+routing, inspect only the known sprout's status and follow the existing
+`fast-track.md` contract. Do not discover unrelated sprouts for a direct task.
+
+| Context                                                                                                      | Expected decision before execution                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| pre-lock continuation: known sprout has active route and both approvals `not approved`; user says “continue” | Read fast-track reference; resume Learn with its procedure budget and no autopilot/fold delegation, even without locked `what`            |
+| approved same-request continuation: active status approvals and locked `what` remain valid                   | Read fast-track reference and consume only recorded delegation for that same request                                                      |
+| new follow-up or changed scope while prior active fast-track is known                                        | Read fast-track reference and expire the prior route and both approvals before routing the new request; direct remains possible afterward |
+| ordinary direct request with no known sprout continuation or active fast-track                               | no workspace search; execute directly without loading lifecycle references                                                                |

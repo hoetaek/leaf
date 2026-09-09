@@ -1,7 +1,7 @@
 interface:
   display_name: "LEAF Polish"
   short_description: "Self-polish fast-track or fully polish LEAF reports"
-  default_prompt: "Use $leaf:polish at a real LEAF document boundary. Fast-track defaults to cumulative self-polish without an independent reviewer unless length, staleness, contradiction, or user-review quality risk triggers the full pass. Never delay execution-ready evidence for polish."
+  default_prompt: "Use $leaf:polish at a real LEAF document boundary. Check cumulative coherence; use independent review only for document-quality risk with authorized delegation. Direct execution does not require polish."
 
 policy:
   allow_implicit_invocation: true

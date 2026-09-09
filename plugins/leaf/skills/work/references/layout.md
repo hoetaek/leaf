@@ -22,7 +22,7 @@ Learn and post-Learn work stay in the same sprout through ⑧ Artifact /
 Execution. After ⑧ passes, `work` moves the project folder to
 `.leaf/02-leaves/<slug>/`, updates `00-status.md` for Feedback, and runs
 `leaf doctor` before ⑨ Review / Sync and ⑩ Retrospect. Immediately after ⑩,
-follow `using-leaf` ("Ending a leaf") to keep, press, or fall.
+follow `../../using-leaf/references/lifecycle.md` ("Ending a leaf") to keep, press, or fall.
 
 ## CLI Start
 
@@ -139,24 +139,24 @@ Recommended template:
 - return count: 0
 - last updated: YYYY-MM-DD
 
-| Gate | Status | Progress | Artifact | Next / Waiting on |
-|---|---:|---:|---|---|
-| ① Intent | complete | 100 | 01-Learn/01-intent.md | - |
-| ② Unknowns & Context | active | 50 | 01-Learn/02-unknowns.md | resolve blocking unknowns |
-| ③ Criteria | not-started | 0 | 02-Example/03-criteria.md | start after Learn closes |
-| ④ Wireframe | not-started | 0 | 02-Example/04-wireframe/ | - |
-| ⑤ Design | not-started | 0 | 03-Architect/05-design.md | - |
-| ⑥ Critic | not-started | 0 | 03-Architect/06-critic.md | - |
-| ⑦ Tasks | not-started | 0 | 03-Architect/07-tasks.md | - |
-| ⑧ Artifact | not-started | 0 | 03-Architect/08-execution.md | - |
-| ⑨ Review | not-started | 0 | 04-Feedback/09-review.md | - |
-| ⑩ Retrospect | not-started | 0 | 04-Feedback/10-retrospect.md | - |
+| Gate                 |      Status | Progress | Artifact                     | Next / Waiting on         |
+| -------------------- | ----------: | -------: | ---------------------------- | ------------------------- |
+| ① Intent             |    complete |      100 | 01-Learn/01-intent.md        | -                         |
+| ② Unknowns & Context |      active |       50 | 01-Learn/02-unknowns.md      | resolve blocking unknowns |
+| ③ Criteria           | not-started |        0 | 02-Example/03-criteria.md    | start after Learn closes  |
+| ④ Wireframe          | not-started |        0 | 02-Example/04-wireframe/     | -                         |
+| ⑤ Design             | not-started |        0 | 03-Architect/05-design.md    | -                         |
+| ⑥ Critic             | not-started |        0 | 03-Architect/06-critic.md    | -                         |
+| ⑦ Tasks              | not-started |        0 | 03-Architect/07-tasks.md     | -                         |
+| ⑧ Artifact           | not-started |        0 | 03-Architect/08-execution.md | -                         |
+| ⑨ Review             | not-started |        0 | 04-Feedback/09-review.md     | -                         |
+| ⑩ Retrospect         | not-started |        0 | 04-Feedback/10-retrospect.md | -                         |
 
 ## Return Log
 
-| Date | From | To | Trigger | Reason | Affected gates | Next approval point |
-|---|---|---|---|---|---|---|
-| - | - | - | - | - | - | - |
+| Date | From | To  | Trigger | Reason | Affected gates | Next approval point |
+| ---- | ---- | --- | ------- | ------ | -------------- | ------------------- |
+| -    | -    | -   | -       | -      | -              | -                   |
 ```
 
 When a return happens, update the affected gate statuses separately. The target
@@ -169,7 +169,7 @@ return invalidated. Do not use `returned` as a status.
 - **One project folder per LEAF work item.** Do not spread one item's process
   files across multiple sprout or leaf folders.
 - **The scaffold comes first for normal Work.** Use `leaf init` / `leaf new
-  <slug>` and keep gate files in that project folder. Execution-ready direct
+<slug>` and keep gate files in that project folder. Execution-ready direct
   work has no scaffold; if it escalates, begin normal Work at Learn. A task too
   small for either path should not invoke LEAF.
 - **Top-level folders are phases.** Use exactly `01-Learn/`, `02-Example/`,

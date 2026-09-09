@@ -25,7 +25,7 @@ build_leaf_context() {
   plugin_root="$(cd "${script_dir}/.." && pwd)"
   using_leaf="$(cat "${plugin_root}/skills/using-leaf/SKILL.md" 2>&1 || echo "Error reading using-leaf skill")"
 
-  content="<EXTREMELY_IMPORTANT>
+  content="<leaf_session_context>
 You have LEAF skills.
 
 **Below is your 'leaf:using-leaf' skill — your entry to the LEAF workflow. For all other leaf skills, use the Skill tool.**
@@ -35,21 +35,13 @@ ${using_leaf}"
   if ! command -v leaf >/dev/null 2>&1; then
     content="${content}
 
-⚠️ REQUIRED — the \`leaf\` CLI is not on PATH.
-
-The skills above drive a repo-local \`.leaf/\` workspace through this binary;
-every \`leaf\` command (\`leaf init\`, \`leaf new\`, \`leaf doctor\`) WILL FAIL
-until it is installed. Before doing any LEAF work, you MUST tell the user to run:
-
-    /leaf:install
-
-Surface this command to the user explicitly and wait for them to run it. Do not
-silently skip it, and do not install the binary yourself. \"The user probably
-already knows\" or \"I'll mention it later\" is the wrong instinct — state it now."
+The \`leaf\` CLI is not on PATH. Direct work can proceed without it.
+Only if the canonical router selects actual LEAF work and records need creating
+or advancing, follow the CLI setup in skills/using-leaf/references/lifecycle.md."
   fi
 
   content="${content}
-</EXTREMELY_IMPORTANT>"
+</leaf_session_context>"
 
   escape_for_json "$content"
 }
