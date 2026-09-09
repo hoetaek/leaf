@@ -7,6 +7,10 @@ escalate to explicit user approval only when they lock high-impact decisions,
 change previously approved direction, start ⑧ execution, or the user asks to
 review them.
 
+Existing explicit approval remains valid within its stated scope. Do not ask
+again merely to transcribe an approved decision or cross a phase. Preserve
+explicit step-by-step approval requests and project authorization boundaries.
+
 ## Cycle
 
 1. **Draft** the smallest artifact that can be challenged in one pass.

@@ -23,17 +23,16 @@ before starting the next kind of work.
 
 LEAF closes four kinds of uncertainty in order:
 
-| Phase | What it makes you able to do | Gates |
-|---|---|---|
-| **Learn** | Judge what the work needs — learned, not guessed *(run in `learn`; inherited here)* | ① Intent · ② Unknowns & Context |
-| **Example** | Prove one cheap instance right before scaling | ③ Criteria · ④ Wireframe |
-| **Architect** | Generalize that instance into a shippable generator | ⑤ Design · ⑥ Critic · ⑦ Tasks · ⑧ Artifact |
-| **Feedback** | Confirm it still holds, then settle what was established and what was learned | ⑨ Review/sync · ⑩ Retrospect |
+| Phase         | What it makes you able to do                                                        | Gates                                      |
+| ------------- | ----------------------------------------------------------------------------------- | ------------------------------------------ |
+| **Learn**     | Judge what the work needs — learned, not guessed _(run in `learn`; inherited here)_ | ① Intent · ② Unknowns & Context            |
+| **Example**   | Prove one cheap instance right before scaling                                       | ③ Criteria · ④ Wireframe                   |
+| **Architect** | Generalize that instance into a shippable generator                                 | ⑤ Design · ⑥ Critic · ⑦ Tasks · ⑧ Artifact |
+| **Feedback**  | Confirm it still holds, then settle what was established and what was learned       | ⑨ Review/sync · ⑩ Retrospect               |
 
 `work` normally starts after `learn` has passed ① Intent and ② Unknowns &
 Context. It carries the same sprout from ③ through ⑧, moves passed work to
-`.leaf/02-leaves/` before ⑨, runs ⑨/⑩, then follows `using-leaf`
-("Ending a leaf") to keep, press, or fall. An execution-ready implementation
+`.leaf/02-leaves/` before ⑨, runs ⑨/⑩, then follows `../using-leaf/references/lifecycle.md` ("Ending a leaf") to keep, press, or fall. An execution-ready implementation
 uses the narrower execution-first lane below and does not enter the normal
 lifecycle unless new uncertainty forces an escalation.
 
@@ -90,8 +89,7 @@ large-structure 미결정 사항을 드러내 추가 발견·설계가 필요할
   Whenever work needs another LEAF skill — `learn` for Learn, `polish`
   for document cleanup, or `press` to press a reference-worthy leaf — invoke
   that skill rather than only referencing its file. The keep/press/fall
-  decision and the fall and keep actions live in `using-leaf`
-  ("Ending a leaf"). Use `profile` when `.leaf/PROFILE.md` needs to be read
+  decision and the fall and keep actions live in `../using-leaf/references/lifecycle.md` ("Ending a leaf"). Use `profile` when `.leaf/PROFILE.md` needs to be read
   or updated.
 - **Act by the relevant gate reference in normal Work.** Identify the current gate, read its
   reference, tell the user the gate, and follow its pass/return conditions.
@@ -101,13 +99,13 @@ large-structure 미결정 사항을 드러내 추가 발견·설계가 필요할
 - **Polish at each formal phase boundary, then cross it with `leaf next`.** At
   every formal phase boundary (the end of Learn, Example, Architect, Feedback,
   and before close-out), run `leaf checkpoint <slug> --<gate>` on the gate files.
-  Discovery-heavy Work invokes `polish` on the cumulative whole. Fast-track
-  performs a lightweight cumulative self-polish and invokes full `polish` plus
-  its independent reviewer only when its budget trigger is present. Either pass
+  Check the cumulative whole at the depth defined by `polish` on both routes;
+  independent review is conditional on document-quality risk and authorized
+  delegation. Fast-track retains its procedure budget. Either pass
   removes the phase's
   `<!-- leaf:polish-pending -->` marker; then run `leaf next <slug>` to advance —
   and show the result per `soul` only when its display condition holds. `leaf
-  next` is the boundary event: if the phase is still unpolished it
+next` is the boundary event: if the phase is still unpolished it
   **pauses (멈칫)** asking you to polish, and `leaf doctor` flags any skipped
   boundary as `boundary_unpolished`. A gate with an in-phase user review (e.g. ④
   Wireframe) may get a local polish just before it.
@@ -120,14 +118,17 @@ large-structure 미결정 사항을 드러내 추가 발견·설계가 필요할
   invalidated by a discovery and resume only the dependent gates. Log each
   return to `04-Feedback/10-retrospective/mid-process-discoveries.md` so ⑩
   Retrospect can review it.
-- **Ask at approval points.** Ordinary gates inside a phase may proceed after
+- **Use existing authorization at approval points.** Reuse explicit requests
+  and prior approvals within their stated scope; do not ask again merely because
+  the same decision is now in a gate file. Preserve user-requested step-by-step
+  approval and project-specific permission boundaries. Ordinary gates inside a phase may proceed after
   self-review. Phase boundaries, high-impact gates, and ⑧ start/pass need
   explicit user approval unless pre-authorized. An execution-ready user request
   pre-authorizes its in-scope reversible implementation; external or destructive
   effects still require their own explicit authorization.
 - **Move and close.** After ⑧ is explicitly passed or delivered, move the same
   folder from `.leaf/01-sprouts/` to `.leaf/02-leaves/`, update status, and run
-  `leaf doctor`. After ⑩ passes, follow `using-leaf` ("Ending a leaf") to
+  `leaf doctor`. After ⑩ passes, follow `../using-leaf/references/lifecycle.md` ("Ending a leaf") to
   keep, press, or fall.
 - **Fold a gate with no uncertainty to close.** A gate always runs, but when
   ④/⑤/⑦ has no uncertainty left to close, pass it with a one-line `folded:`
@@ -158,19 +159,19 @@ disagreement must stay visible. When entering ③–⑤, read `references/engine
 
 ## Reference map
 
-| Read | When |
-|---|---|
-| `../soul/SKILL.md` | shared conduct, voice, review handoff |
-| `../profile/SKILL.md` | effective profile and profile updates |
-| `references/gates.md` | when judging gate readiness, creating/revising a gate artifact, handling a return, or needing examples |
-| `references/gate-authoring.md` | when drafting, grilling, revising, or presenting a gate artifact for review or approval |
-| `references/engine.md` | you are inside ③–⑤ and need the full contract / variation point / generator mechanics + diagram |
-| `references/loop-contract.md` | a gate needs repeated passes and you must decide whether it is actually loop-shaped, then define observe/choose/act/verify/record/stop behavior |
-| `references/clarity-ledger.md` | you want the five-dimension lens for aiming ③ checks or a ① / ② question at the weakest row |
-| `references/experiment-log.md` | a gate's question needs an experiment — an independent, cheap probe that turns a guess into a fact you can't doubt: ② probing the world ("is this true?"), ④ probing one instance of the answer; gives the core, the fact/guess boundary, the fact ladder, and the technique repertoire |
-| `references/decision-rationale.md` | you are inside ⑤ and a non-obvious choice needs durable rationale |
-| `references/design-critic.md` | you are at ⑥ — every design gets at least a quick self-pass; read this for critic depth, output shape, or a durable critic pass |
-| `references/brownfield-html-capture.md` | UI/web work needs a rendered ④ HTML view after the text-first pass — for brownfield UI, anchor in the real screen with pins + close-up previews; for greenfield, mock the sketch; render decisive states; not a replacement for the text-first ④ |
-| `references/task-pr-size-guidance.md` | you are slicing ⑦ tasks/PRs and need the reviewability size tripwires (small / medium / large-justified) |
-| `references/layout.md` | you are writing files: naming, folder layout, and what each gate file records |
-| `references/patterns.md` | you want a per-domain application template |
+| Read                                    | When                                                                                                                                                                                                                                                                                    |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `../soul/SKILL.md`                      | shared conduct, voice, review handoff                                                                                                                                                                                                                                                   |
+| `../profile/SKILL.md`                   | effective profile and profile updates                                                                                                                                                                                                                                                   |
+| `references/gates.md`                   | when judging gate readiness, creating/revising a gate artifact, handling a return, or needing examples                                                                                                                                                                                  |
+| `references/gate-authoring.md`          | when drafting, grilling, revising, or presenting a gate artifact for review or approval                                                                                                                                                                                                 |
+| `references/engine.md`                  | you are inside ③–⑤ and need the full contract / variation point / generator mechanics + diagram                                                                                                                                                                                         |
+| `references/loop-contract.md`           | a gate needs repeated passes and you must decide whether it is actually loop-shaped, then define observe/choose/act/verify/record/stop behavior                                                                                                                                         |
+| `references/clarity-ledger.md`          | you want the five-dimension lens for aiming ③ checks or a ① / ② question at the weakest row                                                                                                                                                                                             |
+| `references/experiment-log.md`          | a gate's question needs an experiment — an independent, cheap probe that turns a guess into a fact you can't doubt: ② probing the world ("is this true?"), ④ probing one instance of the answer; gives the core, the fact/guess boundary, the fact ladder, and the technique repertoire |
+| `references/decision-rationale.md`      | you are inside ⑤ and a non-obvious choice needs durable rationale                                                                                                                                                                                                                       |
+| `references/design-critic.md`           | you are at ⑥ — every design gets at least a quick self-pass; read this for critic depth, output shape, or a durable critic pass                                                                                                                                                         |
+| `references/brownfield-html-capture.md` | UI/web work needs a rendered ④ HTML view after the text-first pass — for brownfield UI, anchor in the real screen with pins + close-up previews; for greenfield, mock the sketch; render decisive states; not a replacement for the text-first ④                                        |
+| `references/task-pr-size-guidance.md`   | you are slicing ⑦ tasks/PRs and need the reviewability size tripwires (small / medium / large-justified)                                                                                                                                                                                |
+| `references/layout.md`                  | you are writing files: naming, folder layout, and what each gate file records                                                                                                                                                                                                           |
+| `references/patterns.md`                | you want a per-domain application template                                                                                                                                                                                                                                              |

@@ -18,15 +18,17 @@ Gate to continue:
   user review, or recorded with what would be believed instead if false.
 - Any change from ①'s provisional what is recorded with the fact or premise
   that caused it.
-- The user can explain the core knowledge the topic's decisions rest on —
-  the concepts, why it is this way, and where it forks.
+- The evidence needed for the next decision is understandable. In a learning
+  session, help the user understand the core concepts and trade-offs; a quiz is
+  optional and is not a gate requirement.
 - The why / what / wireframe triple is locked in `00-status.md` through an
-  ask → approve → write loop — per item for discovery-heavy, or as one
-  unambiguous bundle for fast-track — and is never agent-authored;
+  explicit user decision or approval of a concrete proposal. Reuse existing
+  approval for the same scope; an unambiguous bundle is valid on either route.
+  An agent draft alone cannot lock the triple;
   `none — <reason>` is a valid approved answer.
 - A fast-track bundle also records `route: fast-track`, `autopilot approval:
-  approved | not approved`, and `fold approval: eligible ④/⑤/⑦ approved | not
-  approved` in the `00-status.md` preamble; missing fields grant no delegation.
+approved | not approved`, and `fold approval: eligible ④/⑤/⑦ approved | not
+approved` in the `00-status.md` preamble; missing fields grant no delegation.
   If autopilot is `not approved`, fold is also `not approved` and manual work
   returns to the canonical ③ interactive approval.
 
