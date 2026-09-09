@@ -4,11 +4,21 @@ Thanks for considering a contribution to `leaf`.
 
 ## Development Setup
 
+Use Node.js 24 LTS for web and plugin tooling. `.nvmrc` selects the major
+version for local development and CI; use the latest available 24.x patch.
+
 ```bash
 git clone https://github.com/hoetaek/leaf.git
 cd leaf
+nvm install
+nvm use
+npm --prefix web ci
+npm --prefix web run build
 cargo test --locked --all-features
 ```
+
+If you do not use nvm, install Node.js 24 LTS with your preferred version manager.
+Build the web UI before enabling all Rust features so the CLI can embed `web/dist`.
 
 ## Checks
 
